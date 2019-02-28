@@ -40,7 +40,7 @@ codegen-units = 1
 arrayref = "0.3.5"
 
 [dev-dependencies]
-criterion = { git = "https://github.com/bheisler/criterion.rs" }
+criterion = "0.2.10"
 seahash = "3.0.5"
 fnv = "1.0.5"
 fxhash = "0.2.1"
