@@ -1,0 +1,51 @@
+[package]
+name = "ahash"
+version = "0.1.0"
+authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A non-cryprographic hash function using AES-NI for high performance"
+documentation = "https://docs.rs/ahash"
+repository = "https://github.com/tkaitchuck/ahash"
+keywords = ["hash", "hashmap", "aes", "aes-ni"]
+edition = "2018"
+
+[lib]
+name = "ahash"
+path = "src/lib.rs"
+test = true
+doctest = true
+bench = true
+doc = true
+
+[[bench]]
+name = "ahash"
+path = "tests/bench.rs"
+harness = false
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = 'fat'
+debug-assertions = false
+codegen-units = 1
+
+[profile.bench]
+opt-level = 3
+debug = false
+lto = 'fat'
+debug-assertions = false
+codegen-units = 1
+
+[dependencies]
+arrayref = "0.3.5"
+
+[dev-dependencies]
+criterion = { git = "https://github.com/bheisler/criterion.rs" }
+seahash = "3.0.5"
+fnv = "1.0.5"
+fxhash = "0.2.1"
+hex = "0.3.2"
+
+[package.metadata.docs.rs]
+rustc-args = ["-C", "target-feature=+aes"]
+rustdoc-args = ["-C", "target-feature=+aes"]
