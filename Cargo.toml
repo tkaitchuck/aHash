@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryprographic hash function using AES-NI for high performance"
@@ -39,7 +39,6 @@ codegen-units = 1
 
 [dependencies]
 arrayref = "0.3.5"
-rand = "0.6.5"
 
 [dev-dependencies]
 criterion = "0.2.10"
