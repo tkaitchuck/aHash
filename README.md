@@ -62,6 +62,11 @@ aHash should not be used for situations where cryptographic security is needed f
 
 There are several efforts to build a secure hash function that uses AES-NI for acceleration, but this is not one of them.
 
+## Compatibility
+
+Currently aHash is pre 1.0. So new versions may change the algorithm slightly resulting in the new version producing different hashes than the old version even with the same keys.
+Additionally aHash does not currently guarantee that it won't produce different hash values for the same data on different machines. 
+
 ## Supported CPUs
 
 Hardware AES instructions are built into Intel processors built after 2010 and AMD processors after 2012.

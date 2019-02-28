@@ -1,17 +1,31 @@
 mod convert;
 
+///# aHash
+///
+/// This hashing algorithm is intended to be a DOS resistant, hardware specific, alternative to FxHash.
+/// It provides a high speed hash algorithm, but unlike FxHash it is a Keyed hash. This allows it to be used
+/// in a HashMap without allowing for the possibility that an malicious user can induce a collision.
+///
+/// # How aHash works
+///
+/// aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
+/// It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
+
 use crate::convert::Convert;
 use std::collections::{HashMap};
+use std::collections::hash_map::RandomState;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::mem::transmute;
 
+/// A builder for an AHasher that uses a thread local random number to generate the keys.
+/// To controll the keys uses instead call [AHasher](struct.AHasher.html#method.new_with_keys)
 pub type ABuildHasher = BuildHasherDefault<AHasher>;
 
 /// A `HashMap` using a default aHash hasher.
 pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
-const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
+//const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
 
 #[derive(Debug, Clone)]
 pub struct AHasher {
@@ -25,11 +39,19 @@ impl AHasher {
 }
 
 impl Default for AHasher {
+    /// Copied from `std/collections/hash/RandomState`
+    /// TODO figure out how to refer to it so as to not duplicate code.
     #[inline]
     fn default() -> AHasher {
-        AHasher {
-            buffer: DEFAULT_KEYS,
-        }
+        thread_local!(static KEYS: Cell<(u64, u64)> = {
+            Cell::new(sys::hashmap_random_keys())
+        });
+
+        KEYS.with(|keys| {
+            let (k0, k1) = keys.get();
+            keys.set((k0.wrapping_add(1), k1));
+            AHasher { buffer: [k0, k1] }
+        })
     }
 }
 
@@ -48,6 +70,8 @@ macro_rules! as_array {
     }}
 }
 
+//Note that each of the write_XX methods passes the arguments slightly differently to hash.
+//This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
 impl Hasher for AHasher {
     #[inline]
     fn write_u8(&mut self, i: u8) {
@@ -130,7 +154,7 @@ impl Hasher for AHasher {
 }
 
 #[inline(always)]
-pub fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
+fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
