@@ -13,12 +13,9 @@ mod convert;
 
 use crate::convert::Convert;
 use std::collections::{HashMap};
-use std::collections::hash_map::RandomState;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::mem::transmute;
-use std::cell::Cell;
-use rand::Rng;
 
 /// A builder for an AHasher that uses a thread local random number to generate the keys.
 /// To controll the keys uses instead call [AHasher](struct.AHasher.html#method.new_with_keys)
@@ -27,7 +24,7 @@ pub type ABuildHasher = BuildHasherDefault<AHasher>;
 /// A `HashMap` using a default aHash hasher.
 pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
-//const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
+const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
 
 #[derive(Debug, Clone)]
 pub struct AHasher {
@@ -41,19 +38,9 @@ impl AHasher {
 }
 
 impl Default for AHasher {
-    /// Copied from `std/collections/hash/RandomState`
-    /// TODO figure out how to refer to it so as to not duplicate code.
     #[inline]
     fn default() -> AHasher {
-        thread_local!(static KEYS: Cell<(u64, u64)> = {
-            Cell::new((rand::thread_rng().gen(),rand::thread_rng().gen()))
-        });
-
-        KEYS.with(|keys| {
-            let (k0, k1) = keys.get();
-            keys.set((k0.wrapping_add(1), k1));
-            AHasher { buffer: [k0, k1] }
-        })
+        AHasher { buffer: [DEFAULT_KEYS[0], DEFAULT_KEYS[1]] }
     }
 }
 
