@@ -13,6 +13,7 @@ mod convert;
 
 use crate::convert::Convert;
 use std::collections::{HashMap};
+use std::collections::hash_map::RandomState;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::mem::transmute;
