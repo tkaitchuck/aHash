@@ -75,7 +75,7 @@ impl Default for LocationBasedState {
     }
 }
 
-/// A trait for hashing an arbitrary stream of bytes.
+/// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
 /// Instances of `AHasher` represent state that is updated while hashing data.
 ///
