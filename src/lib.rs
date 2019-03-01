@@ -2,8 +2,9 @@ mod convert;
 
 ///# aHash
 ///
-/// This hashing algorithm is intended to be a DOS resistant, hardware specific, alternative to FxHash.
-/// It provides a high speed hash algorithm, but unlike FxHash it is a Keyed hash. This allows it to be used
+/// This hashing algorithm is intended to be a DOS resistant, hardware specific, Hash.
+/// This can be seen as a DOS resistant alternative to FxHash, or a fast equivalent to SipHash.
+/// It provides a high speed hash algorithm, and is a Keyed hash. This allows it to be used
 /// in a HashMap without allowing for the possibility that an malicious user can induce a collision.
 ///
 /// # How aHash works
@@ -14,29 +15,98 @@ mod convert;
 use crate::convert::Convert;
 use std::collections::{HashMap};
 use std::default::Default;
-use std::hash::{BuildHasherDefault, Hasher};
+use std::hash::{BuildHasherDefault, Hasher, BuildHasher};
 use std::mem::transmute;
 
-/// A builder for an AHasher that uses a thread local random number to generate the keys.
-/// To controll the keys uses instead call [AHasher](struct.AHasher.html#method.new_with_keys)
-pub type ABuildHasher = BuildHasherDefault<AHasher>;
-
-/// A `HashMap` using a default aHash hasher.
-pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
+/// A `HashMap` using a `LocationBasedState` BuildHasher to hash the items.
+pub type AHashMap<K, V> = HashMap<K, V, LocationBasedState>;
 
 const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
 
+/// Provides a `BuildHasher` is typically used (e.g. by [`HashMap`]) to create
+/// [`AHasher`]s for each key such that they are hashed independently of one
+/// another, since [`AHasher`]s contain state.
+///
+/// LocationBasedState uses it's in-memory location to see the AHasher. This
+/// is more predictable than true random values, but does not require generating
+/// them.
+///
+/// For each instance of `LocationBasedState`, the [`AHasher`]s created by
+/// [`build_hasher`] should be identical. That is, if the same stream of bytes
+/// is fed into each hasher, the same output will also be generated.
+///
+/// # Examples
+///
+/// ```
+/// use ahash::LocationBasedState;
+/// use std::hash::{BuildHasher, Hasher};
+///
+/// let s = LocationBasedState::new();
+/// let mut hasher_1 = s.build_hasher();
+/// let mut hasher_2 = s.build_hasher();
+///
+/// hasher_1.write_u32(8128);
+/// hasher_2.write_u32(8128);
+///
+/// assert_eq!(hasher_1.finish(), hasher_2.finish());
+/// ```
+///
+/// [`build_hasher`]: #tymethod.build_hasher
+/// [`Hasher`]: trait.Hasher.html
+/// [`HashMap`]: ../../std/collections/struct.HashMap.html
+pub struct LocationBasedState { }
+
+impl LocationBasedState {
+    pub fn new() -> LocationBasedState {
+        LocationBasedState{}
+    }
+}
+impl BuildHasher for LocationBasedState {
+    type Hasher = AHasher;
+
+    fn build_hasher(&self) -> AHasher {
+        let location = self as *const Self as u64;
+        AHasher {buffer:[location, location.rotate_left(8)]}
+    }
+}
+impl Default for LocationBasedState {
+    fn default() -> LocationBasedState {
+        LocationBasedState{}
+    }
+}
+
+/// A trait for hashing an arbitrary stream of bytes.
+///
+/// Instances of `AHasher` represent state that is updated while hashing data.
+///
+/// Each method updates the internal state based on the new data provided. Once
+/// all of the data has been provided, the resulting hash can be obtained by calling
+/// `finish()`
+///
+/// #Example
+///
+/// ```
+/// use std::hash::Hasher;
+/// use ahash::AHasher;
+///
+/// let mut hasher = AHasher::new_with_keys(123, 456);
+///
+/// hasher.write_u32(1989);
+/// hasher.write_u8(11);
+/// hasher.write_u8(9);
+/// hasher.write(b"Huh?");
+///
+/// println!("Hash is {:x}!", hasher.finish());
+/// ```
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
 }
-
 impl AHasher {
     pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer:[key0, key1] }
     }
 }
-
 impl Default for AHasher {
     #[inline]
     fn default() -> AHasher {
@@ -59,7 +129,7 @@ macro_rules! as_array {
     }}
 }
 
-//Note that each of the write_XX methods passes the arguments slightly differently to hash.
+//Implementation note: each of the write_XX methods passes the arguments slightly differently to hash.
 //This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
 impl Hasher for AHasher {
     #[inline]
@@ -162,6 +232,26 @@ fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
 mod tests {
     use crate::convert::Convert;
     use crate::*;
+
+    #[test]
+    fn test_builder() {
+        let mut map = HashMap::<u32, u64, LocationBasedState>::default();
+        map.insert(1, 3);
+    }
+
+    #[test]
+    fn test_location_based_state() {
+        let state = LocationBasedState::new();
+        let hasher_a = state.build_hasher();
+        assert_ne!(0, hasher_a.buffer[0]);
+        assert_ne!(0, hasher_a.buffer[1]);
+        assert_ne!(hasher_a.buffer[0], AHasher::default().buffer[0]);
+        assert_ne!(hasher_a.buffer[1], AHasher::default().buffer[1]);
+        let hasher_b = state.build_hasher();
+        assert_eq!(hasher_a.buffer[0], hasher_b.buffer[0]);
+        assert_eq!(hasher_a.buffer[1], hasher_b.buffer[1]);
+    }
+
     #[test]
     fn test_hash() {
         let mut result: [u64; 2] = [0x6c62272e07bb0142, 0x62b821756295c58d];
