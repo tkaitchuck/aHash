@@ -22,6 +22,7 @@ use std::mem::transmute;
 /// A `HashMap` using a `LocationBasedState` BuildHasher to hash the items.
 pub type AHashMap<K, V> = HashMap<K, V, LocationBasedState>;
 
+//These values are not special
 const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
 
 /// Provides a [BuildHasher] is typically used (e.g. by [HashMap]) to create
@@ -66,7 +67,7 @@ impl BuildHasher for LocationBasedState {
 
     fn build_hasher(&self) -> AHasher {
         let location = self as *const Self as u64;
-        AHasher { buffer: [location, location.rotate_left(8)] }
+        AHasher { buffer: [location, location.wrapping_mul(DEFAULT_KEYS[1])] }
     }
 }
 
@@ -183,12 +184,14 @@ impl Hasher for AHasher {
                 self.buffer = hash(self.buffer.convert(), *block).convert();
                 data = rest;
             }
+            //This is to hash the final block read in the loop. Note the argument order to hash in the loop.
             self.buffer = hash(self.buffer.convert(), self.buffer.convert()).convert();
         }
         if data.len() >= 8 {
             let (block, rest) = data.split_at(8);
             let val: u64 = as_array!(block, 8).convert();
             remainder_hi ^= val;
+            // This rotate is done to prevent someone from creating a collision by adding 8 nulls to a value.
             remainder_hi = remainder_hi.rotate_left(32);
             data = rest;
         }
