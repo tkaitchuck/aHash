@@ -62,3 +62,20 @@ convert!([f32; 4], [u8; 16]);
 convert!(f64, [u8; 8]);
 convert!([f32; 2], [u8; 8]);
 convert!(f32, [u8; 4]);
+
+
+
+macro_rules! as_array {
+    ($input:expr, $len:expr) => {{
+        {
+            #[inline]
+            fn as_array<T>(slice: &[T]) -> &[T; $len] {
+                assert_eq!(slice.len(), $len);
+                unsafe {
+                    &*(slice.as_ptr() as *const [_; $len])
+                }
+            }
+            as_array($input)
+        }
+    }}
+}

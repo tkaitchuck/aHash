@@ -10,10 +10,11 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
-
+#[macro_use]
 mod convert;
+use crate::convert::{Convert};
 
-use crate::convert::Convert;
+pub mod fallback;
 use std::collections::HashMap;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher, BuildHasher};
@@ -121,21 +122,6 @@ impl Default for AHasher {
     fn default() -> AHasher {
         AHasher { buffer: [DEFAULT_KEYS[0], DEFAULT_KEYS[1]] }
     }
-}
-
-macro_rules! as_array {
-    ($input:expr, $len:expr) => {{
-        {
-            #[inline]
-            fn as_array<T>(slice: &[T]) -> &[T; $len] {
-                assert_eq!(slice.len(), $len);
-                unsafe {
-                    &*(slice.as_ptr() as *const [_; $len])
-                }
-            }
-            as_array($input)
-        }
-    }}
 }
 
 /// Provides methods to hash all of the primitive types.
