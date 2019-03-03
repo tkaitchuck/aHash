@@ -1,11 +1,11 @@
 use crate::convert::{Convert};
 use std::hash::{BuildHasherDefault, Hasher, BuildHasher};
-
-//These values are not special
-const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
+use const_random::const_random;
 
 //This value is pulled from a 64 bit LCG.
 const MULTIPLE: u64 = 6364136223846793005;
+
+const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 #[derive(Debug, Clone)]
 pub struct FallbackHasher {

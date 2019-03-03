@@ -10,71 +10,79 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
+extern crate const_random;
+
 #[macro_use]
 mod convert;
-use crate::convert::{Convert};
+
+use crate::convert::Convert;
 
 pub mod fallback;
+
 use std::collections::HashMap;
 use std::default::Default;
-use std::hash::{BuildHasherDefault, Hasher, BuildHasher};
+use std::hash::{BuildHasherDefault, Hasher};
 use std::mem::transmute;
 
-/// A `HashMap` using a `LocationBasedState` BuildHasher to hash the items.
-pub type AHashMap<K, V> = HashMap<K, V, LocationBasedState>;
+use const_random::const_random;
 
-//These values are not special
-const DEFAULT_KEYS: [u64; 2] = [0x6c62_272e_07bb_0142, 0x517c_c1b7_2722_0a95];
+/// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
+pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
 
-/// Provides a [BuildHasher] is typically used (e.g. by [HashMap]) to create
+const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
+
+/// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s for each key such that they are hashed independently of one
 /// another, since [AHasher]s contain state.
 ///
-/// LocationBasedState uses it's in-memory location to see the AHasher. This
-/// is more predictable than true random values, but does not require generating
-/// randomness.
-///
-/// For each instance of [LocationBasedState], the [AHasher]s created by
-/// [BuildHasher] should be identical. That is, if the same stream of bytes
-/// is fed into each hasher, the same output will also be generated.
+/// Constructs a new [AHasher] with compile time generated constants keys.
+/// So the key will be the same from one instance to another,
+/// but different from build to the next. So if it is possible for a potential
+/// attacker to have access to your compiled binary it would be better
+/// to specify keys generated at runtime.
 ///
 /// # Examples
 ///
 /// ```
-/// use ahash::LocationBasedState;
-/// use std::hash::{BuildHasher, Hasher};
+/// use ahash::AHasher;
+/// use std::hash::Hasher;
 ///
-/// let s = LocationBasedState::new();
-/// let mut hasher_1 = s.build_hasher();
-/// let mut hasher_2 = s.build_hasher();
+/// let mut hasher_1 = AHasher::default();
+/// let mut hasher_2 = AHasher::default();
 ///
 /// hasher_1.write_u32(8128);
 /// hasher_2.write_u32(8128);
 ///
 /// assert_eq!(hasher_1.finish(), hasher_2.finish());
 /// ```
-/// [BuildHasher]: std::hash::BuildHasher
 /// [Hasher]: std::hash::Hasher
-pub struct LocationBasedState {}
-
-impl LocationBasedState {
-    pub fn new() -> LocationBasedState {
-        LocationBasedState {}
+/// [HashMap]: std::collections::HashMap
+impl Default for AHasher {
+    #[inline]
+    fn default() -> AHasher {
+        AHasher { buffer: DEFAULT_KEYS }
     }
 }
 
-impl BuildHasher for LocationBasedState {
-    type Hasher = AHasher;
-
-    fn build_hasher(&self) -> AHasher {
-        let location = self as *const Self as u64;
-        AHasher { buffer: [location, location.wrapping_mul(DEFAULT_KEYS[1])] }
-    }
-}
-
-impl Default for LocationBasedState {
-    fn default() -> LocationBasedState {
-        LocationBasedState {}
+impl AHasher {
+    /// Creates a new hasher keyed to the provided keys.
+    /// # Example
+    ///
+    /// ```
+    /// use std::hash::Hasher;
+    /// use ahash::AHasher;
+    ///
+    /// let mut hasher = AHasher::new_with_keys(123, 456);
+    ///
+    /// hasher.write_u32(1989);
+    /// hasher.write_u8(11);
+    /// hasher.write_u8(9);
+    /// hasher.write(b"Huh?");
+    ///
+    /// println!("Hash is {:x}!", hasher.finish());
+    /// ```
+    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
+        AHasher { buffer: [key0, key1] }
     }
 }
 
@@ -86,42 +94,12 @@ impl Default for LocationBasedState {
 /// all of the data has been provided, the resulting hash can be obtained by calling
 /// `finish()`
 ///
-/// #Example
-///
-/// ```
-/// use std::hash::Hasher;
-/// use ahash::AHasher;
-///
-/// let mut hasher = AHasher::new_with_keys(123, 456);
-///
-/// hasher.write_u32(1989);
-/// hasher.write_u8(11);
-/// hasher.write_u8(9);
-/// hasher.write(b"Huh?");
-///
-/// println!("Hash is {:x}!", hasher.finish());
-/// ```
 /// [Clone] is also provided in case you wish to calculate hashes for two different items that
 /// start with the same data.
 ///
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
-}
-
-impl AHasher {
-    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
-        AHasher { buffer: [key0, key1] }
-    }
-}
-
-/// Constructs a new [AHasher] with fixed constant keys.
-/// (This is not recommended in situations where a DOS attack is a concern)
-impl Default for AHasher {
-    #[inline]
-    fn default() -> AHasher {
-        AHasher { buffer: [DEFAULT_KEYS[0], DEFAULT_KEYS[1]] }
-    }
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -231,19 +209,17 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let mut map = HashMap::<u32, u64, LocationBasedState>::default();
+        let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
 
     #[test]
-    fn test_location_based_state() {
-        let state = LocationBasedState::new();
-        let hasher_a = state.build_hasher();
+    fn test_default() {
+        let hasher_a = AHasher::default();
         assert_ne!(0, hasher_a.buffer[0]);
         assert_ne!(0, hasher_a.buffer[1]);
-        assert_ne!(hasher_a.buffer[0], AHasher::default().buffer[0]);
-        assert_ne!(hasher_a.buffer[1], AHasher::default().buffer[1]);
-        let hasher_b = state.build_hasher();
+        assert_ne!(hasher_a.buffer[0], hasher_a.buffer[1]);
+        let hasher_b = AHasher::default();
         assert_eq!(hasher_a.buffer[0], hasher_b.buffer[0]);
         assert_eq!(hasher_a.buffer[1], hasher_b.buffer[1]);
     }
