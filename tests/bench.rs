@@ -50,16 +50,19 @@ fn seahash<H: Hash>(b: H) -> u64 {
     hasher.finish()
 }
 
-const VALUES: [&str; 10] = ["1",
-    "123",
-    "1234",
-    "1234567",
-    "12345678",
-    "123456789012345",
-    "1234567890123456",
-    "123456789012345678901234",
-    "12345678901234567890123456789012345678901234567890123456789012345678",
-    "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"];
+const STRING_LENGTHS: [u32; 11] = [1, 3, 4, 7, 8, 15, 16, 24, 68, 132, 1024];
+
+fn gen_strings() -> Vec<String> {
+    STRING_LENGTHS.iter().map(|len| {
+        let mut string = String::default();
+        for pos in 1..=*len {
+            let c = (48 + (pos % 10) as u8) as char;
+            string.push(c);
+        }
+        string
+    }).collect()
+
+}
 
 const U8_VALUES: [u32; 1] = [8];
 const U16_VALUES: [u16; 1] = [16];
@@ -90,7 +93,7 @@ fn bench_ahash(c: &mut Criterion) {
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(aeshash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(aeshash(&s))), gen_strings()),
     );
 }
 
@@ -117,7 +120,7 @@ fn bench_fallback(c: &mut Criterion) {
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fallbackhash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fallbackhash(&s))), gen_strings()),
     );
 }
 
@@ -144,7 +147,7 @@ fn bench_fx(c: &mut Criterion) {
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fxhash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fxhash(&s))), gen_strings()),
     );
 }
 
@@ -171,14 +174,14 @@ fn bench_fnv(c: &mut Criterion) {
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fnvhash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fnvhash(&s))), gen_strings()),
     );
 }
 
 fn bench_sea(c: &mut Criterion) {
     c.bench(
         "sea",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(seahash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(seahash(&s))), gen_strings()),
     );
 }
 
@@ -205,7 +208,7 @@ fn bench_sip(c: &mut Criterion) {
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(siphash(&s))), &VALUES),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(siphash(&s))), gen_strings()),
     );
 }
 
