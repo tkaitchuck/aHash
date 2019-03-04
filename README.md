@@ -8,14 +8,14 @@ on X86 processors. If it is not available it falls back on a slightly lower qual
 
 Similar to Sip_hash it is a keyed hash, so two hashers initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
-This prevents DOS attackes where an attacker sends a large number of items that get used as keys in a hashmap and the hashes collide.
+This prevents DOS attackes where an attacker sends a large number of items whose hashes collied that get used as keys in a hashmap.
 
 ## Speed
 
 When it is available aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input.
-On an intel i5-6200u this is as fast as a 64 bit multiplication, 
-but it has the advantages of being a much stronger permutation. It also handles 16 bytes at a time. This is obviously
-much faster than most standard approaches to hashing, and does a much better job of scrambling data than most non-secure hashes.
+On an intel i5-6200u this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger permutation.
+It also handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing, and does a 
+much better job of scrambling data than most non-secure hashes.
 
 On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1 -C llvm-args=-unroll-threshold=1000`:
 
@@ -41,23 +41,32 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 As you can see above aHash provides the similar (~5x) speeup over SipHash that FxHash provides.
 
 Rust by default uses SipHash because faster hash functions such as FxHash are predictable and vulnerable to denial of service attacks.
-aHash has both very strong scrambling (inherited from AES) as well as very high performance, but is architecture speffic.
+aHash has both very strong scrambling as well as very high performance.
 
-Similar to FxHash it perfroms well when dealing with large inputs because aHash reads 16 bytes at a time. 
-(This is how it is able to out perfrom FxHash with large strings) It also provides the reasonabably good performance when
-dealing with unaligned input. (notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 above.)
+Similar to FxHash it performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. 
+(depending on availability of AES-NI)
+Because of this aHash is able to out perfrom FxHash with large strings. It also provides the reasonably good performance when
+dealing with unaligned input. (notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 above.
 
 ## Security
 
 aHash is designed to prevent keys from being guessable. This means:
 - It is a high quality hash that produces results that look highly random.
-- It obays the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
+- It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
 Each bit of input can has the potential to flip every bit of the output.
-    - Additionally, whether or not it does so depends on every bit in the Key.
+    - Additionally, when AES is available, even stronger properties hold:
+        - Whether or not a flipped input bit will flip any given output bit depends on every bit in the Key
+        - Whether or not a flipped input bit will flip any given output bit depends on every other bit in the input.
+    - If AES-NI is not available, these properties don't hold for all possible bits in the input/key but for most of them.
+        - In the fallback algorithm there are no full 64 bit collisions with smaller than 64 bits of input.
+        - As of 0.1.5 the worst case potential partial collision on the lower 8 bytes of output with a single u64 as input:
+            The lower byte depends on 63 bits of the key and how they interact with 55 bits of the input. 
+            The algorithm is stronger for strings where the lower byte of output depends on at least 71 bits of the key 
+            interacting with at least 56 bits of the input as well as depending on the length of the input.
 
-This prevents DOS attacks that attempt to produce hash collisions by knowing how the hash wroks.
-It is however not recomended to assume this property can hold if the attaker is allowed to SEE the hashed value.
-AES is desinged to prevent an attacker from learning the key being used even if they can see the encryped output and 
+This prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
+It is however not recommended to assume this property can hold if the attacker is allowed to SEE the hashed value.
+AES is designed to prevent an attacker from learning the key being used even if they can see the encrypted output and 
 select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds, so 
 it likely won't hold up to this sort of attack. For DOS prevention, this should not be a problem, as an attacker trying 
 to produce collisions in a hashmap does not get to see the hash values that are beeing used inside of the map.
@@ -76,7 +85,9 @@ There are several efforts to build a secure hash function that uses AES-NI for a
 
 Currently aHash is pre 1.0. So new versions may change the algorithm slightly resulting in the new version producing 
 different hashes than the old version even with the same keys. Additionally aHash does not currently guarantee that it 
-won't produce different hash values for the same data on different machines. 
+won't produce different hash values for the same data on different machines, or even on the same machine when recompiled.
+
+For this reason aHash prior to 1.0 is not recommended for hashes that are persisted anywhere.
 
 ## Supported CPUs
 
