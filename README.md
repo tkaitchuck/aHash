@@ -1,18 +1,21 @@
 # aHash
 
-aHash is a hashing algorithm that uses the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. aHash provides a very high quality 64 bit hash useful for hashmaps an similar applications.
+aHash is a high speed keyed hashing algorithm intended for use in in-memory hashmaps. It provides a very quality 64 bit hash.
 aHash is designed for performance and is *not cryptographically secure*.
 
+When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
+on X86 processors. If it is not available it falls back on a slightly lower quality algorithm based on a xor a rotation and a 64bit multiply. 
+
 Similar to Sip_hash it is a keyed hash, so two hashers initialized with different keys will produce completely different
-hashes that cannot be predicted without knowing the keys. This prevents DOS attackes where an attacker sends a large number
-of items that get used as keys in a hashmap and the hashes collide.
+hashes and the resulting hashes cannot be predicted without knowing the keys. 
+This prevents DOS attackes where an attacker sends a large number of items that get used as keys in a hashmap and the hashes collide.
 
 ## Speed
 
-aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input. On an intel i5-6200u this is 
-around as fast as a single multiplication instruction per long. This is obviously much faster than most standard approaches 
-to hashing, and does a much better job of scrambling data than most non-secure hashes.
+When it is available aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input.
+On an intel i5-6200u this is as fast as a 64 bit multiplication, 
+but it has the advantages of being a much stronger permutation. It also handles 16 bytes at a time. This is obviously
+much faster than most standard approaches to hashing, and does a much better job of scrambling data than most non-secure hashes.
 
 On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1 -C llvm-args=-unroll-threshold=1000`:
 
