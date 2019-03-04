@@ -1,24 +1,29 @@
 use criterion::*;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
-use ahash::*;
-use ahash::fallback::{FallbackHasher};
+use ahash::{AHasher};
 use fxhash::{FxHasher};
 
-#[cfg(all(
-any(target_arch = "x86", target_arch = "x86_64"),
-target_feature = "aes"
-))]
-pub fn ahash<H: Hash>(b: H) -> u64 {
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+fn ahash<H: Hash>(b: H) -> u64 {
     let mut hasher = AHasher::default();
     b.hash(&mut hasher);
     hasher.finish()
 }
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+fn ahash<H: Hash>(_b: H) -> u64 {
+    panic!("aes must be enabled")
+}
 
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn fallbackhash<H: Hash>(b: H) -> u64 {
-    let mut hasher = FallbackHasher::default();
+    let mut hasher = AHasher::default();
     b.hash(&mut hasher);
     hasher.finish()
+}
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+fn fallbackhash<H: Hash>(_b: H) -> u64 {
+    panic!("aes must be disabled")
 }
 
 fn fnvhash<H: Hash>(b: H) -> u64 {
@@ -62,10 +67,6 @@ const U32_VALUES: [u32; 1] = [32];
 const U64_VALUES: [u64; 1] = [64];
 const U128_VALUES: [u128; 1] = [128];
 
-#[cfg(all(
-any(target_arch = "x86", target_arch = "x86_64"),
-target_feature = "aes"
-))]
 fn bench_ahash(c: &mut Criterion) {
     c.bench(
         "ahash",

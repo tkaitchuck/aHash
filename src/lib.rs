@@ -15,11 +15,15 @@ extern crate const_random;
 #[macro_use]
 mod convert;
 
-use crate::convert::Convert;
-
-pub mod fallback;
+#[cfg(test)]
+mod fallback_hash;
+#[cfg(test)]
+mod aes_hash;
+#[cfg(test)]
+mod hash_quality_test;
 
 use std::collections::HashMap;
+use crate::convert::Convert;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::mem::transmute;
@@ -29,7 +33,25 @@ use const_random::const_random;
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
 pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
 
-const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
+const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
+//This value is pulled from a 64 bit LCG.
+const MULTIPLE: u64 = 6364136223846793005;
+
+/// A `Hasher` for hashing an arbitrary stream of bytes.
+///
+/// Instances of [AHasher] represent state that is updated while hashing data.
+///
+/// Each method updates the internal state based on the new data provided. Once
+/// all of the data has been provided, the resulting hash can be obtained by calling
+/// `finish()`
+///
+/// [Clone] is also provided in case you wish to calculate hashes for two different items that
+/// start with the same data.
+///
+#[derive(Debug, Clone)]
+pub struct AHasher {
+    buffer: [u64; 2],
+}
 
 /// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s for each key such that they are hashed independently of one
@@ -86,45 +108,31 @@ impl AHasher {
     }
 }
 
-/// A `Hasher` for hashing an arbitrary stream of bytes.
-///
-/// Instances of [AHasher] represent state that is updated while hashing data.
-///
-/// Each method updates the internal state based on the new data provided. Once
-/// all of the data has been provided, the resulting hash can be obtained by calling
-/// `finish()`
-///
-/// [Clone] is also provided in case you wish to calculate hashes for two different items that
-/// start with the same data.
-///
-#[derive(Debug, Clone)]
-pub struct AHasher {
-    buffer: [u64; 2],
-}
 
-/// Provides methods to hash all of the primitive types.
+/// Provides methods to hash all of the primitive types. using the AES instruction.
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 impl Hasher for AHasher {
     //Implementation note: each of the write_XX methods passes the arguments slightly differently to hash.
     //This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.buffer = hash([self.buffer[1], self.buffer[0] ^ i as u64].convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash([self.buffer[1], self.buffer[0] ^ i as u64].convert(), self.buffer.convert()).convert();
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.buffer = hash([self.buffer[1] ^ i as u64, self.buffer[0]].convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash([self.buffer[1] ^ i as u64, self.buffer[0]].convert(), self.buffer.convert()).convert();
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.buffer = hash([self.buffer[0], self.buffer[1] ^ i as u64].convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash([self.buffer[0], self.buffer[1] ^ i as u64].convert(), self.buffer.convert()).convert();
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
         let buffer: u128 = self.buffer.convert();
-        self.buffer = hash((buffer ^ i).convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash((buffer ^ i).convert(), self.buffer.convert()).convert();
     }
 
     #[inline]
@@ -134,7 +142,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.buffer = hash([self.buffer[0] ^ i, self.buffer[1]].convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash([self.buffer[0] ^ i, self.buffer[1]].convert(), self.buffer.convert()).convert();
     }
     #[inline]
     fn write(&mut self, input: &[u8]) {
@@ -145,11 +153,11 @@ impl Hasher for AHasher {
             while data.len() >= 16 {
                 let (block, rest) = data.split_at(16);
                 let block: &[u8; 16] = as_array!(block, 16);
-                self.buffer = hash(self.buffer.convert(), *block).convert();
+                self.buffer = aeshash(self.buffer.convert(), *block).convert();
                 data = rest;
             }
             //This is to hash the final block read in the loop. Note the argument order to hash in the loop.
-            self.buffer = hash(self.buffer.convert(), self.buffer.convert()).convert();
+            self.buffer = aeshash(self.buffer.convert(), self.buffer.convert()).convert();
         }
         if data.len() >= 8 {
             let (block, rest) = data.split_at(8);
@@ -177,17 +185,18 @@ impl Hasher for AHasher {
             remainder_low ^= data[0] as u64;
             remainder_low = remainder_low.rotate_left(8);
         }
-        self.buffer = hash([remainder_low, remainder_hi].convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash([remainder_low, remainder_hi].convert(), self.buffer.convert()).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = hash(self.buffer.convert(), self.buffer.convert()).convert();
+        let result: [u64; 2] = aeshash(self.buffer.convert(), self.buffer.convert()).convert();
         result[0]//.wrapping_add(result[1])
     }
 }
 
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
-fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
+fn aeshash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
@@ -198,12 +207,86 @@ fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
     }
 }
 
-#[cfg(all(
-any(target_arch = "x86", target_arch = "x86_64"),
-target_feature = "aes"
-))]
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+#[inline(always)]
+fn fallbackhash(data: u64) -> u64 {
+    return (data.wrapping_mul(MULTIPLE)).rotate_left(17);
+    //Valid rotations here are 10, 12 and 17.
+    //Of these 17 is selected because it is largest and relatively prime to 64.
+}
+
+/// Provides methods to hash all of the primitive types. (this version doesn't depend on AES)
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+impl Hasher for AHasher {
+    #[inline]
+    fn write_u8(&mut self, i: u8) {
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+    }
+
+    #[inline]
+    fn write_u16(&mut self, i: u16) {
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+    }
+
+    #[inline]
+    fn write_u32(&mut self, i: u32) {
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+    }
+
+    #[inline]
+    fn write_u64(&mut self, i: u64) {
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i);
+    }
+
+    #[inline]
+    fn write_u128(&mut self, i: u128) {
+        let data: [u64; 2] = i.convert();
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[0]);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[1]);
+    }
+
+    #[inline]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write(&mut self, input: &[u8]) {
+        let mut data = input;
+        while data.len() >= 8 {
+            let (block, rest) = data.split_at(8);
+            let val: u64 = as_array!(block, 8).convert();
+            self.buffer[0] = fallbackhash(self.buffer[0] ^ val);
+            data = rest;
+        }
+        if data.len() >= 4 {
+            let (block, rest) = data.split_at(4);
+            let val: u32 = as_array!(block, 4).convert();
+            self.buffer[0] ^= val as u64;
+            self.buffer[0] = self.buffer[0].rotate_left(32);
+            data = rest;
+        }
+        if data.len() >= 2 {
+            let (block, rest) = data.split_at(2);
+            let val: u16 = as_array!(block, 2).convert();
+            self.buffer[0] ^= val as u64;
+            self.buffer[0] = self.buffer[0].rotate_left(16);
+            data = rest;
+        }
+        if data.len() >= 1 {
+            self.buffer[0] ^= data[0] as u64;
+            self.buffer[0] = self.buffer[0].rotate_left(8);
+        }
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ self.buffer[1]);
+    }
+    #[inline]
+    fn finish(&self) -> u64 {
+        (self.buffer[0] ^ self.buffer[1]).wrapping_mul(MULTIPLE)
+    }
+}
+
 #[cfg(test)]
-mod tests {
+mod test {
     use crate::convert::Convert;
     use crate::*;
 
@@ -222,21 +305,6 @@ mod tests {
         let hasher_b = AHasher::default();
         assert_eq!(hasher_a.buffer[0], hasher_b.buffer[0]);
         assert_eq!(hasher_a.buffer[1], hasher_b.buffer[1]);
-    }
-
-    #[test]
-    fn test_hash() {
-        let mut result: [u64; 2] = [0x6c62272e07bb0142, 0x62b821756295c58d];
-        let value: [u64; 2] = [1 << 32, 0xFEDCBA9876543210];
-        result = hash(value.convert(), result.convert()).convert();
-        result = hash(result.convert(), result.convert()).convert();
-        let mut result2: [u64; 2] = [0x6c62272e07bb0142, 0x62b821756295c58d];
-        let value2: [u64; 2] = [1, 0xFEDCBA9876543210];
-        result2 = hash(value2.convert(), result2.convert()).convert();
-        result2 = hash(result2.convert(), result.convert()).convert();
-        let result: [u8; 16] = result.convert();
-        let result2: [u8; 16] = result2.convert();
-        assert_ne!(hex::encode(result), hex::encode(result2));
     }
 
     #[test]

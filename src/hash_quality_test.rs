@@ -1,15 +1,14 @@
-use ahash::*;
-use std::hash::{Hash, Hasher};
-
 const BAD_KEY: u64 = 0x0123456789ABCDEF;
 
 ///Basic sanity tests of the cypto properties of aHash.
 #[cfg(test)]
-mod crypto {
-    use crate::*;
+mod aes_tests {
+    use std::hash::{Hash, Hasher};
+    use crate::aes_hash::*;
+    use crate::hash_quality_test::*;
 
     pub fn ahash<H: Hash>(b: H) -> u64 {
-        let mut hasher = AHasher::new_with_keys(BAD_KEY, BAD_KEY);
+        let mut hasher = AesHasher::new_with_keys(BAD_KEY, BAD_KEY);
         b.hash(&mut hasher);
         hasher.finish()
     }
@@ -38,10 +37,10 @@ mod crypto {
 
     #[test]
     fn test_keys_change_output() {
-        let mut a = AHasher::new_with_keys(0, 0);
-        let mut b = AHasher::new_with_keys(0, 1);
-        let mut c = AHasher::new_with_keys(1, 0);
-        let mut d = AHasher::new_with_keys(1, 1);
+        let mut a = AesHasher::new_with_keys(0, 0);
+        let mut b = AesHasher::new_with_keys(0, 1);
+        let mut c = AesHasher::new_with_keys(1, 0);
+        let mut d = AesHasher::new_with_keys(1, 1);
         "test".hash(&mut a);
         "test".hash(&mut b);
         "test".hash(&mut c);
@@ -56,7 +55,7 @@ mod crypto {
 
     #[test]
     fn test_finish_is_consistant() {
-        let mut hasher = AHasher::new_with_keys(1, 2);
+        let mut hasher = AesHasher::new_with_keys(1, 2);
         "Foo".hash(&mut hasher);
         let a = hasher.finish();
         let b = hasher.finish();
@@ -66,27 +65,27 @@ mod crypto {
     #[test]
     fn test_single_key_bit_flip() {
         for bit in 0..64 {
-            let mut a = AHasher::new_with_keys(0, 0);
-            let mut b = AHasher::new_with_keys(0, 1 << bit);
-            let mut c = AHasher::new_with_keys(1 << bit, 0);
+            let mut a = AesHasher::new_with_keys(0, 0);
+            let mut b = AesHasher::new_with_keys(0, 1 << bit);
+            let mut c = AesHasher::new_with_keys(1 << bit, 0);
             "1234".hash(&mut a);
             "1234".hash(&mut b);
             "1234".hash(&mut c);
             assert_sufficiently_different(a.finish(), b.finish());
             assert_sufficiently_different(a.finish(), c.finish());
             assert_sufficiently_different(b.finish(), c.finish());
-            let mut a = AHasher::new_with_keys(0, 0);
-            let mut b = AHasher::new_with_keys(0, 1 << bit);
-            let mut c = AHasher::new_with_keys(1 << bit, 0);
+            let mut a = AesHasher::new_with_keys(0, 0);
+            let mut b = AesHasher::new_with_keys(0, 1 << bit);
+            let mut c = AesHasher::new_with_keys(1 << bit, 0);
             "12345678".hash(&mut a);
             "12345678".hash(&mut b);
             "12345678".hash(&mut c);
             assert_sufficiently_different(a.finish(), b.finish());
             assert_sufficiently_different(a.finish(), c.finish());
             assert_sufficiently_different(b.finish(), c.finish());
-            let mut a = AHasher::new_with_keys(0, 0);
-            let mut b = AHasher::new_with_keys(0, 1 << bit);
-            let mut c = AHasher::new_with_keys(1 << bit, 0);
+            let mut a = AesHasher::new_with_keys(0, 0);
+            let mut b = AesHasher::new_with_keys(0, 1 << bit);
+            let mut c = AesHasher::new_with_keys(1 << bit, 0);
             "1234567812345678".hash(&mut a);
             "1234567812345678".hash(&mut b);
             "1234567812345678".hash(&mut c);
@@ -100,12 +99,12 @@ mod crypto {
     fn test_padding_doesnot_collide() {
         for c in 0..128u8 {
             for string in ["", "1234", "12345678", "1234567812345678"].into_iter() {
-                let mut short = AHasher::default();
+                let mut short = AesHasher::default();
                 string.hash(&mut short);
                 let value = short.finish();
                 let mut string = string.to_string();
                 for num in 1..=128 {
-                    let mut long = AHasher::default();
+                    let mut long = AesHasher::default();
                     string.push(c as char);
                     string.hash(&mut long);
                     let same_bytes = count_same_bytes(value, long.finish());
@@ -143,9 +142,10 @@ fn count_same_bytes(a: u64, b: u64) -> i32 {
 
 
 #[cfg(test)]
-mod fallback {
-    use crate::*;
-    use ahash::fallback::FallbackHasher;
+mod fallback_tests {
+    use std::hash::{Hash, Hasher};
+    use crate::fallback_hash::*;
+    use crate::hash_quality_test::*;
 
     pub fn fallback<H: Hash>(b: H) -> u64 {
         let mut hasher = FallbackHasher::new_with_keys(BAD_KEY, BAD_KEY);
