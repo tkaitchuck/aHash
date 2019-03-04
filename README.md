@@ -21,22 +21,22 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 
 | Input   | SipHash 3-1 time | FnvHash time|FxHash time| aHash time| aHash Fallback time|
 |----------------|-----------|-----------|-----------|-----------|---------------|
-| u8             | 12.415 ns | 2.0967 ns | **1.1531 ns** | 1.4853 ns | 1.3422 ns |
-| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4858 ns | 1.3329 ns |
-| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4871 ns | 1.3244 ns |
-| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4874 ns | 1.3242 ns |
-| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.7187 ns | 1.7170 ns |
-| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | 2.5548 ns | **1.8353 ns** |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | 2.9186 ns | **2.3882 ns** |
-| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 2.5415 ns | 2.1907 ns |
-| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | 3.0936 ns | **2.7905 ns** |
-| 8 byte string  | 18.103 ns | 4.5923 ns | **2.2808 ns** | 2.5501 ns | 2.9154 ns |
-| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **3.2825 ns** | 4.1184 ns |
-| 16 byte string | 19.882 ns | 9.8525 ns | **2.7562 ns** | 4.0007 ns | 3.4502 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | **3.2014 ns** | 4.1262 ns | 4.1600 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.9960 ns** | 8.0634 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.9262 ns** | 16.704 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **52.789 ns** | 209.22 ns |
+| u8             | 12.415 ns | 2.0967 ns | **1.1531 ns** | 1.4853 ns | 1.6706 ns |
+| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4858 ns | 1.6649 ns |
+| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4871 ns | 1.6710 ns |
+| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4874 ns | 1.6647 ns |
+| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.7187 ns | 2.5998 ns |
+| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | 2.5548 ns | **2.4774 ns** |
+| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.9186 ns** | 3.0631 ns |
+| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 2.5415 ns | 2.5904 ns |
+| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **3.0936 ns** | 3.5530 ns |
+| 8 byte string  | 18.103 ns | 4.5923 ns | **2.2808 ns** | 2.5501 ns | 3.7963 ns |
+| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **3.2825 ns** | 5.3538 ns |
+| 16 byte string | 19.882 ns | 9.8525 ns | **2.7562 ns** | 4.0007 ns | 5.0416 ns |
+| 24 byte string | 21.893 ns | 16.640 ns | **3.2014 ns** | 4.1262 ns | 6.3208 ns |
+| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.9960 ns** | 15.727 ns |
+| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.9262 ns** | 33.008 ns |
+|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **52.789 ns** | 396.16 ns |
 
 As you can see above aHash provides the similar (~5x) speeup over SipHash that FxHash provides.
 
