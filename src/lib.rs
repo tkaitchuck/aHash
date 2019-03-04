@@ -211,10 +211,8 @@ const MULTIPLE: u64 = 6364136223846793005;
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 #[inline(always)]
-fn fallbackhash(data: u64) -> u64 {
-    return data.wrapping_mul(MULTIPLE).rotate_left(17).wrapping_mul(MULTIPLE);
-    //Valid rotations here are 10, 12 and 17.
-    //Of these 17 is selected because it is largest and relatively prime to 64.
+fn fallbackhash(data: u64, key: u64) -> u64 {
+    return (data.wrapping_mul(MULTIPLE).rotate_left(22) ^ key).wrapping_mul(MULTIPLE)
 }
 
 /// Provides methods to hash all of the primitive types. (this version doesn't depend on AES)
@@ -222,29 +220,29 @@ fn fallbackhash(data: u64) -> u64 {
 impl Hasher for AHasher {
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64, self.buffer[1]);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64, self.buffer[1]);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i as u64, self.buffer[1]);
     }
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ i);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ i, self.buffer[1]);
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
         let data: [u64; 2] = i.convert();
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[0]);
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[1]);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[0], self.buffer[1]);
+        self.buffer[0] = fallbackhash(self.buffer[0] ^ data[1], self.buffer[1]);
     }
 
     #[inline]
@@ -258,7 +256,7 @@ impl Hasher for AHasher {
         while data.len() >= 8 {
             let (block, rest) = data.split_at(8);
             let val: u64 = as_array!(block, 8).convert();
-            self.buffer[0] = fallbackhash(self.buffer[0] ^ val);
+            self.buffer[0] = fallbackhash(self.buffer[0] ^ val, self.buffer[1]);
             data = rest;
         }
         if data.len() >= 4 {
@@ -279,11 +277,11 @@ impl Hasher for AHasher {
             self.buffer[0] ^= data[0] as u64;
             self.buffer[0] = self.buffer[0].rotate_left(8);
         }
-        self.buffer[0] = fallbackhash(self.buffer[0] ^ self.buffer[1]);
+        self.buffer[0] = fallbackhash(self.buffer[0],self.buffer[1]);
     }
     #[inline]
     fn finish(&self) -> u64 {
-        fallbackhash(self.buffer[0] ^ self.buffer[1])
+        fallbackhash(self.buffer[0], self.buffer[1])
     }
 }
 

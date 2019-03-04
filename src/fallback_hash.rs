@@ -30,8 +30,8 @@ impl Default for FallbackHasher {
 }
 
 #[inline(always)]
-fn hash(data: u64) -> u64 {
-    return data.wrapping_mul(MULTIPLE).rotate_left(17).wrapping_mul(MULTIPLE)
+fn hash(data: u64, key: u64) -> u64 {
+    return (data.wrapping_mul(MULTIPLE).rotate_left(22) ^ key).wrapping_mul(MULTIPLE)
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -39,29 +39,29 @@ impl Hasher for FallbackHasher {
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.buffer = hash(self.buffer ^ i as u64);
+        self.buffer = hash(self.buffer ^ i as u64, self.key);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.buffer = hash(self.buffer ^ i as u64);
+        self.buffer = hash(self.buffer ^ i as u64, self.key);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.buffer = hash(self.buffer ^ i as u64);
+        self.buffer = hash(self.buffer ^ i as u64, self.key);
     }
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.buffer = hash(self.buffer ^ i);
+        self.buffer = hash(self.buffer ^ i, self.key);
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
         let data: [u64;2] = i.convert();
-        self.buffer = hash(self.buffer ^ data[0]);
-        self.buffer = hash(self.buffer ^ data[1]);
+        self.buffer = hash(self.buffer ^ data[0], self.key);
+        self.buffer = hash(self.buffer ^ data[1], self.key);
     }
 
     #[inline]
@@ -75,7 +75,7 @@ impl Hasher for FallbackHasher {
         while data.len() >= 8 {
             let (block, rest) = data.split_at(8);
             let val: u64 = as_array!(block, 8).convert();
-            self.buffer = hash(self.buffer ^ val);
+            self.buffer = hash(self.buffer ^ val, self.key);
             data = rest;
         }
         if data.len() >= 4 {
@@ -96,11 +96,11 @@ impl Hasher for FallbackHasher {
             self.buffer ^= data[0] as u64;
             self.buffer = self.buffer.rotate_left(8);
         }
-        self.buffer = hash(self.buffer ^ self.key);
+        self.buffer = hash(self.buffer, self.key);
     }
     #[inline]
     fn finish(&self) -> u64 {
-        hash(self.buffer ^ self.key)
+        hash(self.buffer, self.key)
     }
 }
 
@@ -132,9 +132,9 @@ mod tests {
     #[test]
     fn test_hash() {
         let value: u64 = 1 << 32;
-        let result = hash(value);
+        let result = hash(value, 0);
         let value2: u64 = 1;
-        let result2= hash(value2);
+        let result2= hash(value2, 0);
         let result: [u8; 8] = result.convert();
         let result2: [u8; 8] = result2.convert();
         assert_ne!(hex::encode(result), hex::encode(result2));
