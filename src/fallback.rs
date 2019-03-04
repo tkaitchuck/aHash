@@ -16,7 +16,9 @@ pub struct FallbackHasher {
 impl FallbackHasher {
     #[inline(always)]
     fn hash(&self, data: u64) -> u64 {
-        return (data.wrapping_mul(MULTIPLE)).swap_bytes();
+        return (data.wrapping_mul(MULTIPLE)).rotate_left(17);
+        //Valid rotations here are 10, 12 and 17.
+        //Of these 17 is selected because it is largest and relatively prime to 64.
     }
 
     #[inline]
