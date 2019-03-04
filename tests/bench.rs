@@ -45,13 +45,13 @@ fn seahash<H: Hash>(b: H) -> u64 {
     hasher.finish()
 }
 
-const VALUES: [&str; 5] = ["1",
+const VALUES: [&str; 10] = ["1",
     "123",
-//    "1234",
-//    "1234567",
-//    "12345678",
-//    "123456789012345",
-//    "1234567890123456",
+    "1234",
+    "1234567",
+    "12345678",
+    "123456789012345",
+    "1234567890123456",
     "123456789012345678901234",
     "12345678901234567890123456789012345678901234567890123456789012345678",
     "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"];
@@ -94,26 +94,26 @@ fn bench_ahash(c: &mut Criterion) {
 }
 
 fn bench_fallback(c: &mut Criterion) {
-//    c.bench(
-//        "fallback",
-//        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U8_VALUES),
-//    );
-//    c.bench(
-//        "fallback",
-//        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U16_VALUES),
-//    );
-//    c.bench(
-//        "fallback",
-//        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U32_VALUES),
-//    );
-//    c.bench(
-//        "fallback",
-//        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U64_VALUES),
-//    );
-//    c.bench(
-//        "fallback",
-//        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U128_VALUES),
-//    );
+    c.bench(
+        "fallback",
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U8_VALUES),
+    );
+    c.bench(
+        "fallback",
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U16_VALUES),
+    );
+    c.bench(
+        "fallback",
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U32_VALUES),
+    );
+    c.bench(
+        "fallback",
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U64_VALUES),
+    );
+    c.bench(
+        "fallback",
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U128_VALUES),
+    );
     c.bench(
         "fallback",
         ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fallbackhash(&s))), &VALUES),
