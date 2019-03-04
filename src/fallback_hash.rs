@@ -1,5 +1,5 @@
 use crate::convert::{Convert};
-use std::hash::{Hasher, BuildHasher};
+use std::hash::{Hasher};
 use const_random::const_random;
 
 //This file contains the fallback hasher separated so it can be tested independently.
@@ -110,7 +110,7 @@ impl Hasher for FallbackHasher {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::hash::{BuildHasherDefault, Hasher};
+    use std::hash::{BuildHasherDefault};
     use crate::convert::Convert;
     use crate::fallback_hash::*;
 
@@ -133,12 +133,10 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let mut result;
         let value: u64 = 1 << 32;
-        result = hash(value);
-        let mut result2;
+        let result = hash(value);
         let value2: u64 = 1;
-        result2 = hash(value2);
+        let result2= hash(value2);
         let result: [u8; 8] = result.convert();
         let result2: [u8; 8] = result2.convert();
         assert_ne!(hex::encode(result), hex::encode(result2));

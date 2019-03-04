@@ -128,7 +128,7 @@ fn hash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::hash::{BuildHasherDefault, Hasher};
+    use std::hash::{BuildHasherDefault};
     use crate::convert::Convert;
     use crate::aes_hash::*;
 

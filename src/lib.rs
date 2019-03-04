@@ -26,7 +26,6 @@ use std::collections::HashMap;
 use crate::convert::Convert;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hasher};
-use std::mem::transmute;
 
 use const_random::const_random;
 
@@ -34,8 +33,6 @@ use const_random::const_random;
 pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
 
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
-//This value is pulled from a 64 bit LCG.
-const MULTIPLE: u64 = 6364136223846793005;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -197,6 +194,7 @@ impl Hasher for AHasher {
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
 fn aeshash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
+    use std::mem::transmute;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
@@ -206,6 +204,10 @@ fn aeshash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
         transmute(_mm_aesenc_si128(value, transmute(xor)))
     }
 }
+
+//This value is pulled from a 64 bit LCG.
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+const MULTIPLE: u64 = 6364136223846793005;
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 #[inline(always)]

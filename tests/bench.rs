@@ -5,13 +5,13 @@ use ahash::{AHasher};
 use fxhash::{FxHasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-fn ahash<H: Hash>(b: H) -> u64 {
+fn aeshash<H: Hash>(b: H) -> u64 {
     let mut hasher = AHasher::default();
     b.hash(&mut hasher);
     hasher.finish()
 }
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-fn ahash<H: Hash>(_b: H) -> u64 {
+fn aeshash<H: Hash>(_b: H) -> u64 {
     panic!("aes must be enabled")
 }
 
@@ -69,28 +69,28 @@ const U128_VALUES: [u128; 1] = [128];
 
 fn bench_ahash(c: &mut Criterion) {
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(ahash(&s))), &U8_VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(aeshash(&s))), &U8_VALUES),
     );
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(ahash(&s))), &U16_VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(aeshash(&s))), &U16_VALUES),
     );
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(ahash(&s))), &U32_VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(aeshash(&s))), &U32_VALUES),
     );
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(ahash(&s))), &U64_VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(aeshash(&s))), &U64_VALUES),
     );
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(ahash(&s))), &U128_VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(aeshash(&s))), &U128_VALUES),
     );
     c.bench(
-        "ahash",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(ahash(&s))), &VALUES),
+        "aeshash",
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(aeshash(&s))), &VALUES),
     );
 }
 
