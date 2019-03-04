@@ -31,9 +31,7 @@ impl Default for FallbackHasher {
 
 #[inline(always)]
 fn hash(data: u64) -> u64 {
-    return (data.wrapping_mul(MULTIPLE)).rotate_left(17);
-    //Valid rotations here are 10, 12 and 17.
-    //Of these 17 is selected because it is largest and relatively prime to 64.
+    return data.wrapping_mul(MULTIPLE).rotate_left(17).wrapping_mul(MULTIPLE)
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -102,7 +100,7 @@ impl Hasher for FallbackHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        (self.buffer ^ self.key).wrapping_mul(MULTIPLE)
+        hash(self.buffer ^ self.key)
     }
 }
 

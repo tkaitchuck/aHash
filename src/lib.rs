@@ -212,7 +212,7 @@ const MULTIPLE: u64 = 6364136223846793005;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 #[inline(always)]
 fn fallbackhash(data: u64) -> u64 {
-    return (data.wrapping_mul(MULTIPLE)).rotate_left(17);
+    return data.wrapping_mul(MULTIPLE).rotate_left(17).wrapping_mul(MULTIPLE);
     //Valid rotations here are 10, 12 and 17.
     //Of these 17 is selected because it is largest and relatively prime to 64.
 }
@@ -283,7 +283,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        (self.buffer[0] ^ self.buffer[1]).wrapping_mul(MULTIPLE)
+        fallbackhash(self.buffer[0] ^ self.buffer[1])
     }
 }
 
