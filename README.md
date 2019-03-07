@@ -27,7 +27,7 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4871 ns | 1.6710 ns |
 | u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4874 ns | 1.6647 ns |
 | u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.7187 ns | 2.5998 ns |
-| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | 2.5548 ns | **2.4774 ns** |
+| 1 byte string  | 16.042 ns | **1.9192 ns** | 2.5481 ns | 2.5548 ns | 2.4774 ns |
 | 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.9186 ns** | 3.0631 ns |
 | 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 2.5415 ns | 2.5904 ns |
 | 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **3.0936 ns** | 3.5530 ns |
