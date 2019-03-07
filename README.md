@@ -1,14 +1,15 @@
 # aHash
 
-aHash is a high speed keyed hashing algorithm intended for use in in-memory hashmaps. It provides a very quality 64 bit hash.
+aHash is a high speed keyed hashing algorithm intended for use in in-memory hashmaps. It provides a high quality 64 bit hash.
 aHash is designed for performance and is *not cryptographically secure*.
 
 When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. If it is not available it falls back on a slightly lower quality algorithm based on a xor a rotation and a 64bit multiply. 
+on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) algorithm based rotation 
+and multiplication. 
 
-Similar to Sip_hash it is a keyed hash, so two hashers initialized with different keys will produce completely different
+Similar to Sip_hash, aHash is a keyed hash, so two instances initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
-This prevents DOS attackes where an attacker sends a large number of items whose hashes collied that get used as keys in a hashmap.
+This prevents DOS attacks where an attacker sends a large number of items whose hashes collied that get used as keys in a hashmap.
 
 ## Speed
 
@@ -38,7 +39,7 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.9262 ns** | 33.008 ns |
 |1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **52.789 ns** | 396.16 ns |
 
-As you can see above aHash provides the similar (~5x) speeup over SipHash that FxHash provides.
+As you can see above aHash provides the similar (~5x) speedup over SipHash that FxHash provides.
 
 Rust by default uses SipHash because faster hash functions such as FxHash are predictable and vulnerable to denial of service attacks.
 aHash has both very strong scrambling as well as very high performance.
@@ -59,12 +60,8 @@ Each bit of input can has the potential to flip every bit of the output.
         - Whether or not a flipped input bit will flip any given output bit depends on every other bit in the input.
     - If AES-NI is not available, these properties don't hold for all possible bits in the input/key but for most of them.
         - In the fallback algorithm there are no full 64 bit collisions with smaller than 64 bits of input.
-        - As of 0.1.5 the worst case potential partial collision on the lower 8 bytes of output with a single u64 as input:
-            The lower byte depends on 63 bits of the key and how they interact with 55 bits of the input. 
-            The algorithm is stronger for strings where the lower byte of output depends on at least 71 bits of the key 
-            interacting with at least 56 bits of the input as well as depending on the length of the input.
 
-This prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
+aHash prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
 It is however not recommended to assume this property can hold if the attacker is allowed to SEE the hashed value.
 AES is designed to prevent an attacker from learning the key being used even if they can see the encrypted output and 
 select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds, so 
@@ -77,7 +74,7 @@ aHash should not be used for situations where cryptographic security is needed f
 
 1. It has not been analyzed for vulnerabilities and may leak bits of the key in its output.
 2. It only uses 2 rounds of AES as opposed to the standard of 10. This likely makes it possible to guess the key by observing a large number of hashes.
-3. Like any cypher based hash, it will show certain statistical deviations from truely random output when comparing a (VERY) large number of hashes.
+3. Like any cypher based hash, it will show certain statistical deviations from truly random output when comparing a (VERY) large number of hashes.
 
 There are several efforts to build a secure hash function that uses AES-NI for acceleration, but this is not one of them.
 
