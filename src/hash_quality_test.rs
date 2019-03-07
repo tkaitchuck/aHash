@@ -1,4 +1,4 @@
-const BAD_KEY: u64 = 0x0123456789ABCDEF;
+const BAD_KEY: u64 = 0x5252_5252_5252_5252; //This encrypts to 0.
 
 ///Basic sanity tests of the cypto properties of aHash.
 #[cfg(test)]
@@ -11,6 +11,15 @@ mod aes_tests {
         let mut hasher = AesHasher::new_with_keys(BAD_KEY, BAD_KEY);
         b.hash(&mut hasher);
         hasher.finish()
+    }
+
+    #[test]
+    fn test_single_bit_in_byte() {
+        let mut hasher1= AesHasher::new_with_keys(64, 64);
+        8_u32.hash(&mut hasher1);
+        let mut hasher2= AesHasher::new_with_keys(64, 64);
+        0_u32.hash(&mut hasher2);
+        assert_sufficiently_different(hasher1.finish(), hasher2.finish());
     }
 
     #[test]
