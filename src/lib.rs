@@ -110,8 +110,6 @@ impl AHasher {
 /// Provides methods to hash all of the primitive types. using the AES instruction.
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 impl Hasher for AHasher {
-    //Implementation note: each of the write_XX methods passes the arguments slightly differently to hash.
-    //This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
     #[inline]
     fn write_u8(&mut self, i: u8) {
         self.write_u128(i as u128);
@@ -144,6 +142,7 @@ impl Hasher for AHasher {
     #[inline]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
+        let length = data.len() as u64;
         while data.len() >= 16 {
             let (block, rest) = data.split_at(16);
             let block: u128 = (*as_array!(block, 16)).convert();
@@ -171,6 +170,7 @@ impl Hasher for AHasher {
         if data.len() >= 1 {
             self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
         }
+        self.buffer = aeshash(self.buffer.convert(), [length, length].convert()).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {

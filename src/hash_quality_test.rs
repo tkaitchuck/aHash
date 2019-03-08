@@ -1,26 +1,34 @@
 use std::hash::{Hash, Hasher};
 
-fn assert_sufficiently_different(a: u64, b: u64) {
-    let same_byte_count = count_same_bytes(a, b);
-    assert!(same_byte_count <= 1);
+fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
+    let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
+    assert!(same_byte_count <= tolerance, "{:x} vs {:x}: {:}", a, b, same_byte_count);
+    assert!(same_nibble_count <= tolerance * 3);
     let flipped_bits = (a ^ b).count_ones();
-    assert!(flipped_bits > 18 && flipped_bits < 48, "{:x} and {:x}: {:}", a, b, flipped_bits);
+    assert!(flipped_bits > 12 && flipped_bits < 52, "{:x} and {:x}: {:}", a, b, flipped_bits);
     for rotate in 0..64 {
         let flipped_bits2 = (a ^ (b.rotate_left(rotate))).count_ones();
-        assert!(flipped_bits2 > 14 && flipped_bits2 < 50, "{:x} and {:x}: {:}", a, b.rotate_left(rotate), flipped_bits2);
+        assert!(flipped_bits2 > 10 && flipped_bits2 < 54, "{:x} and {:x}: {:}", a, b.rotate_left(rotate), flipped_bits2);
     }
 }
 
-fn count_same_bytes(a: u64, b: u64) -> i32 {
+fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     let mut same_byte_count = 0;
+    let mut same_nibble_count = 0;
     for byte in 0..8 {
-        let ba = a >> 8 * byte as u8;
-        let bb = b >> 8 * byte as u8;
+        let ba = (a >> 8 * byte) as u8;
+        let bb = (b >> 8 * byte) as u8;
         if ba == bb {
             same_byte_count += 1;
         }
+        if ba & 0xF0u8 == bb & 0xF0u8 {
+            same_nibble_count += 1;
+        }
+        if ba & 0x0Fu8 == bb & 0x0Fu8 {
+            same_nibble_count += 1;
+        }
     }
-    same_byte_count
+    (same_byte_count, same_nibble_count)
 }
 
 fn test_keys_change_output<T:Hasher>(constructor: impl Fn(u64, u64)->T) {
@@ -32,12 +40,12 @@ fn test_keys_change_output<T:Hasher>(constructor: impl Fn(u64, u64)->T) {
     "test".hash(&mut b);
     "test".hash(&mut c);
     "test".hash(&mut d);
-    assert_sufficiently_different(a.finish(), b.finish());
-    assert_sufficiently_different(a.finish(), c.finish());
-    assert_sufficiently_different(a.finish(), d.finish());
-    assert_sufficiently_different(b.finish(), c.finish());
-    assert_sufficiently_different(b.finish(), d.finish());
-    assert_sufficiently_different(c.finish(), d.finish());
+    assert_sufficiently_different(a.finish(), b.finish(), 1);
+    assert_sufficiently_different(a.finish(), c.finish(), 1);
+    assert_sufficiently_different(a.finish(), d.finish(), 1);
+    assert_sufficiently_different(b.finish(), c.finish(), 1);
+    assert_sufficiently_different(b.finish(), d.finish(), 1);
+    assert_sufficiently_different(c.finish(), d.finish(), 1);
 }
 
 fn test_finish_is_consistant<T:Hasher>(constructor: impl Fn(u64, u64)->T) {
@@ -56,27 +64,27 @@ fn test_single_key_bit_flip<T:Hasher>(constructor: impl Fn(u64, u64)->T) {
         "1234".hash(&mut a);
         "1234".hash(&mut b);
         "1234".hash(&mut c);
-        assert_sufficiently_different(a.finish(), b.finish());
-        assert_sufficiently_different(a.finish(), c.finish());
-        assert_sufficiently_different(b.finish(), c.finish());
+        assert_sufficiently_different(a.finish(), b.finish(), 2);
+        assert_sufficiently_different(a.finish(), c.finish(), 2);
+        assert_sufficiently_different(b.finish(), c.finish(), 2);
         let mut a = constructor(0, 0);
         let mut b = constructor(0, 1 << bit);
         let mut c = constructor(1 << bit, 0);
         "12345678".hash(&mut a);
         "12345678".hash(&mut b);
         "12345678".hash(&mut c);
-        assert_sufficiently_different(a.finish(), b.finish());
-        assert_sufficiently_different(a.finish(), c.finish());
-        assert_sufficiently_different(b.finish(), c.finish());
+        assert_sufficiently_different(a.finish(), b.finish(), 2);
+        assert_sufficiently_different(a.finish(), c.finish(), 2);
+        assert_sufficiently_different(b.finish(), c.finish(), 2);
         let mut a = constructor(0, 0);
         let mut b = constructor(0, 1 << bit);
         let mut c = constructor(1 << bit, 0);
         "1234567812345678".hash(&mut a);
         "1234567812345678".hash(&mut b);
         "1234567812345678".hash(&mut c);
-        assert_sufficiently_different(a.finish(), b.finish());
-        assert_sufficiently_different(a.finish(), c.finish());
-        assert_sufficiently_different(b.finish(), c.finish());
+        assert_sufficiently_different(a.finish(), b.finish(), 2);
+        assert_sufficiently_different(a.finish(), c.finish(), 2);
+        assert_sufficiently_different(b.finish(), c.finish(), 2);
     }
 }
 
@@ -91,19 +99,19 @@ fn test_single_bit_flip<T:Hasher>(hasher: impl Fn()->T) {
     let compare_value = hash(0u32, &hasher);
     for pos in 0..size {
         let test_value = hash(0 ^ (1u32 << pos), &hasher);
-        assert_sufficiently_different(compare_value, test_value);
+        assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 64;
     let compare_value = hash(0u64, &hasher);
     for pos in 0..size {
         let test_value = hash(0 ^ (1u64 << pos), &hasher);
-        assert_sufficiently_different(compare_value, test_value);
+        assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 128;
     let compare_value = hash(0u128, &hasher);
     for pos in 0..size {
         let test_value = hash(0 ^ (1u128 << pos), &hasher);
-        assert_sufficiently_different(compare_value, test_value);
+        assert_sufficiently_different(compare_value, test_value, 2);
     }
 }
 
@@ -118,8 +126,9 @@ fn test_padding_doesnot_collide<T:Hasher>(hasher: impl Fn()->T) {
                 let mut long = hasher();
                 string.push(c as char);
                 string.hash(&mut long);
-                let same_bytes = count_same_bytes(value, long.finish());
+                let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                 assert!(same_bytes <= 2, format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()));
+                assert!(same_nibbles <= 8, format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()));
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
             }
@@ -175,7 +184,7 @@ mod aes_tests {
         8_u32.hash(&mut hasher1);
         let mut hasher2 = AHasher::new_with_keys(64, 64);
         0_u32.hash(&mut hasher2);
-        assert_sufficiently_different(hasher1.finish(), hasher2.finish());
+        assert_sufficiently_different(hasher1.finish(), hasher2.finish(), 1);
     }
 
     #[test]
