@@ -11,21 +11,21 @@ const MULTIPLE: u64 = 6364136223846793005;
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 #[derive(Debug, Clone)]
-pub struct FallbackHasher {
+pub struct AHasher {
     buffer: u64,
     key: u64,
 }
 
-impl FallbackHasher {
+impl AHasher {
     #[inline]
-    pub fn new_with_keys(key0: u64, key1: u64) -> FallbackHasher {
-        FallbackHasher { buffer: key0, key: key1 }
+    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
+        AHasher { buffer: key0, key: key1 }
     }
 }
-impl Default for FallbackHasher {
+impl Default for AHasher {
     #[inline]
-    fn default() -> FallbackHasher {
-        FallbackHasher {buffer: DEFAULT_KEYS[0], key: DEFAULT_KEYS[1]}
+    fn default() -> AHasher {
+        AHasher {buffer: DEFAULT_KEYS[0], key: DEFAULT_KEYS[1]}
     }
 }
 
@@ -35,7 +35,7 @@ fn hash(data: u64, key: u64) -> u64 {
 }
 
 /// Provides methods to hash all of the primitive types.
-impl Hasher for FallbackHasher {
+impl Hasher for AHasher {
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
@@ -114,17 +114,17 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let mut map = HashMap::<u32, u64, BuildHasherDefault<FallbackHasher>>::default();
+        let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
 
     #[test]
     fn test_default() {
-        let hasher_a = FallbackHasher::default();
+        let hasher_a = AHasher::default();
         assert_ne!(0, hasher_a.buffer);
         assert_ne!(0, hasher_a.key);
         assert_ne!(hasher_a.buffer, hasher_a.key);
-        let hasher_b = FallbackHasher::default();
+        let hasher_b = AHasher::default();
         assert_eq!(hasher_a.buffer, hasher_b.buffer);
         assert_eq!(hasher_a.key, hasher_b.key);
     }
