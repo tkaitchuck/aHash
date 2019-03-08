@@ -5,33 +5,29 @@ use std::mem::transmute;
 
 use const_random::const_random;
 
-//This file contains the AES speffic hash implementation extracted so that it can be tested independently
-//Nothing here is exported.
-
 const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
-
 const PAD : u128 = 0xF0E1D2C3B4A5968778695A4B3C2D1E0F;
 
-impl Default for AesHasher {
-    #[inline]
-    fn default() -> AesHasher {
-        AesHasher { buffer: DEFAULT_KEYS }
-    }
-}
-
-impl AesHasher {
-    pub fn new_with_keys(key0: u64, key1: u64) -> AesHasher {
-        AesHasher { buffer: [key0, key1] }
-    }
-}
-
 #[derive(Debug, Clone)]
-pub struct AesHasher {
+pub struct AHasher {
     buffer: [u64; 2],
 }
 
+impl Default for AHasher {
+    #[inline]
+    fn default() -> AHasher {
+        AHasher { buffer: DEFAULT_KEYS }
+    }
+}
+
+impl AHasher {
+    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
+        AHasher { buffer: [key0, key1] }
+    }
+}
+
 /// Provides methods to hash all of the primitive types.
-impl Hasher for AesHasher {
+impl Hasher for AHasher {
     //Implementation note: each of the write_XX methods passes the arguments slightly differently to hash.
     //This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
     #[inline]
@@ -94,7 +90,6 @@ impl Hasher for AesHasher {
         if data.len() >= 1 {
             self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
         }
-        self.buffer = aeshash(self.buffer.convert(), length as u128).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {
@@ -125,17 +120,17 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let mut map = HashMap::<u32, u64, BuildHasherDefault<AesHasher>>::default();
+        let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
 
     #[test]
     fn test_default() {
-        let hasher_a = AesHasher::default();
+        let hasher_a = AHasher::default();
         assert_ne!(0, hasher_a.buffer[0]);
         assert_ne!(0, hasher_a.buffer[1]);
         assert_ne!(hasher_a.buffer[0], hasher_a.buffer[1]);
-        let hasher_b = AesHasher::default();
+        let hasher_b = AHasher::default();
         assert_eq!(hasher_a.buffer[0], hasher_b.buffer[0]);
         assert_eq!(hasher_a.buffer[1], hasher_b.buffer[1]);
     }

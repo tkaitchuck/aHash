@@ -171,35 +171,35 @@ mod aes_tests {
 
     #[test]
     fn test_single_bit_in_byte() {
-        let mut hasher1= AesHasher::new_with_keys(64, 64);
+        let mut hasher1 = AHasher::new_with_keys(64, 64);
         8_u32.hash(&mut hasher1);
-        let mut hasher2= AesHasher::new_with_keys(64, 64);
+        let mut hasher2 = AHasher::new_with_keys(64, 64);
         0_u32.hash(&mut hasher2);
         assert_sufficiently_different(hasher1.finish(), hasher2.finish());
     }
 
     #[test]
     fn aes_single_bit_flip() {
-        test_single_bit_flip(|| AesHasher::new_with_keys(BAD_KEY,BAD_KEY))
+        test_single_bit_flip(|| AHasher::new_with_keys(BAD_KEY,BAD_KEY))
     }
 
     #[test]
     fn aes_single_key_bit_flip() {
-        test_single_key_bit_flip(|k1, k2| AesHasher::new_with_keys(k1,k2))
+        test_single_key_bit_flip(|k1, k2| AHasher::new_with_keys(k1,k2))
     }
 
     #[test]
     fn aes_keys_change_output() {
-        test_keys_change_output(AesHasher::new_with_keys);
+        test_keys_change_output(AHasher::new_with_keys);
     }
 
     #[test]
     fn aes_finish_is_consistant() {
-        test_finish_is_consistant(AesHasher::new_with_keys)
+        test_finish_is_consistant(AHasher::new_with_keys)
     }
 
     #[test]
     fn aes_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AesHasher::new_with_keys(BAD_KEY,BAD_KEY))
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(BAD_KEY,BAD_KEY))
     }
 }
