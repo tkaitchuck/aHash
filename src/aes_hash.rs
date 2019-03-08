@@ -8,11 +8,48 @@ use const_random::const_random;
 const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
 const PAD : u128 = 0xF0E1D2C3B4A5968778695A4B3C2D1E0F;
 
+/// A `Hasher` for hashing an arbitrary stream of bytes.
+///
+/// Instances of [AHasher] represent state that is updated while hashing data.
+///
+/// Each method updates the internal state based on the new data provided. Once
+/// all of the data has been provided, the resulting hash can be obtained by calling
+/// `finish()`
+///
+/// [Clone] is also provided in case you wish to calculate hashes for two different items that
+/// start with the same data.
+///
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
 }
 
+/// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
+/// [AHasher]s for each key such that they are hashed independently of one
+/// another, since [AHasher]s contain state.
+///
+/// Constructs a new [AHasher] with compile time generated constants keys.
+/// So the key will be the same from one instance to another,
+/// but different from build to the next. So if it is possible for a potential
+/// attacker to have access to your compiled binary it would be better
+/// to specify keys generated at runtime.
+///
+/// # Examples
+///
+/// ```
+/// use ahash::AHasher;
+/// use std::hash::Hasher;
+///
+/// let mut hasher_1 = AHasher::default();
+/// let mut hasher_2 = AHasher::default();
+///
+/// hasher_1.write_u32(8128);
+/// hasher_2.write_u32(8128);
+///
+/// assert_eq!(hasher_1.finish(), hasher_2.finish());
+/// ```
+/// [Hasher]: std::hash::Hasher
+/// [HashMap]: std::collections::HashMap
 impl Default for AHasher {
     #[inline]
     fn default() -> AHasher {
@@ -21,6 +58,22 @@ impl Default for AHasher {
 }
 
 impl AHasher {
+    /// Creates a new hasher keyed to the provided keys.
+    /// # Example
+    ///
+    /// ```
+    /// use std::hash::Hasher;
+    /// use ahash::AHasher;
+    ///
+    /// let mut hasher = AHasher::new_with_keys(123, 456);
+    ///
+    /// hasher.write_u32(1989);
+    /// hasher.write_u8(11);
+    /// hasher.write_u8(9);
+    /// hasher.write(b"Huh?");
+    ///
+    /// println!("Hash is {:x}!", hasher.finish());
+    /// ```
     pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: [key0, key1] }
     }

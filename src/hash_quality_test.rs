@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
     assert!(same_byte_count <= tolerance, "{:x} vs {:x}: {:}", a, b, same_byte_count);
-    assert!(same_nibble_count <= tolerance * 3);
+    assert!(same_nibble_count <= tolerance * 3, "{:x} vs {:x}: {:}", a, b, same_nibble_count);
     let flipped_bits = (a ^ b).count_ones();
     assert!(flipped_bits > 12 && flipped_bits < 52, "{:x} and {:x}: {:}", a, b, flipped_bits);
     for rotate in 0..64 {
@@ -138,7 +138,6 @@ fn test_padding_doesnot_collide<T:Hasher>(hasher: impl Fn()->T) {
 
 #[cfg(test)]
 mod fallback_tests {
-    use std::hash::{Hash, Hasher};
     use crate::fallback_hash::*;
     use crate::hash_quality_test::*;
 
@@ -170,6 +169,7 @@ mod fallback_tests {
 }
 
 ///Basic sanity tests of the cypto properties of aHash.
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[cfg(test)]
 mod aes_tests {
     use std::hash::{Hash, Hasher};
