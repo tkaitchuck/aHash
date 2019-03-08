@@ -1,6 +1,6 @@
 //! # aHash
 //!
-//! This hashing algorithm is intended to be a high perfromance, (hardware specific), keyed hash function.
+//! This hashing algorithm is intended to be a high performance, (hardware specific), keyed hash function.
 //! This can be seen as a DOS resistant alternative to FxHash, or a fast equivalent to SipHash.
 //! It provides a high speed hash algorithm, but where the result is not predictable without knowing a Key.
 //! This allows it to be used in a HashMap without allowing for the possibility that an malicious user can
@@ -33,6 +33,7 @@ use const_random::const_random;
 pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
 
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
+const PAD : u128 = 0xF0E1D2C3B4A5968778695A4B3C2D1E0F;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -113,23 +114,22 @@ impl Hasher for AHasher {
     //This is done so that an u8 and a u64 that both contain the same value will produce different hashes.
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.buffer = aeshash([self.buffer[1], self.buffer[0] ^ i as u64].convert(), self.buffer.convert()).convert();
+        self.write_u128(i as u128);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.buffer = aeshash([self.buffer[1] ^ i as u64, self.buffer[0]].convert(), self.buffer.convert()).convert();
+        self.write_u128(i as u128);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.buffer = aeshash([self.buffer[0], self.buffer[1] ^ i as u64].convert(), self.buffer.convert()).convert();
+        self.write_u128(i as u128);
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        let buffer: u128 = self.buffer.convert();
-        self.buffer = aeshash((buffer ^ i).convert(), self.buffer.convert()).convert();
+        self.buffer = aeshash(self.buffer.convert(),i).convert();
     }
 
     #[inline]
@@ -139,61 +139,49 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.buffer = aeshash([self.buffer[0] ^ i, self.buffer[1]].convert(), self.buffer.convert()).convert();
+        self.write_u128(i as u128);
     }
     #[inline]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
-        let mut remainder_low: u64 = self.buffer[0];
-        let mut remainder_hi: u64 = self.buffer[1];
-        if data.len() >= 16 {
-            while data.len() >= 16 {
-                let (block, rest) = data.split_at(16);
-                let block: &[u8; 16] = as_array!(block, 16);
-                self.buffer = aeshash(self.buffer.convert(), *block).convert();
-                data = rest;
-            }
-            //This is to hash the final block read in the loop. Note the argument order to hash in the loop.
-            self.buffer = aeshash(self.buffer.convert(), self.buffer.convert()).convert();
+        while data.len() >= 16 {
+            let (block, rest) = data.split_at(16);
+            let block: u128 = (*as_array!(block, 16)).convert();
+            self.buffer = aeshash(self.buffer.convert(),block).convert();
+            data = rest;
         }
         if data.len() >= 8 {
             let (block, rest) = data.split_at(8);
-            let val: u64 = as_array!(block, 8).convert();
-            remainder_hi ^= val;
-            // This rotate is done to prevent someone from creating a collision by adding 8 nulls to a value.
-            remainder_hi = remainder_hi.rotate_left(32);
+            let block: u64 = (*as_array!(block, 8)).convert();
+            self.buffer = aeshash(self.buffer.convert(),block as u128).convert();
             data = rest;
         }
         if data.len() >= 4 {
             let (block, rest) = data.split_at(4);
-            let val: u32 = as_array!(block, 4).convert();
-            remainder_low ^= val as u64;
-            remainder_low = remainder_low.rotate_left(32);
+            let block: u32 = (*as_array!(block, 4)).convert();
+            self.buffer = aeshash(self.buffer.convert(),block as u128).convert();
             data = rest;
         }
         if data.len() >= 2 {
             let (block, rest) = data.split_at(2);
-            let val: u16 = as_array!(block, 2).convert();
-            remainder_low ^= val as u64;
-            remainder_low = remainder_low.rotate_left(16);
+            let block: u16 = (*as_array!(block, 2)).convert();
+            self.buffer = aeshash(self.buffer.convert(), block as u128).convert();
             data = rest;
         }
         if data.len() >= 1 {
-            remainder_low ^= data[0] as u64;
-            remainder_low = remainder_low.rotate_left(8);
+            self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
         }
-        self.buffer = aeshash([remainder_low, remainder_hi].convert(), self.buffer.convert()).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshash(self.buffer.convert(), self.buffer.convert()).convert();
-        result[0]//.wrapping_add(result[1])
+        let result: [u64; 2] = aeshash(aeshash(self.buffer.convert(), PAD), PAD).convert();
+        result[1]//.wrapping_add(result[1])
     }
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
-fn aeshash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
+fn aeshash(value: u128, xor: u128) -> u128 {
     use std::mem::transmute;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
@@ -201,7 +189,7 @@ fn aeshash(value: [u8; 16], xor: [u8; 16]) -> [u8; 16] {
     use std::arch::x86_64::*;
     unsafe {
         let value = transmute(value);
-        transmute(_mm_aesenc_si128(value, transmute(xor)))
+        transmute(_mm_aesdec_si128(value, transmute(xor)))
     }
 }
 

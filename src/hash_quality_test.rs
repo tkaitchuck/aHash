@@ -180,7 +180,7 @@ mod aes_tests {
 
     #[test]
     fn aes_single_bit_flip() {
-        test_single_bit_flip(|k1, k2| AesHasher::new_with_keys(k1,k2))
+        test_single_bit_flip(|| AesHasher::new_with_keys(BAD_KEY,BAD_KEY))
     }
 
     #[test]
