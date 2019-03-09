@@ -2,11 +2,10 @@ use crate::convert::{Convert};
 use std::hash::{Hasher};
 use const_random::const_random;
 
-//This file contains the fallback hasher separated so it can be tested independently.
-//Nothing here is exported.
+///These constants come from splitmix64 which is derived from Java's SplitableRandom, which is based on DotMix and MurmurHash3.
+const MULTIPLES: [u64; 2] = [0xBF58476D1CE4E5B9, 0x94D049BB133111EB];
+const INCREMENT: u64 = 0x9e3779b97f4a7c15;
 
-//This value is pulled from a 64 bit LCG.
-const MULTIPLE: u64 = 6364136223846793005;
 
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
@@ -80,11 +79,14 @@ impl AHasher {
     pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: key0, key: key1 }
     }
-}
 
-#[inline(always)]
-fn hash(data: u64, key: u64) -> u64 {
-    return (data.wrapping_mul(MULTIPLE).rotate_left(17) ^ key).wrapping_mul(MULTIPLE)
+
+    #[inline(always)]
+    fn update(&mut self, new_data: u64) {
+        let value = new_data ^ self.key;
+        self.buffer ^= ((value >> 30) ^ value).wrapping_mul(MULTIPLES[0]);
+        self.key = self.key.wrapping_add(INCREMENT);
+    }
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -92,29 +94,29 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.buffer = hash(self.buffer ^ i as u64, self.key);
+        self.update(i as u64);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.buffer = hash(self.buffer ^ i as u64, self.key);
+        self.update(i as u64);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.buffer = hash(self.buffer ^ i as u64, self.key);
+        self.update(i as u64);
     }
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.buffer = hash(self.buffer ^ i, self.key);
+        self.update(i as u64);
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
         let data: [u64;2] = i.convert();
-        self.buffer = hash(self.buffer ^ data[0], self.key);
-        self.buffer = hash(self.buffer ^ data[1], self.key);
+        self.update(data[0]);
+        self.update(data[1]);
     }
 
     #[inline]
@@ -126,35 +128,34 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
+        self.key ^= length;
         while data.len() >= 8 {
             let (block, rest) = data.split_at(8);
             let val: u64 = as_array!(block, 8).convert();
-            self.buffer = hash(self.buffer ^ val, self.key);
+            self.update(val);
             data = rest;
         }
         if data.len() >= 4 {
             let (block, rest) = data.split_at(4);
             let val: u32 = as_array!(block, 4).convert();
-            self.buffer ^= val as u64;
-            self.buffer = self.buffer.rotate_left(32);
+            self.update(val as u64);
             data = rest;
         }
         if data.len() >= 2 {
             let (block, rest) = data.split_at(2);
             let val: u16 = as_array!(block, 2).convert();
-            self.buffer ^= val as u64;
-            self.buffer = self.buffer.rotate_left(16);
+            self.update(val as u64);
             data = rest;
         }
         if data.len() >= 1 {
-            self.buffer ^= data[0] as u64;
-            self.buffer = self.buffer.rotate_left(8);
+            self.update(data[0] as u64);
         }
-        self.buffer = hash(self.buffer ^ length, self.key);
     }
     #[inline]
     fn finish(&self) -> u64 {
-        hash(self.buffer, self.key)
+        let result = self.buffer ^ self.key;
+        let result = (result ^ (result >> 27)).wrapping_mul(MULTIPLES[1]);
+        result ^ (result >> 31)
     }
 }
 
@@ -185,10 +186,14 @@ mod tests {
 
     #[test]
     fn test_hash() {
+        let mut hasher = AHasher::new_with_keys(0,0);
         let value: u64 = 1 << 32;
-        let result = hash(value, 0);
+        hasher.update(value);
+        let result = hasher.buffer;
+        let mut hasher = AHasher::new_with_keys(0,0);
         let value2: u64 = 1;
-        let result2= hash(value2, 0);
+        hasher.update(value2);
+        let result2 = hasher.buffer;
         let result: [u8; 8] = result.convert();
         let result2: [u8; 8] = result2.convert();
         assert_ne!(hex::encode(result), hex::encode(result2));
