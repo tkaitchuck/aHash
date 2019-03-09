@@ -1,6 +1,7 @@
 use crate::convert::{Convert};
 use std::hash::{Hasher};
 use const_random::const_random;
+use arrayref::*;
 
 ///These constants come from splitmix64 which is derived from Java's SplitableRandom, which is based on DotMix and MurmurHash3.
 const MULTIPLES: [u64; 2] = [0xBF58476D1CE4E5B9, 0x94D049BB133111EB];
@@ -88,10 +89,11 @@ impl AHasher {
     /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
     /// can never affect the bits to the right of it. This version avoids this vulnerability by masking first,
     /// then performing a rotate an zor. This makes it not possible for an attacker from placing a single bit
-    /// difference between two at the high bit.
+    /// difference between two at the high bit. (While still being reversible if you know the key)
     /// It is also intentionally structured so that the buffer is only xored into at the end. Because the method
     /// is configured to be inlined, the compiler will unroll any loop this gets placed in and the loop can be
     /// automatically vectorized and the rotates, xors, and multiplies can be paralleled.
+    /// The key needs to be incremented between consecutive calls to prevent (a,b) from hashing the same as (b,a).
     /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
     /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
     /// run another operation afterwords if does not depend on the output of the multiply operation.
@@ -142,31 +144,42 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
-        self.key ^= length;
-        while data.len() >= 8 {
-            let (block, rest) = data.split_at(8);
-            let val: u64 = as_array!(block, 8).convert();
+        //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
+        self.key = self.key.wrapping_add(length);
+        //A 'binary search' on sizes reduces the number of comparisons.
+        if (data.len() >= 8) {
+            while data.len() > 16 {
+                let (block, rest) = data.split_at(8);
+                let val: u64 = as_array!(block, 8).convert();
+                self.update(val);
+                data = rest;
+            }
+            let val: u64 = (*array_ref!(data, 0, 8)).convert();
             self.update(val);
-            data = rest;
-        }
-        if data.len() >= 4 {
-            let (block, rest) = data.split_at(4);
-            let val: u32 = as_array!(block, 4).convert();
-            self.update(val as u64);
-            data = rest;
-        }
-        if data.len() >= 2 {
-            let (block, rest) = data.split_at(2);
-            let val: u16 = as_array!(block, 2).convert();
-            self.update(val as u64);
-            data = rest;
-        }
-        if data.len() >= 1 {
-            self.update(data[0] as u64);
+            let val: u64 = (*array_ref!(data, data.len()-8, 8)).convert();
+            self.update(val);
+        } else {
+            if data.len() >= 2 {
+                if data.len() >= 4 {
+                    let block: [u32; 2] = [(*array_ref!(data, 0, 4)).convert(),
+                        (*array_ref!(data, data.len()-4, 4)).convert()];
+                    self.update(block.convert());
+                } else {
+                    let block: [u16; 2] = [(*array_ref!(data, 0, 2)).convert(),
+                        (*array_ref!(data, data.len()-2, 2)).convert()];
+                    let val: u32 = block.convert();
+                    self.update(val as u64);
+                }
+            } else {
+                if data.len() >= 1 {
+                    self.update(data[0] as u64);
+                }
+            }
         }
     }
     #[inline]
     fn finish(&self) -> u64 {
+        //This finalization logic comes from splitmix64.
         let result = self.buffer ^ self.key;
         let result = (result ^ (result >> 27)).wrapping_mul(MULTIPLES[1]);
         result ^ (result >> 31)

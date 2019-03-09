@@ -1,7 +1,6 @@
 use crate::convert::Convert;
 use std::default::Default;
 use std::hash::{Hasher};
-use std::mem::transmute;
 use arrayref::*;
 
 use const_random::const_random;
@@ -116,10 +115,11 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
+        //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() >= 8 {
             if data.len() >= 16 {
                 while data.len() > 32 {
-                    //len>32
+                    //len >32
                     let (block, rest) = data.split_at(16);
                     let block: u128 = (*as_array!(block, 16)).convert();
                     self.buffer = aeshash(self.buffer.convert(),block).convert();
@@ -158,6 +158,7 @@ impl Hasher for AHasher {
                 }
             }
         }
+        //Needed to prevent collisions by null padding strings.
         self.buffer = aeshash(self.buffer.convert(), [length, length].convert()).convert();
     }
     #[inline]
