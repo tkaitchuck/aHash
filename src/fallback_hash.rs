@@ -80,7 +80,21 @@ impl AHasher {
         AHasher { buffer: key0, key: key1 }
     }
 
-
+    /// This update function has the goal of updating the buffer with a single multiply
+    /// FxHash does this but is venerable to attack. To avoid this two changes need to
+    /// happen before the multiply. The input needs to be masked to with an unpredictable value.
+    /// However other hashes such as murmurhash have taken that approach but were found venerable to attack.
+    /// The attack was based on the idea of reversing the pre-mixing (Which is necessarily reversible otherwise
+    /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
+    /// can never affect the bits to the right of it. This version avoids this vulnerability by masking first,
+    /// then performing a rotate an zor. This makes it not possible for an attacker from placing a single bit
+    /// difference between two at the high bit.
+    /// It is also intentionally structured so that the buffer is only xored into at the end. Because the method
+    /// is configured to be inlined, the compiler will unroll any loop this gets placed in and the loop can be
+    /// automatically vectorized and the rotates, xors, and multiplies can be paralleled.
+    /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
+    /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
+    /// run another operation afterwords if does not depend on the output of the multiply operation.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
         let value = new_data ^ self.key;
