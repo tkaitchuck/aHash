@@ -5,8 +5,10 @@ use arrayref::*;
 
 use const_random::const_random;
 
+///Const random provides randomzied keys with no runtime cost.
 const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
-const PAD : u128 = 0xF0E1D2C3B4A5968778695A4B3C2D1E0F;
+///Just a simple bit pattern.
+const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -115,6 +117,8 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
+        //This will be scrabled by the first AES round in any branch.
+        self.buffer[1] ^= length;
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() >= 8 {
             if data.len() >= 16 {
@@ -158,8 +162,6 @@ impl Hasher for AHasher {
                 }
             }
         }
-        //Needed to prevent collisions by null padding strings.
-        self.buffer = aeshash(self.buffer.convert(), [length, length].convert()).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {

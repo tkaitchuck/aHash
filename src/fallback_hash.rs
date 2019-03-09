@@ -7,7 +7,7 @@ use arrayref::*;
 const MULTIPLES: [u64; 2] = [0xBF58476D1CE4E5B9, 0x94D049BB133111EB];
 const INCREMENT: u64 = 0x9e3779b97f4a7c15;
 
-
+///Const random provides randomzied keys with no runtime cost.
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.

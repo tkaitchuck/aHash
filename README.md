@@ -69,8 +69,8 @@ Each bit of input can has the potential to flip every bit of the output.
 aHash prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
 It is however not recommended to assume this property can hold if the attacker is allowed to SEE the hashed value.
 AES is designed to prevent an attacker from learning the key being used even if they can see the encrypted output and 
-select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds for 
-integers and three rounds for strings, so it may not hold up to this sort of attack. 
+select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds,
+so it may not hold up to this sort of attack. 
 For DOS prevention, this should not be a problem, as an attacker trying to produce collisions in a hashmap 
 does not get to see the hash values that are used by the map.
 
@@ -79,7 +79,7 @@ does not get to see the hash values that are used by the map.
 aHash should not be used for situations where cryptographic security is needed for several reasons.
 
 1. It has not been analyzed for vulnerabilities and may leak bits of the key in its output.
-2. It only uses 2 rounds or 3 of AES as opposed to the standard of 10. This likely makes it possible to guess the key by observing a large number of hashes.
+2. It only uses 2 rounds of AES as opposed to the standard of 10. This likely makes it possible to guess the key by observing a large number of hashes.
 3. Like any cypher based hash, it will show certain statistical deviations from truly random output when comparing a (VERY) large number of hashes.
 
 There are several efforts to build a secure hash function that uses AES-NI for acceleration, but this is not one of them.
