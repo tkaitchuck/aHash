@@ -20,24 +20,26 @@ much better job of scrambling data than most non-secure hashes.
 
 On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1 -C llvm-args=-unroll-threshold=1000`:
 
-| Input   | SipHash 3-1 time | FnvHash time|FxHash time| aHash time| aHash Fallback time|
+| Input   | SipHash 3-1 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
-| u8             | 12.415 ns | 2.0967 ns | **1.1531 ns** | 1.4853 ns | 1.6706 ns |
-| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4858 ns | 1.6649 ns |
-| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4871 ns | 1.6710 ns |
-| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4874 ns | 1.6647 ns |
-| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.7187 ns | 2.5998 ns |
-| 1 byte string  | 16.042 ns | **1.9192 ns** | 2.5481 ns | 2.5548 ns | 2.4774 ns |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.9186 ns** | 3.0631 ns |
-| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 2.5415 ns | 2.5904 ns |
-| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **3.0936 ns** | 3.5530 ns |
-| 8 byte string  | 18.103 ns | 4.5923 ns | **2.2808 ns** | 2.5501 ns | 3.7963 ns |
-| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **3.2825 ns** | 5.3538 ns |
-| 16 byte string | 19.882 ns | 9.8525 ns | **2.7562 ns** | 4.0007 ns | 5.0416 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | **3.2014 ns** | 4.1262 ns | 6.3208 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.9960 ns** | 15.727 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.9262 ns** | 33.008 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **52.789 ns** | 396.16 ns |
+| u8             | 12.415 ns | 2.0967 ns | **1.1531 ns** | 1.4678 ns | 1.9274 ns |
+| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.5156 ns | 1.6688 ns |
+| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4717 ns | 1.9288 ns |
+| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.5231 ns | 1.9219 ns |
+| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4704 ns | 2.5679 ns |
+| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | **1.8055 ns** | 3.2535 ns |
+| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.8778 ns** | 4.1441 ns |
+| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.8105 ns | 3.2465 ns |
+| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **2.5257 ns** | 4.7655 ns |
+| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.9825 ns** | 4.3283 ns |
+| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **2.8890 ns** | 6.5904 ns |
+| 16 byte string | 19.882 ns | 9.8525 ns | **2.7562 ns** | 2.8791 ns | 5.2418 ns |
+| 24 byte string | 21.893 ns | 16.640 ns | **3.2014 ns** | 3.2495 ns | 6.1370 ns |
+| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.6762 ns** | 12.522 ns |
+| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **4.9125 ns** | 20.208 ns |
+|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **50.854 ns** | 128.99 ns |
+
+* Fallback refers to the algorithm aHash would use if AES instruction are unavailable. 
 
 As you can see above aHash provides the similar (~5x) speedup over SipHash that FxHash provides.
 
@@ -55,25 +57,29 @@ aHash is designed to prevent keys from being guessable. This means:
 - It is a high quality hash that produces results that look highly random.
 - It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
 Each bit of input can has the potential to flip every bit of the output.
-    - Additionally, when AES is available, even stronger properties hold:
+- Similarly each bit in the key can affect every bit in the output.
+- The update function is not 'lossy'. IE: It is composed of reversable operations (such as aes) which means any entropy from the input is not lost.
+    - When AES is available even stronger properties hold:
         - Whether or not a flipped input bit will flip any given output bit depends on every bit in the Key
         - Whether or not a flipped input bit will flip any given output bit depends on every other bit in the input.
-    - If AES-NI is not available, these properties don't hold for all possible bits in the input/key but for most of them.
-        - In the fallback algorithm there are no full 64 bit collisions with smaller than 64 bits of input.
+    - If AES-NI is not available the following still hold:
+        - Each input or key bit can affect each output bit.
+        - There are no full 64 bit collisions with smaller than 64 bits of input.
 
 aHash prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
 It is however not recommended to assume this property can hold if the attacker is allowed to SEE the hashed value.
 AES is designed to prevent an attacker from learning the key being used even if they can see the encrypted output and 
-select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds, so 
-it likely won't hold up to this sort of attack. For DOS prevention, this should not be a problem, as an attacker trying 
-to produce collisions in a hashmap does not get to see the hash values that are beeing used inside of the map.
+select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds for 
+integers and three rounds for strings, so it may not hold up to this sort of attack. 
+For DOS prevention, this should not be a problem, as an attacker trying to produce collisions in a hashmap 
+does not get to see the hash values that are used by the map.
 
 ### aHash is not cryptographically secure
 
 aHash should not be used for situations where cryptographic security is needed for several reasons.
 
 1. It has not been analyzed for vulnerabilities and may leak bits of the key in its output.
-2. It only uses 2 rounds of AES as opposed to the standard of 10. This likely makes it possible to guess the key by observing a large number of hashes.
+2. It only uses 2 rounds or 3 of AES as opposed to the standard of 10. This likely makes it possible to guess the key by observing a large number of hashes.
 3. Like any cypher based hash, it will show certain statistical deviations from truly random output when comparing a (VERY) large number of hashes.
 
 There are several efforts to build a secure hash function that uses AES-NI for acceleration, but this is not one of them.
