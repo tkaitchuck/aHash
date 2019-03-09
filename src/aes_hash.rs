@@ -2,6 +2,7 @@ use crate::convert::Convert;
 use std::default::Default;
 use std::hash::{Hasher};
 use std::mem::transmute;
+use arrayref::*;
 
 use const_random::const_random;
 
@@ -110,43 +111,59 @@ impl Hasher for AHasher {
     fn write_u64(&mut self, i: u64) {
         self.write_u128(i as u128);
     }
+
     #[inline]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
-        while data.len() >= 16 {
-            let (block, rest) = data.split_at(16);
-            let block: u128 = (*as_array!(block, 16)).convert();
-            self.buffer = aeshash(self.buffer.convert(),block).convert();
-            data = rest;
-        }
         if data.len() >= 8 {
-            let (block, rest) = data.split_at(8);
-            let block: u64 = (*as_array!(block, 8)).convert();
-            self.buffer = aeshash(self.buffer.convert(),block as u128).convert();
-            data = rest;
-        }
-        if data.len() >= 4 {
-            let (block, rest) = data.split_at(4);
-            let block: u32 = (*as_array!(block, 4)).convert();
-            self.buffer = aeshash(self.buffer.convert(),block as u128).convert();
-            data = rest;
-        }
-        if data.len() >= 2 {
-            let (block, rest) = data.split_at(2);
-            let block: u16 = (*as_array!(block, 2)).convert();
-            self.buffer = aeshash(self.buffer.convert(), block as u128).convert();
-            data = rest;
-        }
-        if data.len() >= 1 {
-            self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
+            if data.len() >= 16 {
+                while data.len() > 32 {
+                    //len>32
+                    let (block, rest) = data.split_at(16);
+                    let block: u128 = (*as_array!(block, 16)).convert();
+                    self.buffer = aeshash(self.buffer.convert(),block).convert();
+                    data = rest;
+                }
+                //len 16-32
+                let block = (*array_ref!(data, 0, 16)).convert();
+                self.buffer = aeshash(self.buffer.convert(),block).convert();
+                let block = (*array_ref!(data, data.len()-16, 16)).convert();
+                self.buffer = aeshash(self.buffer.convert(),block).convert();
+            } else {
+                //len 8-15
+                let block: [u64; 2] = [(*array_ref!(data, 0, 8)).convert(),
+                    (*array_ref!(data, data.len()-8, 8)).convert()];
+                self.buffer = aeshash(self.buffer.convert(),block.convert()).convert();
+            }
+        } else {
+            if data.len() >= 2 {
+                if data.len() >= 4 {
+                    //len 4-7
+                    let block: [u32; 2] = [(*array_ref!(data, 0, 4)).convert(),
+                        (*array_ref!(data, data.len()-4, 4)).convert()];
+                    let block: [u64;2] = [block[1] as u64, block[0] as u64];
+                    self.buffer = aeshash(self.buffer.convert(),block.convert()).convert()
+                } else {
+                    //len 2-3
+                    let block: [u16; 2] = [(*array_ref!(data, 0, 2)).convert(),
+                        (*array_ref!(data, data.len()-2, 2)).convert()];
+                    let block: u32 = block.convert();
+                    self.buffer = aeshash(self.buffer.convert(), block as u128).convert();
+                }
+            } else {
+                if data.len() > 0 {
+                    //len 1
+                    self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
+                }
+            }
         }
         self.buffer = aeshash(self.buffer.convert(), [length, length].convert()).convert();
     }
     #[inline]
     fn finish(&self) -> u64 {
         let result: [u64; 2] = aeshash(aeshash(self.buffer.convert(), PAD), PAD).convert();
-        result[1]//.wrapping_add(result[1])
+        result[0]//.wrapping_add(result[1])
     }
 }
 
