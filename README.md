@@ -40,6 +40,8 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 |1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **52.586 ns** | 128.97 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instruction are unavailable. 
+For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
+possible time.
 
 As you can see above aHash provides the similar (~5x) speedup over SipHash that FxHash provides.
 
