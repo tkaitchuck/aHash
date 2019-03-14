@@ -122,8 +122,23 @@ impl Hasher for AHasher {
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() >= 8 {
             if data.len() >= 16 {
+                if data.len() > 128 {
+                    let mut par_block: u128 = self.buffer.convert();
+                    par_block ^= PAD;
+                    while data.len() > 128 {
+                        let (b1, rest) = data.split_at(16);
+                        let b1: u128 = (*as_array!(b1, 16)).convert();
+                        par_block = aeshash(par_block, b1);
+                        data = rest;
+                        let (b2, rest) = data.split_at(16);
+                        let b2: u128 = (*as_array!(b2, 16)).convert();
+                        self.buffer = aeshash(self.buffer.convert(), b2).convert();
+                        data = rest;
+                    }
+                    self.buffer = aeshash(par_block, self.buffer.convert()).convert();
+                }
                 while data.len() > 32 {
-                    //len >32
+                    //len 33-128
                     let (block, rest) = data.split_at(16);
                     let block: u128 = (*as_array!(block, 16)).convert();
                     self.buffer = aeshash(self.buffer.convert(),block).convert();

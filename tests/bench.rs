@@ -64,7 +64,7 @@ fn gen_strings() -> Vec<String> {
 
 }
 
-const U8_VALUES: [u32; 1] = [8];
+const U8_VALUES: [u8; 1] = [8];
 const U16_VALUES: [u16; 1] = [16];
 const U32_VALUES: [u32; 1] = [32];
 const U64_VALUES: [u64; 1] = [64];
