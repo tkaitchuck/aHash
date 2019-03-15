@@ -89,15 +89,32 @@ impl AHasher {
     /// can never affect the bits to the right of it. This version avoids this vulnerability by rotating and
     /// performing a second multiply. This makes it impossible for an attacker to place a single bit
     /// difference between two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
-    /// It is also intentionally structured so that the buffer is only xored into at the end. Because the method
-    /// is configured to be inlined, the compiler will unroll any loop this gets placed in and the loop can be
-    /// automatically vectorized and the rotates, xors, and multiplies can be paralleled.
+    ///
     /// The key needs to be incremented between consecutive calls to prevent (a,b) from hashing the same as (b,a).
     /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
     /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
     /// run another operation afterwords if does not depend on the output of the multiply operation.
+    ///
+    /// The update of the buffer to perform the second multiply is moved from the end to the beginning of the method.
+    /// This has the effect of causing the next call to update to perform he second multiply. For the final
+    /// update this is performed in the finalize method. This might seem wasteful, but its actually an optimization.
+    /// If the method get's inlined into the caller where it is being invoked on a single primitive, the first call
+    /// to update the buffer will be operating on constants and the compiler will optimize it out, by replacing it with
+    /// the result.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
+        self.buffer = (self.buffer.rotate_right(27)).wrapping_mul(MULTIPLES[1]);
+        self.buffer ^= (new_data ^ self.key).wrapping_mul(MULTIPLES[0]);
+        self.key = self.key.wrapping_add(INCREMENT);
+    }
+
+
+    /// This is similar to the above update function (see it's description) but handles the second multiply
+    /// directly ans xors at the end. It is structured so that the buffer is only xored into at the end.
+    /// Because the method is configured to be inlined, the compiler will unroll any loop this gets placed in
+    /// and the loop can be automatically vectorized and the rotates, xors, and multiplies can be paralleled.
+    #[inline(always)]
+    fn ordered_update(&mut self, new_data: u64) {
         let value = (new_data ^ self.key).wrapping_mul(MULTIPLES[0]);
         self.buffer ^= value.rotate_right(27).wrapping_mul(MULTIPLES[1]);
         self.key = self.key.wrapping_add(INCREMENT);
@@ -150,11 +167,11 @@ impl Hasher for AHasher {
             while data.len() > 16 {
                 let (block, rest) = data.split_at(8);
                 let val: u64 = as_array!(block, 8).convert();
-                self.update(val);
+                self.ordered_update(val);
                 data = rest;
             }
             let val: u64 = (*array_ref!(data, 0, 8)).convert();
-            self.update(val);
+            self.ordered_update(val);
             let val: u64 = (*array_ref!(data, data.len()-8, 8)).convert();
             self.update(val);
         } else {
@@ -180,8 +197,8 @@ impl Hasher for AHasher {
     fn finish(&self) -> u64 {
         //This finalization logic comes from splitmix64.
         let result = self.buffer ^ self.key;
-        let result = ((result >> 30) ^ result).wrapping_mul(MULTIPLES[0]);
-//        let result = (result ^ (result >> 27)).wrapping_mul(MULTIPLES[1]);
+//        let result = ((result >> 30) ^ result).wrapping_mul(MULTIPLES[0]);
+        let result = (result.rotate_right(27)).wrapping_mul(MULTIPLES[1]);
         result ^ (result >> 31)
     }
 }

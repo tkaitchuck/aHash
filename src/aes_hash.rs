@@ -117,7 +117,7 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
-        //This will be scrabled by the first AES round in any branch.
+        //This will be scrambled by the first AES round in any branch.
         self.buffer[1] ^= length;
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() >= 8 {
