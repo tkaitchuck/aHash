@@ -136,6 +136,48 @@ fn test_padding_doesnot_collide<T:Hasher>(hasher: impl Fn()->T) {
     }
 }
 
+fn test_bucket_distributin<T:Hasher>(hasher: impl Fn()->T) {
+    let mut buckets = vec![0; 32];
+    for i in 0..32000 {
+        let value = hash(i, &hasher) as usize;
+        buckets[value & 31] += 1;
+    }
+    let max = *buckets.iter().max().unwrap();
+    let min = *buckets.iter().min().unwrap();
+    assert!(max < 1100, "min: {}, max:{}", min, max);
+    assert!(min > 900, "min: {}, max:{}", min, max);
+
+    let mut buckets = vec![0; 256];
+    for i in 0..256000 {
+        let value = hash(i, &hasher) as usize;
+        buckets[value & 255] += 1;
+    }
+    let max = *buckets.iter().max().unwrap();
+    let min = *buckets.iter().min().unwrap();
+    assert!(max < 1100, "min: {}, max:{}", min, max);
+    assert!(min > 900, "min: {}, max:{}", min, max);
+
+    let mut buckets = vec![0; 32];
+    for i in 0..32000 {
+        let value = hash(i*32*1024, &hasher) as usize;
+        buckets[value % 32] += 1;
+    }
+    let max = *buckets.iter().max().unwrap();
+    let min = *buckets.iter().min().unwrap();
+    assert!(max < 1100, "min: {}, max:{}", min, max);
+    assert!(min > 900, "min: {}, max:{}", min, max);
+
+    let mut buckets = vec![0; 256];
+    for i in 0..256000 {
+        let value = hash(i*256, &hasher) as usize;
+        buckets[value % 256] += 1;
+    }
+    let max = *buckets.iter().max().unwrap();
+    let min = *buckets.iter().min().unwrap();
+    assert!(max < 1100, "min: {}, max:{}", min, max);
+    assert!(min > 900, "min: {}, max:{}", min, max);
+}
+
 #[cfg(test)]
 mod fallback_tests {
     use crate::fallback_hash::*;
@@ -165,6 +207,11 @@ mod fallback_tests {
     #[test]
     fn fallback_padding_doesnot_collide() {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 0))
+    }
+
+    #[test]
+    fn fallback_bucket_distributin() {
+        test_bucket_distributin(|| AHasher::new_with_keys(0, 0))
     }
 }
 
@@ -210,5 +257,10 @@ mod aes_tests {
     #[test]
     fn aes_padding_doesnot_collide() {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(BAD_KEY,BAD_KEY))
+    }
+
+    #[test]
+    fn fallback_bucket_distributin() {
+        test_bucket_distributin(|| AHasher::new_with_keys(0, 0))
     }
 }
