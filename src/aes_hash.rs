@@ -124,7 +124,6 @@ impl Hasher for AHasher {
             if data.len() > 16 {
                 if data.len() > 128 {
                     let mut par_block: u128 = self.buffer.convert();
-                    par_block ^= PAD;
                     while data.len() > 128 {
                         let (b1, rest) = data.split_at(16);
                         let b1: u128 = (*as_array!(b1, 16)).convert();
@@ -135,7 +134,7 @@ impl Hasher for AHasher {
                         self.buffer = aeshash(self.buffer.convert(), b2).convert();
                         data = rest;
                     }
-                    self.buffer = aeshash(par_block, self.buffer.convert()).convert();
+                    self.buffer = aeshash(self.buffer.convert(), par_block).convert();
                 }
                 while data.len() > 32 {
                     //len 33-128
