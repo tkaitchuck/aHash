@@ -25,13 +25,13 @@ different versions of the code may hash the same input to different values.
 ## Speed
 
 When it is available aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input.
-On an intel i5-6200u this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger permutation.
-It also handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing, and does a 
-much better job of scrambling data than most non-secure hashes.
+On an intel i5-6200u this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger 
+permutation and handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing, 
+and does a better job of scrambling data than most non-secure hashes.
 
 On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
 
-| Input   | SipHash 3-1 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
+| Input   | SipHash 1-3 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
 | u8             | 12.766 ns | 1.1561 ns | **1.1474 ns** | 1.4591 ns | 1.5474 ns |
 | u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4598 ns | 1.5435 ns |
@@ -42,7 +42,7 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **1.6347 ns** | 2.5526 ns |
 | 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.4438 ns | 2.5635 ns |
 | 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.4446 ns** | 2.5654 ns |
-| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.7984 ns** | 3.7518 ns |
+| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.7984 ns** | 2.5861 ns |
 | 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **1.7984 ns** | 3.7541 ns |
 | 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **1.8006 ns** | 3.7536 ns |
 | 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **1.7998 ns** | 5.3823 ns |
@@ -54,15 +54,16 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
 possible time.
 
-As you can see above aHash like FxHash provides a large speedup over SipHash.
+As you can see above aHash like FxHash provides a large speedup over SipHash-1-3 which is already nearly twice as fast as SipHash-2-4.
 
-Rust by default uses SipHash because faster hash functions such as FxHash are predictable and vulnerable to denial of 
+Rust by default uses SipHash-1-3 because faster hash functions such as FxHash are predictable and vulnerable to denial of 
 service attacks. While aHash has both very strong scrambling as well as very high performance.
 
-AHash performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. 
-(depending on availability of AES-NI)
-Because of this aHash is able to out perfrom FxHash with large strings. It also provides the reasonably good performance when
-dealing with unaligned input. (notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 above.
+AHash performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. (depending on availability of AES-NI)
+
+Because of this, and it's optimized logic aHash is able to out perform FxHash with strings. 
+It also provides especially good performance dealing with unaligned input. 
+(Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in FxHash above)
 
 ## Hash quality and DOS resistance
 
@@ -107,11 +108,11 @@ There are several efforts to build a secure hash function that uses AES-NI for a
 
 ## Compatibility
 
-Currently aHash is pre 1.0. So new versions may change the algorithm slightly resulting in the new version producing 
-different hashes than the old version even with the same keys. Additionally aHash does not currently guarantee that it 
-won't produce different hash values for the same data on different machines, or even on the same machine when recompiled.
+New versions of aHash may change the algorithm slightly resulting in the new version producing different hashes than 
+the old version even with the same keys. Additionally aHash does not guarantee that it won't produce different 
+hash values for the same data on different machines, or even on the same machine when recompiled.
 
-For this reason aHash prior to 1.0 is not recommended for hashes that are persisted anywhere.
+For this reason aHash is not recommended for cases where hashes need to be persisted.
 
 ## Accelerated CPUs
 
@@ -159,14 +160,17 @@ Like any non-keyed hash FxHash can be attacked. But FxHash is so prone to this t
 For example it is possible to [accidentally introduce quadratic behavior by reading from one map in iteration order and writing to another.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
 
 Fxhash flaws make sense when you understand it for what it is. It is a quick and dirty hash, nothing more.
-it was not published and promoted by its creator, it was ***found***!
+it was not published and promoted by its creator, it was **found**!
 
 Because it is error-prone, FxHash should never be used as a default. In specialized instances where the keys are understood
 it makes sense, but given that aHash is faster on almost any object, it's probably not worth it.
 
 ## MurmurHash, CityHash, MetroHash, FarmHash, HighwayHash, XXHash, SeaHash
 
-These are all fine hashing algorithms, they do a good job of scrambling data, but they are all targeted at a different
+Murmur, City, Metro, Farm and Highway are all related, and appear to directly replace one another. Sea and XX are independent
+and compete.
+
+They are all fine hashing algorithms, they do a good job of scrambling data, but they are all targeted at a different
 usecase. They are intended to work in distributed systems where the hash is expected to be the same over time and from one
 computer to the next, efficiently hashing large volumes a data. 
 
@@ -181,11 +185,12 @@ the preferred solution du jour. But inside a simple Hashmap, stick with aHash.
 ## AquaHash
 
 AquaHash is structured **very** similarly to aHash. (Though the two were designed completely independently) It scales up
-better and will start outperfroming aHash with inputs larger than 5-10KB. However it does not scale down nearly as well and
+better and will start outperforming aHash with inputs larger than 5-10KB. However it does not scale down nearly as well and
 does poorly with for example a single `i32` as input. It's only implementation at this point is in C++.
 
 ## t1ha
 
-I don't know what usecase this hash aims for. It has many different versions and is very complex, and uses hardware tricks,
-so one might infer it is meant for hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't out perfrom
-SipHash until the input sizes are larger than 128 bytes. I don't see any piratical use for this algorithm. 
+T1ha is fast at large sizes and the output is of high quality, but it is not clear what usecase it hash aims for. 
+It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for 
+hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
+input sizes are larger than 128 bytes. So uses are likely niche. 
