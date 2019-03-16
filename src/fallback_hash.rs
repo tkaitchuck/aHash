@@ -163,7 +163,7 @@ impl Hasher for AHasher {
         //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
         self.key = self.key.wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() >= 8 {
+        if data.len() > 8 {
             while data.len() > 16 {
                 let (block, rest) = data.split_at(8);
                 let val: u64 = as_array!(block, 8).convert();
