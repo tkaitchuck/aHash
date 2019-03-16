@@ -165,6 +165,11 @@ it was not published and promoted by its creator, it was **found**!
 Because it is error-prone, FxHash should never be used as a default. In specialized instances where the keys are understood
 it makes sense, but given that aHash is faster on almost any object, it's probably not worth it.
 
+## FnvHash
+
+FnvHash is also a poor default. It only handles one byte at a time, so it's performance really suffers with large inputs.
+It is also non-keyed so it is still subject to DOS attacks and [accidentally quadratic behavior.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
+
 ## MurmurHash, CityHash, MetroHash, FarmHash, HighwayHash, XXHash, SeaHash
 
 Murmur, City, Metro, Farm and Highway are all related, and appear to directly replace one another. Sea and XX are independent
