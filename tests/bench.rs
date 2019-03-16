@@ -1,8 +1,9 @@
 use criterion::*;
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash, Hasher, BuildHasher};
 use std::collections::hash_map::DefaultHasher;
 use ahash::{AHasher};
 use fxhash::{FxHasher};
+use t1ha::T1haBuildHasher;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn aeshash<H: Hash>(b: H) -> u64 {
@@ -28,6 +29,12 @@ fn fallbackhash<H: Hash>(_b: H) -> u64 {
 
 fn fnvhash<H: Hash>(b: H) -> u64 {
     let mut hasher = fnv::FnvHasher::default();
+    b.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn t1ha<H: Hash>(b: H) -> u64 {
+    let mut hasher = builder.build_hasher();
     b.hash(&mut hasher);
     hasher.finish()
 }
@@ -185,6 +192,13 @@ fn bench_sea(c: &mut Criterion) {
     );
 }
 
+fn bench_t1ha(c: &mut Criterion) {
+    c.bench(
+        "t1ha",
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(t1ha(&s))), gen_strings()),
+    );
+}
+
 fn bench_sip(c: &mut Criterion) {
     c.bench(
         "sip",
@@ -213,4 +227,4 @@ fn bench_sip(c: &mut Criterion) {
 }
 
 criterion_main!(benches);
-criterion_group!(benches, bench_ahash, bench_fallback, bench_fx, bench_fnv, bench_sea, bench_sip);
+criterion_group!(benches, bench_ahash, bench_fallback, bench_fx, bench_fnv, bench_sea, bench_t1ha, bench_sip);
