@@ -34,7 +34,7 @@ fn fnvhash<H: Hash>(b: H) -> u64 {
 }
 
 fn t1ha<H: Hash>(b: H) -> u64 {
-    let mut hasher = builder.build_hasher();
+    let mut hasher = T1haBuildHasher::default().build_hasher();
     b.hash(&mut hasher);
     hasher.finish()
 }
