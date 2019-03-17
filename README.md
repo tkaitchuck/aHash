@@ -38,17 +38,17 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4600 ns | 1.5431 ns |
 | u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4660 ns | 1.5384 ns |
 | u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4587 ns | 2.2388 ns |
-| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | **1.7125 ns** | 2.5242 ns |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **1.6347 ns** | 2.5526 ns |
+| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | **1.7032 ns** | 2.5242 ns |
+| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **1.6500 ns** | 2.5526 ns |
 | 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.4438 ns | 2.5635 ns |
-| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.4446 ns** | 2.5654 ns |
-| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.7984 ns** | 2.5861 ns |
-| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **1.7984 ns** | 3.7541 ns |
-| 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **1.8006 ns** | 3.7536 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **1.7998 ns** | 5.3823 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.3115 ns** | 10.970 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **8.6389 ns** | 17.341 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **39.816 ns** | 97.774 ns |
+| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.4411 ns** | 2.5654 ns |
+| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.4440 ns** | 2.5861 ns |
+| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **1.8015 ns** | 3.7541 ns |
+| 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **1.8073 ns** | 3.7536 ns |
+| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **1.8037 ns** | 5.3823 ns |
+| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **5.3244 ns** | 10.970 ns |
+| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **8.1350 ns** | 17.341 ns |
+|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **34.637 ns** | 97.774 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instruction are unavailable. 
 For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
