@@ -80,149 +80,149 @@ const U128_VALUES: [u128; 1] = [128];
 fn bench_ahash(c: &mut Criterion) {
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(aeshash(&s))), &U8_VALUES),
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(aeshash(s))), &U8_VALUES),
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(aeshash(&s))), &U16_VALUES),
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(aeshash(s))), &U16_VALUES),
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(aeshash(&s))), &U32_VALUES),
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(aeshash(s))), &U32_VALUES),
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(aeshash(&s))), &U64_VALUES),
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(aeshash(s))), &U64_VALUES),
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(aeshash(&s))), &U128_VALUES),
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(aeshash(s))), &U128_VALUES),
     );
     c.bench(
         "aeshash",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(aeshash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(aeshash(s))), gen_strings()),
     );
 }
 
 fn bench_fallback(c: &mut Criterion) {
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U8_VALUES),
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fallbackhash(s))), &U8_VALUES),
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U16_VALUES),
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fallbackhash(s))), &U16_VALUES),
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U32_VALUES),
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fallbackhash(s))), &U32_VALUES),
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U64_VALUES),
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fallbackhash(s))), &U64_VALUES),
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fallbackhash(&s))), &U128_VALUES),
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fallbackhash(s))), &U128_VALUES),
     );
     c.bench(
         "fallback",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fallbackhash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fallbackhash(s))), gen_strings()),
     );
 }
 
 fn bench_fx(c: &mut Criterion) {
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fxhash(&s))), &U8_VALUES),
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fxhash(s))), &U8_VALUES),
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fxhash(&s))), &U16_VALUES),
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fxhash(s))), &U16_VALUES),
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fxhash(&s))), &U32_VALUES),
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fxhash(s))), &U32_VALUES),
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fxhash(&s))), &U64_VALUES),
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fxhash(s))), &U64_VALUES),
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fxhash(&s))), &U128_VALUES),
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fxhash(s))), &U128_VALUES),
     );
     c.bench(
         "fx",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fxhash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fxhash(s))), gen_strings()),
     );
 }
 
 fn bench_fnv(c: &mut Criterion) {
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fnvhash(&s))), &U8_VALUES),
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(fnvhash(s))), &U8_VALUES),
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fnvhash(&s))), &U16_VALUES),
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(fnvhash(s))), &U16_VALUES),
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fnvhash(&s))), &U32_VALUES),
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(fnvhash(s))), &U32_VALUES),
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fnvhash(&s))), &U64_VALUES),
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(fnvhash(s))), &U64_VALUES),
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fnvhash(&s))), &U128_VALUES),
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(fnvhash(s))), &U128_VALUES),
     );
     c.bench(
         "fnv",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fnvhash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(fnvhash(s))), gen_strings()),
     );
 }
 
 fn bench_sea(c: &mut Criterion) {
     c.bench(
         "sea",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(seahash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(seahash(s))), gen_strings()),
     );
 }
 
 fn bench_t1ha(c: &mut Criterion) {
     c.bench(
         "t1ha",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(t1ha(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(t1ha(s))), gen_strings()),
     );
 }
 
 fn bench_sip(c: &mut Criterion) {
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(siphash(&s))), &U8_VALUES),
+        ParameterizedBenchmark::new("u8", |b, s| b.iter(|| black_box(siphash(s))), &U8_VALUES),
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(siphash(&s))), &U16_VALUES),
+        ParameterizedBenchmark::new("u16", |b, s| b.iter(|| black_box(siphash(s))), &U16_VALUES),
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(siphash(&s))), &U32_VALUES),
+        ParameterizedBenchmark::new("u32", |b, s| b.iter(|| black_box(siphash(s))), &U32_VALUES),
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(siphash(&s))), &U64_VALUES),
+        ParameterizedBenchmark::new("u64", |b, s| b.iter(|| black_box(siphash(s))), &U64_VALUES),
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(siphash(&s))), &U128_VALUES),
+        ParameterizedBenchmark::new("u128", |b, s| b.iter(|| black_box(siphash(s))), &U128_VALUES),
     );
     c.bench(
         "sip",
-        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(siphash(&s))), gen_strings()),
+        ParameterizedBenchmark::new("string", |b, s| b.iter(|| black_box(siphash(s))), gen_strings()),
     );
 }
 
