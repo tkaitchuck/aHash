@@ -22,6 +22,7 @@ mod aes_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
+use const_random::const_random;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault};
 
@@ -33,6 +34,42 @@ pub use crate::fallback_hash::AHasher;
 
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
 pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
+
+///Const random provides randomzied keys with no runtime cost.
+const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
+
+/// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
+/// [AHasher]s for each key such that they are hashed independently of one
+/// another, since [AHasher]s contain state.
+///
+/// Constructs a new [AHasher] with compile time generated constants keys.
+/// So the key will be the same from one instance to another,
+/// but different from build to the next. So if it is possible for a potential
+/// attacker to have access to your compiled binary it would be better
+/// to specify keys generated at runtime.
+///
+/// # Examples
+///
+/// ```
+/// use ahash::AHasher;
+/// use std::hash::Hasher;
+///
+/// let mut hasher_1 = AHasher::default();
+/// let mut hasher_2 = AHasher::default();
+///
+/// hasher_1.write_u32(8128);
+/// hasher_2.write_u32(8128);
+///
+/// assert_eq!(hasher_1.finish(), hasher_2.finish());
+/// ```
+/// [Hasher]: std::hash::Hasher
+/// [HashMap]: std::collections::HashMap
+impl Default for AHasher {
+    #[inline]
+    fn default() -> AHasher {
+        AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1])
+    }
+}
 
 #[cfg(test)]
 mod test {

@@ -7,9 +7,6 @@ use arrayref::*;
 const MULTIPLES: [u64; 2] = [0xBF58476D1CE4E5B9, 0x94D049BB133111EB];
 const INCREMENT: u64 = 0x9e3779b97f4a7c15;
 
-///Const random provides randomzied keys with no runtime cost.
-const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
-
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
 /// Instances of [AHasher] represent state that is updated while hashing data.
@@ -27,38 +24,6 @@ pub struct AHasher {
     key: u64,
 }
 
-/// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
-/// [AHasher]s for each key such that they are hashed independently of one
-/// another, since [AHasher]s contain state.
-///
-/// Constructs a new [AHasher] with compile time generated constants keys.
-/// So the key will be the same from one instance to another,
-/// but different from build to the next. So if it is possible for a potential
-/// attacker to have access to your compiled binary it would be better
-/// to specify keys generated at runtime.
-///
-/// # Examples
-///
-/// ```
-/// use ahash::AHasher;
-/// use std::hash::Hasher;
-///
-/// let mut hasher_1 = AHasher::default();
-/// let mut hasher_2 = AHasher::default();
-///
-/// hasher_1.write_u32(8128);
-/// hasher_2.write_u32(8128);
-///
-/// assert_eq!(hasher_1.finish(), hasher_2.finish());
-/// ```
-/// [Hasher]: std::hash::Hasher
-/// [HashMap]: std::collections::HashMap
-impl Default for AHasher {
-    #[inline]
-    fn default() -> AHasher {
-        AHasher {buffer: DEFAULT_KEYS[0], key: DEFAULT_KEYS[1]}
-    }
-}
 impl AHasher {
     /// Creates a new hasher keyed to the provided keys.
     /// # Example
@@ -210,23 +175,6 @@ mod tests {
     use std::hash::{BuildHasherDefault};
     use crate::convert::Convert;
     use crate::fallback_hash::*;
-
-    #[test]
-    fn test_builder() {
-        let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
-        map.insert(1, 3);
-    }
-
-    #[test]
-    fn test_default() {
-        let hasher_a = AHasher::default();
-        assert_ne!(0, hasher_a.buffer);
-        assert_ne!(0, hasher_a.key);
-        assert_ne!(hasher_a.buffer, hasher_a.key);
-        let hasher_b = AHasher::default();
-        assert_eq!(hasher_a.buffer, hasher_b.buffer);
-        assert_eq!(hasher_a.key, hasher_b.key);
-    }
 
     #[test]
     fn test_hash() {

@@ -3,10 +3,6 @@ use std::default::Default;
 use std::hash::{Hasher};
 use arrayref::*;
 
-use const_random::const_random;
-
-///Const random provides randomzied keys with no runtime cost.
-const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
 ///Just a simple bit pattern.
 const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
 
@@ -24,39 +20,6 @@ const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
-}
-
-/// Provides a [Hasher] is typically used (e.g. by [HashMap]) to create
-/// [AHasher]s for each key such that they are hashed independently of one
-/// another, since [AHasher]s contain state.
-///
-/// Constructs a new [AHasher] with compile time generated constants keys.
-/// So the key will be the same from one instance to another,
-/// but different from build to the next. So if it is possible for a potential
-/// attacker to have access to your compiled binary it would be better
-/// to specify keys generated at runtime.
-///
-/// # Examples
-///
-/// ```
-/// use ahash::AHasher;
-/// use std::hash::Hasher;
-///
-/// let mut hasher_1 = AHasher::default();
-/// let mut hasher_2 = AHasher::default();
-///
-/// hasher_1.write_u32(8128);
-/// hasher_2.write_u32(8128);
-///
-/// assert_eq!(hasher_1.finish(), hasher_2.finish());
-/// ```
-/// [Hasher]: std::hash::Hasher
-/// [HashMap]: std::collections::HashMap
-impl Default for AHasher {
-    #[inline]
-    fn default() -> AHasher {
-        AHasher { buffer: DEFAULT_KEYS }
-    }
 }
 
 impl AHasher {
