@@ -1,5 +1,4 @@
 use crate::convert::Convert;
-use std::default::Default;
 use std::hash::{Hasher};
 use arrayref::*;
 

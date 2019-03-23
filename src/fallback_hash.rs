@@ -1,6 +1,5 @@
 use crate::convert::{Convert};
 use std::hash::{Hasher};
-use const_random::const_random;
 use arrayref::*;
 
 ///These constants come from splitmix64 which is derived from Java's SplitableRandom, which is based on DotMix and MurmurHash3.
@@ -171,8 +170,6 @@ impl Hasher for AHasher {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::hash::{BuildHasherDefault};
     use crate::convert::Convert;
     use crate::fallback_hash::*;
 
