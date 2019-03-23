@@ -82,7 +82,7 @@ impl Hasher for AHasher {
         //This will be scrambled by the first AES round in any branch.
         self.buffer[1] ^= length;
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() > 8 {
+        if data.len() >= 8 {
             if data.len() > 16 {
                 if data.len() > 128 {
                     let mut par_block: u128 = self.buffer.convert();
@@ -111,7 +111,7 @@ impl Hasher for AHasher {
                 let block = (*array_ref!(data, data.len()-16, 16)).convert();
                 self.buffer = aeshash(self.buffer.convert(),block).convert();
             } else {
-                //len 9-16
+                //len 8-16
                 let block: [u64; 2] = [(*array_ref!(data, 0, 8)).convert(),
                     (*array_ref!(data, data.len()-8, 8)).convert()];
                 self.buffer = aeshash(self.buffer.convert(),block.convert()).convert();
@@ -119,7 +119,7 @@ impl Hasher for AHasher {
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
-                    //len 4-8
+                    //len 4-7
                     let block: [u32; 2] = [(*array_ref!(data, 0, 4)).convert(),
                         (*array_ref!(data, data.len()-4, 4)).convert()];
                     let block: [u64;2] = [block[1] as u64, block[0] as u64];
