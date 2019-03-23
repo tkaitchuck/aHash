@@ -1,13 +1,13 @@
 use criterion::*;
 use std::hash::{Hash, Hasher, BuildHasher};
 use std::collections::hash_map::DefaultHasher;
-use ahash::{AHasher};
+use ahash::{AHasher, ABuildHasher};
 use fxhash::{FxHasher};
 use t1ha::T1haBuildHasher;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn aeshash<H: Hash>(b: H) -> u64 {
-    let mut hasher = AHasher::default();
+    let mut hasher = ABuildHasher::new().build_hasher();
     b.hash(&mut hasher);
     hasher.finish()
 }
@@ -18,7 +18,7 @@ fn aeshash<H: Hash>(_b: H) -> u64 {
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn fallbackhash<H: Hash>(b: H) -> u64 {
-    let mut hasher = AHasher::default();
+    let mut hasher = ABuildHasher::new().build_hasher();
     b.hash(&mut hasher);
     hasher.finish()
 }
