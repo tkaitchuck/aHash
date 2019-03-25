@@ -93,6 +93,7 @@ impl Default for AHasher {
 pub struct ABuildHasher{}
 
 impl ABuildHasher {
+    #[inline]
     pub fn new() -> ABuildHasher {
         ABuildHasher{}
     }
@@ -129,6 +130,7 @@ impl BuildHasher for ABuildHasher {
     /// [Hasher]: std::hash::Hasher
     /// [BuildHasher]: std::hash::BuildHasher
     /// [HashMap]: std::collections::HashMap
+    #[inline]
     fn build_hasher(&self) -> AHasher {
         let mem_loc = self as *const _ as usize as u64;
         AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1] ^ mem_loc)
