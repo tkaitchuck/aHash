@@ -39,7 +39,7 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
+    pub(crate) fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: [key0, key1] }
     }
 }

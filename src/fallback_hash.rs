@@ -1,10 +1,12 @@
 use crate::convert::{Convert};
 use std::hash::{Hasher};
 use arrayref::*;
+use std::ops::BitXor;
 
-///These constants come from splitmix64 which is derived from Java's SplitableRandom, which is based on DotMix and MurmurHash3.
-const MULTIPLES: [u64; 2] = [0xBF58476D1CE4E5B9, 0x94D049BB133111EB];
-const INCREMENT: u64 = 0x9e3779b97f4a7c15;
+///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
+const MULTIPLE: u64 = 6364136223846793005;
+const INCREMENT: u64 = 1442695040888963407;
+const ROT: u32 = 23;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -19,30 +21,14 @@ const INCREMENT: u64 = 0x9e3779b97f4a7c15;
 ///
 #[derive(Debug, Clone)]
 pub struct AHasher {
-    buffer: u64,
-    key: u64,
+    buffer: u64
 }
 
 impl AHasher {
     /// Creates a new hasher keyed to the provided keys.
-    /// # Example
-    ///
-    /// ```
-    /// use std::hash::Hasher;
-    /// use ahash::AHasher;
-    ///
-    /// let mut hasher = AHasher::new_with_keys(123, 456);
-    ///
-    /// hasher.write_u32(1989);
-    /// hasher.write_u8(11);
-    /// hasher.write_u8(9);
-    /// hasher.write(b"Huh?");
-    ///
-    /// println!("Hash is {:x}!", hasher.finish());
-    /// ```
     #[inline]
-    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
-        AHasher { buffer: key0, key: key1 }
+    pub(crate) fn new_with_keys(key0: u64, key1: u64) -> AHasher {
+        AHasher { buffer: key0 ^ key1.rotate_left(ROT) }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
@@ -67,21 +53,19 @@ impl AHasher {
     /// the result.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        self.buffer = (self.buffer.rotate_right(27)).wrapping_mul(MULTIPLES[1]);
-        self.buffer ^= (new_data ^ self.key).wrapping_mul(MULTIPLES[0]);
-        self.key = self.key.wrapping_add(INCREMENT);
+        let existing = self.buffer.wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+        self.buffer = existing ^ new_data;
     }
 
-
-    /// This is similar to the above update function (see it's description) but handles the second multiply
-    /// directly ans xors at the end. It is structured so that the buffer is only xored into at the end.
-    /// Because the method is configured to be inlined, the compiler will unroll any loop this gets placed in
-    /// and the loop can be automatically vectorized and the rotates, xors, and multiplies can be paralleled.
+    /// This is similar to the above update function (see it's description). But is designed to run in a loop
+    /// that will be unrolled and vectorized. So instead of using the buffer, it uses a 'key' that it updates
+    /// and returns. The buffer is only xored at the end. This structure is so that when the method is inlined,
+    /// the compiler will unroll any loop this gets placed in and the loop can be automatically vectorized
+    /// and the rotates, xors, and multiplies can be paralleled.
     #[inline(always)]
-    fn ordered_update(&mut self, new_data: u64) {
-        let value = (new_data ^ self.key).wrapping_mul(MULTIPLES[0]);
-        self.buffer ^= value.rotate_right(27).wrapping_mul(MULTIPLES[1]);
-        self.key = self.key.wrapping_add(INCREMENT);
+    fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
+        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+        key.wrapping_add(INCREMENT)
     }
 }
 
@@ -125,17 +109,18 @@ impl Hasher for AHasher {
         let mut data = input;
         let length = data.len() as u64;
         //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
-        self.key = self.key.wrapping_add(length);
+        self.buffer = self.buffer.wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
+            let mut key: u64 = self.buffer;
             while data.len() > 16 {
                 let (block, rest) = data.split_at(8);
                 let val: u64 = as_array!(block, 8).convert();
-                self.ordered_update(val);
+                key = self.ordered_update(val, key);
                 data = rest;
             }
             let val: u64 = (*array_ref!(data, 0, 8)).convert();
-            self.ordered_update(val);
+            self.ordered_update(val, key);
             let val: u64 = (*array_ref!(data, data.len()-8, 8)).convert();
             self.update(val);
         } else {
@@ -159,11 +144,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        //This finalization logic comes from splitmix64.
-        let result = self.buffer ^ self.key;
-//        let result = ((result >> 30) ^ result).wrapping_mul(MULTIPLES[0]);
-        let result = (result.rotate_right(27)).wrapping_mul(MULTIPLES[1]);
-        result ^ (result >> 31)
+        self.buffer.wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE)
     }
 }
 
