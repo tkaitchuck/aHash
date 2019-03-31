@@ -1,7 +1,6 @@
 use crate::convert::{Convert};
 use std::hash::{Hasher};
 use arrayref::*;
-use std::ops::BitXor;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = 6364136223846793005;

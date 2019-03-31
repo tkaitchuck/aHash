@@ -33,7 +33,7 @@ pub use crate::aes_hash::AHasher;
 pub use crate::fallback_hash::AHasher;
 
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
-pub type AHashMap<K, V> = HashMap<K, V, BuildHasherDefault<AHasher>>;
+pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
 ///Const random provides randomized keys with no runtime cost.
 const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
