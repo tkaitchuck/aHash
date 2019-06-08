@@ -1,6 +1,5 @@
 use crate::convert::*;
 use std::hash::{Hasher};
-use arrayref::*;
 use std::intrinsics::assume;
 
 ///Just a simple bit pattern.

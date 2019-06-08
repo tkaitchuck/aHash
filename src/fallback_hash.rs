@@ -1,6 +1,5 @@
 use crate::convert::*;
 use std::hash::{Hasher};
-use arrayref::*;
 use std::intrinsics::assume;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).

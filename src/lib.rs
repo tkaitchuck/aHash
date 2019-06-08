@@ -26,7 +26,7 @@ mod hash_quality_test;
 
 use const_random::const_random;
 use std::collections::HashMap;
-use std::hash::{BuildHasher, BuildHasherDefault};
+use std::hash::{BuildHasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -101,6 +101,13 @@ impl ABuildHasher {
     }
 }
 
+impl Default for ABuildHasher {
+    #[inline]
+    fn default() -> ABuildHasher {
+        ABuildHasher{}
+    }
+}
+
 impl BuildHasher for ABuildHasher {
     type Hasher = AHasher;
 
@@ -142,12 +149,18 @@ impl BuildHasher for ABuildHasher {
 
 #[cfg(test)]
 mod test {
+    use std::hash::BuildHasherDefault;
     use crate::convert::Convert;
     use crate::*;
 
     #[test]
-    fn test_builder() {
+    fn test_default_builder() {
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
+        map.insert(1, 3);
+    }
+    #[test]
+    fn test_builder() {
+        let mut map = HashMap::<u32, u64, ABuildHasher>::default();
         map.insert(1, 3);
     }
 

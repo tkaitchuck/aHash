@@ -1,7 +1,7 @@
 use criterion::*;
 use std::hash::{Hash, Hasher, BuildHasher};
 use std::collections::hash_map::DefaultHasher;
-use ahash::{AHasher, ABuildHasher};
+use ahash::{ABuildHasher};
 use fxhash::{FxHasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]

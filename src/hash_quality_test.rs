@@ -88,7 +88,7 @@ fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     }
 }
 
-fn hash<T: Hasher>(b: impl Hash, hasher: &Fn() -> T) -> u64 {
+fn hash<T: Hasher>(b: impl Hash, hasher: &dyn Fn() -> T) -> u64 {
     let mut hasher = hasher();
     b.hash(&mut hasher);
     hasher.finish()
