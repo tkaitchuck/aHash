@@ -1,4 +1,4 @@
-use crate::convert::{Convert};
+use crate::convert::*;
 use std::hash::{Hasher};
 use arrayref::*;
 use std::intrinsics::assume;
@@ -122,25 +122,22 @@ impl Hasher for AHasher {
         if data.len() > 8 {
             let mut key: u64 = self.buffer;
             while data.len() > 16 {
-                let (block, rest) = data.split_at(8);
-                let val: u64 = as_array!(block, 8).convert();
+                let (val, rest) = data.read_u64();
                 key = self.ordered_update(val, key);
                 data = rest;
             }
             unsafe{assume(data.len() > 8)} //This is always true because of the loop conditional above
-            let val: u64 = (*array_ref!(data, 0, 8)).convert();
+            let (val, _) = data.read_u64();
             self.ordered_update(val, key);
-            let val: u64 = (*array_ref!(data, data.len()-8, 8)).convert();
+            let val = data.read_last_u64();
             self.update(val);
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
-                    let block: [u32; 2] = [(*array_ref!(data, 0, 4)).convert(),
-                        (*array_ref!(data, data.len()-4, 4)).convert()];
+                    let block: [u32; 2] = [data.read_u32().0, data.read_last_u32()];
                     self.update(block.convert());
                 } else {
-                    let block: [u16; 2] = [(*array_ref!(data, 0, 2)).convert(),
-                        (*array_ref!(data, data.len()-2, 2)).convert()];
+                    let block: [u16; 2] = [data.read_u16().0, data.read_last_u16()];
                     let val: u32 = block.convert();
                     self.update(val as u64);
                 }

@@ -1,4 +1,4 @@
-use crate::convert::Convert;
+use crate::convert::*;
 use std::hash::{Hasher};
 use arrayref::*;
 use std::intrinsics::assume;
@@ -97,12 +97,10 @@ impl Hasher for AHasher {
                 if data.len() > 128 {
                     let mut par_block: u128 = self.buffer.convert();
                     while data.len() > 128 {
-                        let (b1, rest) = data.split_at(16);
-                        let b1: u128 = (*as_array!(b1, 16)).convert();
+                        let (b1, rest) = data.read_u128();
                         par_block = aeshash(par_block, b1);
                         data = rest;
-                        let (b2, rest) = data.split_at(16);
-                        let b2: u128 = (*as_array!(b2, 16)).convert();
+                        let (b2, rest) = data.read_u128();
                         self.buffer = aeshash(self.buffer.convert(), b2).convert();
                         data = rest;
                     }
@@ -110,35 +108,31 @@ impl Hasher for AHasher {
                 }
                 while data.len() > 32 {
                     //len 33-128
-                    let (block, rest) = data.split_at(16);
-                    let block: u128 = (*as_array!(block, 16)).convert();
+                    let (block, rest) = data.read_u128();
                     self.buffer = aeshash(self.buffer.convert(), block).convert();
                     data = rest;
                 }
                 unsafe{assume(data.len() > 16)} //This is always true because of the loop conditional above
                 //len 17-32
-                let block = (*array_ref!(data, 0, 16)).convert();
+                let (block, _) = data.read_u128();
                 self.buffer = aeshash(self.buffer.convert(), block).convert();
-                let block = (*array_ref!(data, data.len()-16, 16)).convert();
+                let block = data.read_last_u128();
                 self.buffer = aeshash(self.buffer.convert(), block).convert();
             } else {
                 //len 8-16
-                let block: [u64; 2] = [(*array_ref!(data, 0, 8)).convert(),
-                    (*array_ref!(data, data.len()-8, 8)).convert()];
+                let block: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
                 self.buffer = aeshash(self.buffer.convert(),block.convert()).convert();
             }
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
                     //len 4-7
-                    let block: [u32; 2] = [(*array_ref!(data, 0, 4)).convert(),
-                        (*array_ref!(data, data.len()-4, 4)).convert()];
+                    let block: [u32; 2] = [data.read_u32().0, data.read_last_u32()];
                     let block: [u64;2] = [block[1] as u64, block[0] as u64];
                     self.buffer = aeshash(self.buffer.convert(),block.convert()).convert()
                 } else {
                     //len 2-3
-                    let block: [u16; 2] = [(*array_ref!(data, 0, 2)).convert(),
-                        (*array_ref!(data, data.len()-2, 2)).convert()];
+                    let block: [u16; 2] = [data.read_u16().0, data.read_last_u16()];
                     let block: u32 = block.convert();
                     self.buffer = aeshash(self.buffer.convert(), block as u128).convert();
                 }
