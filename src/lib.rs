@@ -10,6 +10,8 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
+
+#![feature(core_intrinsics)]
 extern crate const_random;
 extern crate arrayref;
 

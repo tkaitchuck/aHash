@@ -1,6 +1,7 @@
 use crate::convert::{Convert};
 use std::hash::{Hasher};
 use arrayref::*;
+use std::intrinsics::assume;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = 6364136223846793005;
@@ -39,11 +40,6 @@ impl AHasher {
     /// performing a second multiply. This makes it impossible for an attacker to place a single bit
     /// difference between two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
     ///
-    /// The key needs to be incremented between consecutive calls to prevent (a,b) from hashing the same as (b,a).
-    /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
-    /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
-    /// run another operation afterwords if does not depend on the output of the multiply operation.
-    ///
     /// The update of the buffer to perform the second multiply is moved from the end to the beginning of the method.
     /// This has the effect of causing the next call to update to perform he second multiply. For the final
     /// update this is performed in the finalize method. This might seem wasteful, but its actually an optimization.
@@ -61,11 +57,24 @@ impl AHasher {
     /// and returns. The buffer is only xored at the end. This structure is so that when the method is inlined,
     /// the compiler will unroll any loop this gets placed in and the loop can be automatically vectorized
     /// and the rotates, xors, and multiplies can be paralleled.
+    ///
+    /// The key needs to be incremented between consecutive calls to prevent (a,b) from hashing the same as (b,a).
+    /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
+    /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
+    /// run another operation afterwords if does not depend on the output of the multiply operation.
     #[inline(always)]
     fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
         self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
         key.wrapping_add(INCREMENT)
     }
+}
+
+#[inline(never)]
+#[no_mangle]
+fn hash_test(input: &[u8]) -> u64 {
+    let mut a = AHasher::new_with_keys(67, 87);
+    a.write(input);
+    a.finish()
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -118,6 +127,7 @@ impl Hasher for AHasher {
                 key = self.ordered_update(val, key);
                 data = rest;
             }
+            unsafe{assume(data.len() > 8)} //This is always true because of the loop conditional above
             let val: u64 = (*array_ref!(data, 0, 8)).convert();
             self.ordered_update(val, key);
             let val: u64 = (*array_ref!(data, data.len()-8, 8)).convert();
@@ -143,7 +153,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        self.buffer.wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE)
+        self.buffer.wrapping_mul(MULTIPLE).rotate_left(9).wrapping_mul(MULTIPLE)
     }
 }
 

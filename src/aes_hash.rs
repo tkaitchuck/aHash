@@ -1,6 +1,7 @@
 use crate::convert::Convert;
 use std::hash::{Hasher};
 use arrayref::*;
+use std::intrinsics::assume;
 
 ///Just a simple bit pattern.
 const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
@@ -42,6 +43,14 @@ impl AHasher {
     pub(crate) fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: [key0, key1] }
     }
+}
+
+#[inline(never)]
+#[no_mangle]
+fn hash_test_aes(input: &[u8]) -> u64 {
+    let mut a = AHasher::new_with_keys(67, 87);
+    a.write(input);
+    a.finish()
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -103,14 +112,15 @@ impl Hasher for AHasher {
                     //len 33-128
                     let (block, rest) = data.split_at(16);
                     let block: u128 = (*as_array!(block, 16)).convert();
-                    self.buffer = aeshash(self.buffer.convert(),block).convert();
+                    self.buffer = aeshash(self.buffer.convert(), block).convert();
                     data = rest;
                 }
+                unsafe{assume(data.len() > 16)} //This is always true because of the loop conditional above
                 //len 17-32
                 let block = (*array_ref!(data, 0, 16)).convert();
-                self.buffer = aeshash(self.buffer.convert(),block).convert();
+                self.buffer = aeshash(self.buffer.convert(), block).convert();
                 let block = (*array_ref!(data, data.len()-16, 16)).convert();
-                self.buffer = aeshash(self.buffer.convert(),block).convert();
+                self.buffer = aeshash(self.buffer.convert(), block).convert();
             } else {
                 //len 8-16
                 let block: [u64; 2] = [(*array_ref!(data, 0, 8)).convert(),
