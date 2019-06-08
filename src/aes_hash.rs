@@ -91,7 +91,7 @@ impl Hasher for AHasher {
         //This will be scrambled by the first AES round in any branch.
         self.buffer[1] ^= length;
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() >= 8 {
+        if data.len() > 8 {
             if data.len() > 16 {
                 if data.len() > 128 {
                     let mut par_block: u128 = self.buffer.convert();
@@ -118,22 +118,20 @@ impl Hasher for AHasher {
                 let block = data.read_last_u128();
                 self.buffer = aeshash(self.buffer.convert(), block).convert();
             } else {
-                //len 8-16
-                let block: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
-                self.buffer = aeshash(self.buffer.convert(),block.convert()).convert();
+                //len 9-16
+                self.buffer = aeshash(self.buffer.convert(),data.read_u64().0 as u128).convert();
+                self.buffer = aeshash(self.buffer.convert(),data.read_last_u64() as u128).convert();
             }
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
-                    //len 4-7
-                    let block: [u32; 2] = [data.read_u32().0, data.read_last_u32()];
-                    let block: [u64;2] = [block[1] as u64, block[0] as u64];
-                    self.buffer = aeshash(self.buffer.convert(),block.convert()).convert()
+                    //len 4-8
+                    self.buffer = aeshash(self.buffer.convert(),data.read_u32().0 as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(),data.read_last_u32() as u128).convert();
                 } else {
                     //len 2-3
-                    let block: [u16; 2] = [data.read_u16().0, data.read_last_u16()];
-                    let block: u32 = block.convert();
-                    self.buffer = aeshash(self.buffer.convert(), block as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(),data.read_u16().0 as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(),data.read_last_u16() as u128).convert();
                 }
             } else {
                 if data.len() > 0 {
