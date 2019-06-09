@@ -92,10 +92,10 @@ impl Hasher for AHasher {
         self.buffer[1] ^= length;
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
-            if data.len() > 16 {
-                if data.len() > 128 {
+            if data.len() > 32 {
+                if data.len() > 64 {
                     let mut par_block: u128 = self.buffer.convert();
-                    while data.len() > 128 {
+                    while data.len() > 64 {
                         let (b1, rest) = data.read_u128();
                         par_block = aeshash(par_block, b1);
                         data = rest;
@@ -105,22 +105,24 @@ impl Hasher for AHasher {
                     }
                     self.buffer = aeshash(self.buffer.convert(), par_block).convert();
                 }
-                while data.len() > 32 {
-                    //len 33-128
-                    let (block, rest) = data.read_u128();
-                    self.buffer = aeshash(self.buffer.convert(), block).convert();
-                    data = rest;
-                }
-                unsafe{assume(data.len() > 16)} //This is always true because of the loop conditional above
-                //len 17-32
-                let (block, _) = data.read_u128();
-                self.buffer = aeshash(self.buffer.convert(), block).convert();
-                let block = data.read_last_u128();
-                self.buffer = aeshash(self.buffer.convert(), block).convert();
+                //len 33-64
+                let (firstHalf, secondHalf) = data.split_at(data.len()/2);
+                unsafe{assume(firstHalf.len() >= 16)}
+                unsafe{assume(secondHalf.len() >= 16)}
+                self.buffer = aeshash(self.buffer.convert(), firstHalf.read_u128().0).convert();
+                self.buffer = aeshash(self.buffer.convert(), firstHalf.read_last_u128()).convert();
+                self.buffer = aeshash(self.buffer.convert(), secondHalf.read_u128().0).convert();
+                self.buffer = aeshash(self.buffer.convert(), secondHalf.read_last_u128()).convert();
             } else {
-                //len 9-16
-                self.buffer = aeshash(self.buffer.convert(),data.read_u64().0 as u128).convert();
-                self.buffer = aeshash(self.buffer.convert(),data.read_last_u64() as u128).convert();
+                if data.len() > 16 {
+                    //len 17-32
+                    self.buffer = aeshash(self.buffer.convert(), data.read_u128().0).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data.read_last_u128()).convert();
+                } else {
+                    //len 9-16
+                    self.buffer = aeshash(self.buffer.convert(), data.read_u64().0 as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data.read_last_u64() as u128).convert();
+                }
             }
         } else {
             if data.len() >= 2 {
