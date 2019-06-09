@@ -38,7 +38,7 @@ pub use crate::fallback_hash::AHasher;
 pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
 ///Const random provides randomized keys with no runtime cost.
-const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
+const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 /// Provides a default [Hasher] compile time generated constants for keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -46,11 +46,11 @@ const DEFAULT_KEYS: [u64;2] = [const_random!(u64), const_random!(u64)];
 ///
 /// # Example
 /// ```
-/// use std::hash::{BuildHasherDefault};
-/// use ahash::AHasher;
+/// use std::hash::BuildHasherDefault;
+/// use ahash::{AHasher, ABuildHasher};
 /// use std::collections::HashMap;
 ///
-/// let mut map: HashMap<i32, i32, BuildHasherDefault<AHasher>> = HashMap::default();
+/// let mut map: HashMap<i32, i32, ABuildHasher> = HashMap::default();
 /// map.insert(12, 34);
 /// ```
 ///
@@ -81,7 +81,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1])
+        AHasher::new_with_key(DEFAULT_KEYS, 0)
     }
 }
 
@@ -141,11 +141,23 @@ impl BuildHasher for ABuildHasher {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        let mem_loc = self as *const _ as usize as u64;
-        AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1] ^ mem_loc)
+        let mem_loc = self as *const _ as usize;
+        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+        return AHasher::new_with_key(DEFAULT_KEYS[0], mem_loc as u64);
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+        return AHasher::new_with_key(DEFAULT_KEYS, mem_loc);
     }
 }
 
+#[inline(never)]
+#[no_mangle]
+fn hash_test_final(input: usize) -> u64 {
+    use std::hash::{Hasher};
+    let builder = ABuildHasher::default();
+    let mut hasher = builder.build_hasher();
+    hasher.write_usize(input);
+    hasher.finish()
+}
 
 #[cfg(test)]
 mod test {

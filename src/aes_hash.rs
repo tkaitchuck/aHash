@@ -42,13 +42,18 @@ impl AHasher {
     pub(crate) fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: [key0, key1] }
     }
+
+    #[inline]
+    pub(crate) fn new_with_key(key: [u64; 2], loc: usize) -> AHasher {
+        AHasher { buffer: [key[0], key[1] ^ (loc as u64)] }
+    }
 }
 
 #[inline(never)]
 #[no_mangle]
-fn hash_test_aes(input: &[u8]) -> u64 {
+fn hash_test_aes(input: usize) -> u64 {
     let mut a = AHasher::new_with_keys(67, 87);
-    a.write(input);
+    a.write_usize(input);
     a.finish()
 }
 
@@ -163,7 +168,6 @@ fn aeshash(value: u128, xor: u128) -> u128 {
         transmute(_mm_aesdec_si128(value, transmute(xor)))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

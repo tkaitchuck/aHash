@@ -278,38 +278,38 @@ mod fallback_tests {
 
     #[test]
     fn fallback_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::new_with_keys(0, 0))
+        test_single_bit_flip(|| AHasher::new_with_key(0, 0))
     }
 
     #[test]
     fn fallback_single_key_bit_flip() {
-        test_single_key_bit_flip(AHasher::new_with_keys)
+        test_single_key_bit_flip(AHasher::new_with_key)
     }
 
     #[test]
     fn fallback_keys_change_output() {
-        test_keys_change_output(AHasher::new_with_keys);
+        test_keys_change_output(AHasher::new_with_key);
     }
 
     #[test]
     fn fallback_finish_is_consistant() {
-        test_finish_is_consistant(AHasher::new_with_keys)
+        test_finish_is_consistant(AHasher::new_with_key)
     }
 
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 0))
+        test_padding_doesnot_collide(|| AHasher::new_with_key(0, 0))
     }
 
     #[test]
     fn fallback_bucket_distributin() {
-        test_bucket_distributin(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_bucket_distributin(|| AHasher::new_with_key(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 
     #[test]
     fn fallback_word_distribution() {
-        test_hash_common_words(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_hash_common_words(|| AHasher::new_with_key(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 }
 
