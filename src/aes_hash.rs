@@ -51,9 +51,9 @@ impl AHasher {
 
 #[inline(never)]
 #[no_mangle]
-fn hash_test_aes(input: usize) -> u64 {
+fn hash_test_aes(input: &[u8]) -> u64 {
     let mut a = AHasher::new_with_keys(67, 87);
-    a.write_usize(input);
+    a.write(input);
     a.finish()
 }
 

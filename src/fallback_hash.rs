@@ -70,9 +70,9 @@ impl AHasher {
 
 #[inline(never)]
 #[no_mangle]
-fn hash_test(input: usize) -> u64 {
+fn hash_test(input: &[u8]) -> u64 {
     let mut a = AHasher::new_with_key(67, 87);
-    a.write_usize(input);
+    a.write(input);
     a.finish()
 }
 
