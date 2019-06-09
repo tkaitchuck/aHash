@@ -106,13 +106,13 @@ impl Hasher for AHasher {
                     self.buffer = aeshash(self.buffer.convert(), par_block).convert();
                 }
                 //len 33-64
-                let (firstHalf, secondHalf) = data.split_at(data.len()/2);
-                unsafe{assume(firstHalf.len() >= 16)}
-                unsafe{assume(secondHalf.len() >= 16)}
-                self.buffer = aeshash(self.buffer.convert(), firstHalf.read_u128().0).convert();
-                self.buffer = aeshash(self.buffer.convert(), firstHalf.read_last_u128()).convert();
-                self.buffer = aeshash(self.buffer.convert(), secondHalf.read_u128().0).convert();
-                self.buffer = aeshash(self.buffer.convert(), secondHalf.read_last_u128()).convert();
+                let (first, second) = data.split_at(data.len()/2);
+                unsafe{assume(first.len() >= 16)}
+                unsafe{assume(second.len() >= 16)}
+                self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
+                self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
+                self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
+                self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
             } else {
                 if data.len() > 16 {
                     //len 17-32
