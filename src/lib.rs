@@ -81,7 +81,10 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        AHasher::new_with_key(DEFAULT_KEYS, 0)
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+        return AHasher::new_with_key(DEFAULT_KEYS, 0);
+        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+        return AHasher::new_with_key(DEFAULT_KEYS[0], 0);
     }
 }
 
