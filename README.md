@@ -39,7 +39,7 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4695 ns | 1.2297 ns |
 | u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4612 ns | 1.7304 ns |
 | 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | **1.8071 ns** | 2.2362 ns |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.1628 ns** | 1.9676 ns |
+| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | 2.1628 ns | **1.9676 ns** |
 | 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.8462 ns | 1.9960 ns |
 | 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.8457 ns** | 1.9829 ns |
 | 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.8436 ns** | 1.9855 ns |
