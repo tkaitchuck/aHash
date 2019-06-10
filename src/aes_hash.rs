@@ -138,7 +138,7 @@ impl Hasher for AHasher {
                 } else {
                     //len 2-3
                     self.buffer = aeshash(self.buffer.convert(),data.read_u16().0 as u128).convert();
-                    self.buffer = aeshash(self.buffer.convert(),data.read_last_u16() as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(),data[data.len()-1] as u128).convert();
                 }
             } else {
                 if data.len() > 0 {
