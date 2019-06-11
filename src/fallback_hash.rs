@@ -1,6 +1,7 @@
 use crate::convert::*;
 use std::hash::{Hasher};
 use std::intrinsics::assume;
+use likely::{likely};
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = 6364136223846793005;
@@ -141,7 +142,7 @@ impl Hasher for AHasher {
                     self.update(val as u64);
                 }
             } else {
-                if data.len() >= 1 {
+                if likely!(data.len() >= 1) {
                     self.update(data[0] as u64);
                 }
             }

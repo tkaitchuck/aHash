@@ -1,7 +1,7 @@
 use crate::convert::*;
 use std::hash::{Hasher};
 use std::intrinsics::assume;
-use likely::{likely, unlikely};
+use likely::{likely};
 
 ///Just a simple bit pattern.
 const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
@@ -142,7 +142,7 @@ impl Hasher for AHasher {
                     self.buffer = aeshash(self.buffer.convert(),data[data.len()-1] as u128).convert();
                 }
             } else {
-                if data.len() > 0 {
+                if likely!(data.len() > 0) {
                     //len 1
                     self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
                 }
