@@ -10,10 +10,9 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
-
-#![feature(core_intrinsics)]
+#![cfg_attr(not(test), no_std)]
+//#![feature(core_intrinsics)]
 extern crate const_random;
-extern crate arrayref;
 
 #[macro_use]
 mod convert;
@@ -25,8 +24,7 @@ mod aes_hash;
 mod hash_quality_test;
 
 use const_random::const_random;
-use std::collections::HashMap;
-use std::hash::{BuildHasher};
+use core::hash::{BuildHasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -35,7 +33,7 @@ pub use crate::aes_hash::AHasher;
 pub use crate::fallback_hash::AHasher;
 
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
-pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
+//pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
 ///Const random provides randomized keys with no runtime cost.
 const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
@@ -155,7 +153,7 @@ impl BuildHasher for ABuildHasher {
 #[inline(never)]
 #[no_mangle]
 fn hash_test_final(input: usize) -> u64 {
-    use std::hash::{Hasher};
+    use core::hash::{Hasher};
     let builder = ABuildHasher::default();
     let mut hasher = builder.build_hasher();
     hasher.write_usize(input);
@@ -164,7 +162,8 @@ fn hash_test_final(input: usize) -> u64 {
 
 #[cfg(test)]
 mod test {
-    use std::hash::BuildHasherDefault;
+    use core::hash::BuildHasherDefault;
+    use std::collections::HashMap;
     use crate::convert::Convert;
     use crate::*;
 

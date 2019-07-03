@@ -1,7 +1,5 @@
 use crate::convert::*;
-use std::hash::{Hasher};
-use std::intrinsics::assume;
-use likely::{likely};
+use core::hash::{Hasher};
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = 6364136223846793005;
@@ -120,17 +118,33 @@ impl Hasher for AHasher {
         self.buffer = self.buffer.wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
-            let mut key: u64 = self.buffer;
-            while data.len() > 16 {
-                let (val, rest) = data.read_u64();
-                key = self.ordered_update(val, key);
-                data = rest;
+            if data.len() > 16 {
+                let mut key: u64 = self.buffer;
+                while data.len() > 0 {
+                    if data.len() > 16 {
+                        //This is very awkward flow control. The else block could be outside of the loop
+                        //at the bottom and the loop conditional could be > 16.
+                        //But for whatever reason when written this way the compiler can't optimize away
+                        //the bound checks if the loop is written that way. This way the compiler
+                        //will peel the loop and end up removing the bounds checks.
+                        let (val, rest) = data.read_u64();
+                        key = self.ordered_update(val, key);
+                        data = rest;
+                    } else {
+                        let (val, _) = data.read_u64();
+                        self.ordered_update(val, key);
+                        let val = data.read_last_u64();
+                        self.update(val);
+                        break;
+                    }
+                }
+            } else {
+                //8...16
+                let (val, _) = data.read_u64();
+                self.update(val);
+                let val = data.read_last_u64();
+                self.update(val);
             }
-            unsafe{assume(data.len() > 8)} //This is always true because of the loop conditional above
-            let (val, _) = data.read_u64();
-            self.ordered_update(val, key);
-            let val = data.read_last_u64();
-            self.update(val);
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
@@ -142,7 +156,7 @@ impl Hasher for AHasher {
                     self.update(val as u64);
                 }
             } else {
-                if likely!(data.len() >= 1) {
+                if data.len() >= 1 {
                     self.update(data[0] as u64);
                 }
             }

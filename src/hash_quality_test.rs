@@ -1,4 +1,4 @@
-use std::hash::{Hash, Hasher};
+use core::hash::{Hash, Hasher};
 
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);

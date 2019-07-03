@@ -1,4 +1,4 @@
-use std::mem::transmute;
+use core::mem::transmute;
 
 pub(crate) trait Convert<To> {
     fn convert(self) -> To;

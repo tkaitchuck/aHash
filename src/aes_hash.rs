@@ -1,7 +1,5 @@
 use crate::convert::*;
-use std::hash::{Hasher};
-use std::intrinsics::assume;
-use likely::{likely};
+use core::hash::{Hasher};
 
 ///Just a simple bit pattern.
 const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
@@ -101,24 +99,38 @@ impl Hasher for AHasher {
             if data.len() > 32 {
                 if data.len() > 64 {
                     let mut par_block: u128 = self.buffer.convert();
-                    while data.len() > 64 {
-                        let (b1, rest) = data.read_u128();
-                        par_block = aeshash(par_block, b1);
-                        data = rest;
-                        let (b2, rest) = data.read_u128();
-                        self.buffer = aeshash(self.buffer.convert(), b2).convert();
-                        data = rest;
+                    while data.len() > 0 {
+                        if data.len() > 64 {
+                            //This is very awkward flow control. The else block could be outside of the loop
+                            //at the bottom and the loop conditional could be > 64.
+                            //But for whatever reason when written this way the compiler can't optimize away
+                            //the bound checks if the loop is written that way. This way the compiler
+                            //will peel the loop and end up removing the bounds checks.
+                            let (b1, rest) = data.read_u128();
+                            par_block = aeshash(par_block, b1);
+                            data = rest;
+                            let (b2, rest) = data.read_u128();
+                            self.buffer = aeshash(self.buffer.convert(), b2).convert();
+                            data = rest;
+                        } else {
+                            //This is identical to the 33-64 block below...
+                            let (first, second) = data.split_at(data.len() / 2);
+                            self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
+                            self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
+                            self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
+                            self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
+                            break;
+                        }
                     }
                     self.buffer = aeshash(self.buffer.convert(), par_block).convert();
+                } else {
+                    //len 33-64
+                    let (first, second) = data.split_at(data.len() / 2);
+                    self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
+                    self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
+                    self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
+                    self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
                 }
-                //len 33-64
-                let (first, second) = data.split_at(data.len()/2);
-                unsafe{assume(first.len() >= 16)}
-                unsafe{assume(second.len() >= 16)}
-                self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
-                self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
-                self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
-                self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
             } else {
                 if data.len() > 16 {
                     //len 17-32
@@ -131,7 +143,7 @@ impl Hasher for AHasher {
                 }
             }
         } else {
-            if likely!(data.len() >= 2) {
+            if data.len() >= 2 {
                 if data.len() >= 4 {
                     //len 4-8
                     self.buffer = aeshash(self.buffer.convert(),data.read_u32().0 as u128).convert();
@@ -142,7 +154,7 @@ impl Hasher for AHasher {
                     self.buffer = aeshash(self.buffer.convert(),data[data.len()-1] as u128).convert();
                 }
             } else {
-                if likely!(data.len() > 0) {
+                if data.len() > 0 {
                     //len 1
                     self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
                 }
@@ -159,11 +171,11 @@ impl Hasher for AHasher {
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
 fn aeshash(value: u128, xor: u128) -> u128 {
-    use std::mem::transmute;
+    use core::mem::transmute;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::*;
+    use core::arch::x86_64::*;
     unsafe {
         let value = transmute(value);
         transmute(_mm_aesdec_si128(value, transmute(xor)))
