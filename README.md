@@ -9,7 +9,7 @@ and multiplication.
 
 Similar to Sip_hash, aHash is a keyed hash, so two instances initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
-This prevents DOS attacks where an attacker sends a large number of items whose hashes collied that get used as keys in a hashmap.
+This prevents DOS attacks where an attacker sends a large number of items whose hashes collide that get used as keys in a hashmap.
 
 # Goals
 
@@ -19,7 +19,7 @@ Failing in any of these criteria will be treated as a bug.
 # Non-Goals
 
 AHash is not intended to be a cryptographically secure hash, nor is it intended for network or persisted use. 
-Different computers using aHash may arive at different hashes for the same input. Similarly the same computer running 
+Different computers using aHash will arrive at different hashes for the same input. Similarly the same computer running 
 different versions of the code may hash the same input to different values.
 
 ## Speed
@@ -61,7 +61,7 @@ service attacks. While aHash has both very strong scrambling as well as very hig
 
 AHash performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. (depending on availability of AES-NI)
 
-Because of this, and it's optimized logic aHash is able to out perform FxHash with strings. 
+Because of this, and it's optimized logic aHash is able to outperform FxHash with strings. 
 It also provides especially good performance dealing with unaligned input. 
 (Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in FxHash above)
 
@@ -72,7 +72,7 @@ AHash is designed to prevent keys from being guessable. This means:
 - It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
 Each bit of input can has the potential to flip every bit of the output.
 - Similarly each bit in the key can affect every bit in the output.
-- The update function is not 'lossy'. IE: It is composed of reversable operations (such as aes) which means any entropy from the input is not lost.
+- The update function is not 'lossy'. IE: It is composed of reversible operations (such as aes) which means any entropy from the input is not lost.
     - When AES is available even stronger properties hold:
         - Whether or not a flipped input bit will flip any given output bit depends on every bit in the Key
         - Whether or not a flipped input bit will flip any given output bit depends on every other bit in the input.
@@ -150,7 +150,7 @@ any better than the identity function. Any keys that happen to end in the same b
 of where this is likely to occur are:
 * Strings encoded in base64
 * Null terminated strings (when working with C code)
-* Integers that have the lower bits as zeros. (IE any multiple of small power of 2, whuch isn't a rare pattern in 
+* Integers that have the lower bits as zeros. (IE any multiple of small power of 2, which isn't a rare pattern in 
 computer programs.)  
   * For example when taking lengths of data or locations in data it is common for values to 
 have a multiple of 1024, if these were used as keys in a map they will collide and end up in the same bucket.
@@ -177,19 +177,19 @@ and compete.
 
 They are all fine hashing algorithms, they do a good job of scrambling data, but they are all targeted at a different
 usecase. They are intended to work in distributed systems where the hash is expected to be the same over time and from one
-computer to the next, efficiently hashing large volumes a data. 
+computer to the next, efficiently hashing large volumes of data. 
 
 This is quite different from the needs of a Hasher used in a hashmap. In a map the typical value is under 10 bytes. None
 of these algorithms scale down to handle that small of data at a competitive time. What's more the restriction that they
-provide consistant output prevents them from taking advantage of different hardware capabilities on different CPUs. It makes
+provide consistent output prevents them from taking advantage of different hardware capabilities on different CPUs. It makes
 since for a hashmap to work differently on a phone than on a server, or in wasm. 
 
-If you need to persist or transmit a hash of a file, then using one of these probably is a good idea. HighwayHash seems to the 
+If you need to persist or transmit a hash of a file, then using one of these is probably a good idea. HighwayHash seems to the 
 the preferred solution du jour. But inside a simple Hashmap, stick with aHash.
 
 ## AquaHash
 
-AquaHash is structured **very** similarly to aHash. (Though the two were designed completely independently) It scales up
+AquaHash is structured very similarly to aHash. (Though the two were designed completely independently) It scales up
 better and will start outperforming aHash with inputs larger than 5-10KB. However it does not scale down nearly as well and
 does poorly with for example a single `i32` as input. It's only implementation at this point is in C++.
 
@@ -199,3 +199,5 @@ T1ha is fast at large sizes and the output is of high quality, but it is not cle
 It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for 
 hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
 input sizes are larger than 128 bytes. So uses are likely niche. 
+
+ 
