@@ -98,38 +98,30 @@ impl Hasher for AHasher {
         if data.len() > 8 {
             if data.len() > 32 {
                 if data.len() > 64 {
+                    let (_, tail) = data.split_at(data.len() - 32);
                     let mut par_block: u128 = self.buffer.convert();
-                    while data.len() > 0 {
-                        if data.len() > 64 {
-                            //This is very awkward flow control. The else block could be outside of the loop
-                            //at the bottom and the loop conditional could be > 64.
-                            //But for whatever reason when written this way the compiler can't optimize away
-                            //the bound checks if the loop is written that way. This way the compiler
-                            //will peel the loop and end up removing the bounds checks.
-                            let (b1, rest) = data.read_u128();
-                            par_block = aeshash(par_block, b1);
-                            data = rest;
-                            let (b2, rest) = data.read_u128();
-                            self.buffer = aeshash(self.buffer.convert(), b2).convert();
-                            data = rest;
-                        } else {
-                            //This is identical to the 33-64 block below...
-                            let (first, second) = data.split_at(data.len() / 2);
-                            self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
-                            self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
-                            self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
-                            self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
-                            break;
-                        }
+                    while data.len() > 64 {
+                        let (b1, rest) = data.read_u128();
+                        par_block = aeshash(par_block, b1);
+                        data = rest;
+                        let (b2, rest) = data.read_u128();
+                        self.buffer = aeshash(self.buffer.convert(), b2).convert();
+                        data = rest;
                     }
+                    let (b1, rest) = tail.read_u128();
+                    par_block = aeshash(par_block, b1);
+                    let (b2, _) = rest.read_u128();
+                    self.buffer = aeshash(self.buffer.convert(), b2).convert();
                     self.buffer = aeshash(self.buffer.convert(), par_block).convert();
                 } else {
                     //len 33-64
-                    let (first, second) = data.split_at(data.len() / 2);
-                    self.buffer = aeshash(self.buffer.convert(), first.read_u128().0).convert();
-                    self.buffer = aeshash(self.buffer.convert(), first.read_last_u128()).convert();
-                    self.buffer = aeshash(self.buffer.convert(), second.read_u128().0).convert();
-                    self.buffer = aeshash(self.buffer.convert(), second.read_last_u128()).convert();
+                    let last = data.read_last_u128();
+                    while data.len() > 16 {
+                        let (block, rest) = data.read_u128();
+                        self.buffer = aeshash(self.buffer.convert(), block).convert();
+                        data = rest;
+                    }
+                    self.buffer = aeshash(self.buffer.convert(), last).convert();
                 }
             } else {
                 if data.len() > 16 {
@@ -154,10 +146,13 @@ impl Hasher for AHasher {
                     self.buffer = aeshash(self.buffer.convert(),data[data.len()-1] as u128).convert();
                 }
             } else {
+                let value;
                 if data.len() > 0 {
-                    //len 1
-                    self.buffer = aeshash(self.buffer.convert(), data[0] as u128).convert();
+                    value = data[0]; //len 1
+                } else {
+                    value = 0;
                 }
+                self.buffer = aeshash(self.buffer.convert(), value as u128).convert();
             }
         }
     }

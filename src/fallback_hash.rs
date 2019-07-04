@@ -119,31 +119,17 @@ impl Hasher for AHasher {
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
             if data.len() > 16 {
+                let tail = data.read_last_u64();
                 let mut key: u64 = self.buffer;
-                while data.len() > 0 {
-                    if data.len() > 16 {
-                        //This is very awkward flow control. The else block could be outside of the loop
-                        //at the bottom and the loop conditional could be > 16.
-                        //But for whatever reason when written this way the compiler can't optimize away
-                        //the bound checks if the loop is written that way. This way the compiler
-                        //will peel the loop and end up removing the bounds checks.
-                        let (val, rest) = data.read_u64();
-                        key = self.ordered_update(val, key);
-                        data = rest;
-                    } else {
-                        let (val, _) = data.read_u64();
-                        self.ordered_update(val, key);
-                        let val = data.read_last_u64();
-                        self.update(val);
-                        break;
-                    }
+                while data.len() > 8 {
+                    let (val, rest) = data.read_u64();
+                    key = self.ordered_update(val, key);
+                    data = rest;
                 }
+                self.update(tail);
             } else {
-                //8...16
-                let (val, _) = data.read_u64();
-                self.update(val);
-                let val = data.read_last_u64();
-                self.update(val);
+                self.update(data.read_u64().0);
+                self.update(data.read_last_u64());
             }
         } else {
             if data.len() >= 2 {
@@ -156,9 +142,13 @@ impl Hasher for AHasher {
                     self.update(val as u64);
                 }
             } else {
-                if data.len() >= 1 {
-                    self.update(data[0] as u64);
+                let value;
+                if data.len() > 0 {
+                    value = data[0]; //len 1
+                } else {
+                    value = 0;
                 }
+                self.update(value as u64);
             }
         }
     }
