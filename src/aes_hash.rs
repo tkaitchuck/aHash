@@ -115,13 +115,12 @@ impl Hasher for AHasher {
                     self.buffer = aeshash(self.buffer.convert(), par_block).convert();
                 } else {
                     //len 33-64
-                    let last = data.read_last_u128();
-                    while data.len() > 16 {
-                        let (block, rest) = data.read_u128();
-                        self.buffer = aeshash(self.buffer.convert(), block).convert();
-                        data = rest;
-                    }
-                    self.buffer = aeshash(self.buffer.convert(), last).convert();
+                    let (head, _) = data.split_at(32);
+                    let (_, tail) = data.split_at(data.len() - 32);
+                    self.buffer = aeshash(self.buffer.convert(), head.read_u128().0).convert();
+                    self.buffer = aeshash(self.buffer.convert(), head.read_last_u128()).convert();
+                    self.buffer = aeshash(self.buffer.convert(), tail.read_u128().0).convert();
+                    self.buffer = aeshash(self.buffer.convert(), tail.read_last_u128()).convert();
                 }
             } else {
                 if data.len() > 16 {
