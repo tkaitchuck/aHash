@@ -65,35 +65,31 @@ Because of this, and it's optimized logic aHash is able to outperform FxHash wit
 It also provides especially good performance dealing with unaligned input. 
 (Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in FxHash above)
 
-## Hash quality and DOS resistance
+## Security
 
-AHash is designed to prevent keys from being guessable. This means:
-- It is a high quality hash that produces results that look highly random.
+AHash is designed to prevent an adversary that does not know the key from being able to create hash collisions or partial collisions. 
+
+This achieved by ensuring that:
 - It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
 Each bit of input can has the potential to flip every bit of the output.
 - Similarly each bit in the key can affect every bit in the output.
-- The update function is not 'lossy'. IE: It is composed of reversible operations (such as aes) which means any entropy from the input is not lost.
-    - When AES is available even stronger properties hold:
-        - Whether or not a flipped input bit will flip any given output bit depends on every bit in the Key
-        - Whether or not a flipped input bit will flip any given output bit depends on every other bit in the input.
-    - If AES-NI is not available the following still hold:
-        - Each input or key bit can affect each output bit.
-        - There are no full 64 bit collisions with smaller than 64 bits of input.
+- Input bits never affect just one or a very few bits in intermediate state. This is specifically designed to prevent [differential attacks aimed to cancel previous input](https://emboss.github.io/blog/2012/12/14/breaking-murmur-hash-flooding-dos-reloaded/)
+- The update function is not 'lossy'. IE: It is composed of reversible operations (such as AES) which means any entropy from the input is not lost.
 
-AHash prevents DOS attacks that attempt to produce hash collisions by knowing how the hash works.
-It is however not recommended to assume this property can hold if the attacker is allowed to SEE the hashed value. 
-So not only should the key be kept secret, but the hashed values should also.
+AHash is not designed to prevent finding the key by observing the output. It is not intended to prevent impossible differential 
+analysis from finding they key. Instead the security model is to not allow the hashes be made visible. This is not a major 
+issue for hashMaps because they aren't normally even stored. In practice this means using unique keys for each map 
+(RandomState does this for you by default), and not exposing the iteration order of long lived maps that an attacker could 
+conceivably insert elements into. (This is generally recommended anyway, regardless of hash function, 
+[because even without knowledge of the hash function an attack is possible](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion).
 
-AES is designed to prevent an attacker from learning the key being used even if they can see the encrypted output and 
-select the plain text that is used. *However* this property holds when 10 rounds are used. aHash uses only 2 rounds,
-so it may not hold up to this sort of attack.
- 
-For DOS prevention, this should not be a problem, as an attacker trying to produce collisions in a hashmap 
-does not get to see the hash values that are used by the map. It should be noted that this can in principal happen 
-accidentally if the code allows an attacker to cause items to be inserted into a map and then the attacker to see those 
-items printed out in map iteration order. To help gaurd against this, it is recommended that hashmaps use a unique key 
-for each instance. That way, if an application ends up creating a map in response to an attackers request and revealing
- he order, the next request will use a different order.
+
+## Hash quality
+
+It is a high quality hash that produces results that look highly random.
+There should be around the same number of collisions for a small number of buckets that would be expected with random numbers.
+
+There are no full 64 bit collisions with smaller than 64 bits of input. Notably this means the hashes are distinguishable from random data. 
 
 ### aHash is not cryptographically secure
 
