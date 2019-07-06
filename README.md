@@ -33,22 +33,22 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 
 | Input   | SipHash 1-3 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
-| u8             | 12.766 ns | 1.1561 ns | **1.1474 ns** | 1.4603 ns | 1.2303 ns |
-| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4590 ns | 1.2270 ns |
-| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4612 ns | 1.2270 ns |
-| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4695 ns | 1.2297 ns |
-| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4612 ns | 1.7304 ns |
-| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | 1.8071 ns | **1.8033 ns** |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **1.9449 ns** | 1.9748 ns |
-| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.8458 ns | 1.9863 ns |
-| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.8466 ns** | 1.9917 ns |
-| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.8493 ns** | 1.9896 ns |
-| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **1.8460 ns** | 2.9667 ns |
-| 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **1.8527 ns** | 2.9662 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **1.8250 ns** | 5.6305 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **4.6701 ns** | 11.616 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **6.1235 ns** | 18.037 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **31.680 ns** | 101.57 ns |
+| u8             | 12.766 ns | 1.1561 ns | **1.1474 ns** | 1.4622 ns | 1.2256 ns |
+| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4626 ns | 1.2271 ns |
+| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4612 ns | 1.2265 ns |
+| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4683 ns | 1.2265 ns |
+| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4567 ns | 1.7212 ns |
+| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | 1.8018 ns | **1.8004 ns** |
+| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **1.9450 ns** | 2.1639 ns |
+| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 1.8305 ns | 1.9839 ns |
+| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **1.8367 ns** | 1.9889 ns |
+| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.8315 ns** | 1.9877 ns |
+| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | 2.3036 ns | **2.2680 ns** |
+| 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | 2.3100 ns | **2.2694 ns** |
+| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **1.8209 ns** | 4.6874 ns |
+| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **3.6244 ns** | 8.8295 ns |
+| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **4.7955 ns** | 15.033 ns |
+|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **28.588 ns** | 98.044 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instruction are unavailable. 
 For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
