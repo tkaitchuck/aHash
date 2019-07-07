@@ -4,7 +4,7 @@ use core::hash::{Hasher};
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = 6364136223846793005;
 const INCREMENT: u64 = 1442695040888963407;
-const ROT: u32 = 23;
+const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -45,8 +45,8 @@ impl AHasher {
     /// to update the buffer will be operating on constants and the compiler will optimize it out, by replacing it with
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        let existing = self.buffer.wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
-        self.buffer = existing ^ new_data;
+        let result: [u64;2] = ((new_data ^ self.buffer) as u128).wrapping_mul(MULTIPLE as u128).convert();
+        self.buffer = result[0] ^ result[1];
     }
 
     /// This is similar to the above update function (see it's description). But is designed to run in a loop
@@ -61,7 +61,10 @@ impl AHasher {
     /// run another operation afterwords if does not depend on the output of the multiply operation.
     #[inline(always)]
     fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
-        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+//        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+//        key.wrapping_add(INCREMENT)
+        let result: [u64;2] =  ((new_data ^ key) as u128).wrapping_mul(MULTIPLE as u128).convert();
+        self.buffer ^= result[0] ^ result[1];
         key.wrapping_add(INCREMENT)
     }
 }
@@ -153,7 +156,8 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        self.buffer.wrapping_mul(MULTIPLE).rotate_left(9).wrapping_mul(MULTIPLE)
+        //self.buffer.wrapping_mul(MULTIPLE).rotate_left(9).wrapping_mul(MULTIPLE)
+        self.buffer
     }
 }
 

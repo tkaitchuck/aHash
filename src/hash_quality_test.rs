@@ -88,7 +88,7 @@ fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
 fn assert_each_byte_differes(base: u64, alternitives: Vec<u64>) {
     let mut changed_bits = 0_u64;
     for alternitive in alternitives {
-        changed_bits |= (base ^ alternitive)
+        changed_bits |= base ^ alternitive
     }
     assert_eq!(core::u64::MAX, changed_bits, "Bits unchanged: {:x}", changed_bits);
 }
