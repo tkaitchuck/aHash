@@ -133,7 +133,18 @@ fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     }
 }
 
-fn hash<T: Hasher>(b: impl Hash, hasher: &dyn Fn() -> T) -> u64 {
+fn test_all_bytes_matter<T: Hasher>(hasher: impl Fn() -> T) {
+    let mut item = vec![0; 256];
+    let base_hash = hash(&item, &hasher);
+    for pos in 0..256 {
+        item[pos] = 255;
+        let hash = hash(&item, &hasher);
+        assert_ne!(base_hash, hash, "Position {} did not affect output", pos);
+        item[pos] = 0;
+    }
+}
+
+fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
     let mut hasher = hasher();
     b.hash(&mut hasher);
     hasher.finish()
@@ -141,21 +152,21 @@ fn hash<T: Hasher>(b: impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 
 fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
     let size = 32;
-    let compare_value = hash(0u32, &hasher);
+    let compare_value = hash(&0u32, &hasher);
     for pos in 0..size {
-        let test_value = hash(0 ^ (1u32 << pos), &hasher);
+        let test_value = hash(&(0 ^ (1u32 << pos)), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 64;
-    let compare_value = hash(0u64, &hasher);
+    let compare_value = hash(&0u64, &hasher);
     for pos in 0..size {
-        let test_value = hash(0 ^ (1u64 << pos), &hasher);
+        let test_value = hash(&(0 ^ (1u64 << pos)), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 128;
-    let compare_value = hash(0u128, &hasher);
+    let compare_value = hash(&0u128, &hasher);
     for pos in 0..size {
-        let test_value = hash(0 ^ (1u128 << pos), &hasher);
+        let test_value = hash(&(0 ^ (1u128 << pos)), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
 }
@@ -332,6 +343,11 @@ mod fallback_tests {
     }
 
     #[test]
+    fn fallback_all_bytes_matter() {
+        test_all_bytes_matter(|| AHasher::new_with_key(0, 0));
+    }
+
+    #[test]
     fn fallback_keys_change_output() {
         test_keys_change_output(AHasher::new_with_key);
     }
@@ -395,6 +411,11 @@ mod aes_tests {
     #[test]
     fn aes_single_key_bit_flip() {
         test_single_key_bit_flip(|k1, k2| AHasher::new_with_keys(k1, k2))
+    }
+
+    #[test]
+    fn aes_all_bytes_matter() {
+        test_all_bytes_matter(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
     }
 
     #[test]
