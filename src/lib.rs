@@ -93,6 +93,7 @@ impl Default for AHasher {
 /// [Hasher]: std::hash::Hasher
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
+#[derive(Clone)]
 pub struct ABuildHasher{}
 
 impl ABuildHasher {
