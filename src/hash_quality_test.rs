@@ -48,6 +48,51 @@ fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     assert_sufficiently_different(c.finish(), d.finish(), 1);
 }
 
+fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+    let mut base = constructor(0, 0);
+    0.hash(&mut base);
+    let base = base.finish();
+    for shift in 0..16 {
+        let mut alternitives = vec!();
+        for v in 1..256 {
+            let input = (v as u128) << (shift * 8);
+            let mut hasher = constructor(0, 0);
+            input.hash(&mut hasher);
+            alternitives.push(hasher.finish());
+        }
+        assert_each_byte_differes(base, alternitives);
+    }
+}
+
+fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+    let mut base = constructor(0, 0);
+    0.hash(&mut base);
+    let base = base.finish();
+    for shift in 0..8 {
+        let mut alternitives1 = vec!();
+        let mut alternitives2 = vec!();
+        for v in 1..256 {
+            let input = (v as u64) << (shift * 8);
+            let mut hasher1 = constructor(input, 0);
+            let mut hasher2 = constructor(0, input);
+            0.hash(&mut hasher1);
+            0.hash(&mut hasher2);
+            alternitives1.push(hasher1.finish());
+            alternitives2.push(hasher2.finish());
+        }
+        assert_each_byte_differes(base, alternitives1);
+        assert_each_byte_differes(base, alternitives2);
+    }
+}
+
+fn assert_each_byte_differes(base: u64, alternitives: Vec<u64>) {
+    let mut changed_bits = 0_u64;
+    for alternitive in alternitives {
+        changed_bits |= (base ^ alternitive)
+    }
+    assert_eq!(core::u64::MAX, changed_bits, "Bits unchanged: {:x}", changed_bits);
+}
+
 fn test_finish_is_consistant<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     let mut hasher = constructor(1, 2);
     "Foo".hash(&mut hasher);
@@ -143,7 +188,7 @@ fn test_bucket_distributin<T: Hasher>(hasher: impl Fn() -> T) {
     check_for_collisions(&hasher, &sequence, 256);
     let sequence: Vec<_> = (0..320000).into_iter().map(|i| i * 1024).collect();
     check_for_collisions(&hasher, &sequence, 32);
-    let sequence: Vec<_> = (0..2560000).into_iter().map(|i| i * 1024).collect();
+    let sequence: Vec<_> = (0..2560000_u64).into_iter().map(|i| i * 1024).collect();
     check_for_collisions(&hasher, &sequence, 256);
 }
 
@@ -292,6 +337,16 @@ mod fallback_tests {
     }
 
     #[test]
+    fn fallback_input_affect_every_byte() {
+        test_input_affect_every_byte(AHasher::new_with_key);
+    }
+
+    #[test]
+    fn fallback_keys_affect_every_byte() {
+        test_keys_affect_every_byte(AHasher::new_with_key);
+    }
+
+    #[test]
     fn fallback_finish_is_consistant() {
         test_finish_is_consistant(AHasher::new_with_key)
     }
@@ -348,6 +403,15 @@ mod aes_tests {
     }
 
     #[test]
+    fn aes_input_affect_every_byte() {
+        test_input_affect_every_byte(AHasher::new_with_keys);
+    }
+
+    #[test]
+    fn aes_keys_affect_every_byte() {
+        test_keys_affect_every_byte(AHasher::new_with_keys);
+    }
+    #[test]
     fn aes_finish_is_consistant() {
         test_finish_is_consistant(AHasher::new_with_keys)
     }
@@ -358,12 +422,12 @@ mod aes_tests {
     }
 
     #[test]
-    fn fallback_bucket_distributin() {
+    fn aes_bucket_distributin() {
         test_bucket_distributin(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 
     #[test]
-    fn fallback_word_distribution() {
+    fn aes_word_distribution() {
         test_hash_common_words(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 }
