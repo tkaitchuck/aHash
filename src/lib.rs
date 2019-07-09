@@ -79,10 +79,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return AHasher::new_with_key(DEFAULT_KEYS, 0);
-        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-        return AHasher::new_with_key(DEFAULT_KEYS[0], 0);
+        return AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1]);
     }
 }
 
@@ -94,19 +91,31 @@ impl Default for AHasher {
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
 #[derive(Clone)]
-pub struct ABuildHasher{}
+pub struct ABuildHasher {
+    keys: [u64; 2],
+}
 
 impl ABuildHasher {
     #[inline]
     pub fn new() -> ABuildHasher {
-        ABuildHasher{}
+        let mut result = ABuildHasher {
+            keys: [0, 0]
+        };
+        //Using a self pointer. When running with ASLR this is a random value.
+        let k0 = &DEFAULT_KEYS as *const _ as usize as u64;
+        let mut k1 = &result.keys as *const _ as usize as u64;
+        //Scramble seeds (from xoroshiro128+) //It's important that this is not similar to the hash algorithm
+        k1 ^= k0;
+        result.keys[0] = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
+        result.keys[1] = k1.rotate_left(37);
+        result
     }
 }
 
 impl Default for ABuildHasher {
     #[inline]
     fn default() -> ABuildHasher {
-        ABuildHasher{}
+        ABuildHasher::new()
     }
 }
 
@@ -143,11 +152,7 @@ impl BuildHasher for ABuildHasher {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        let mem_loc = self as *const _ as usize;
-        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-        return AHasher::new_with_key(DEFAULT_KEYS[0], mem_loc as u64);
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return AHasher::new_with_key(DEFAULT_KEYS, mem_loc);
+        return AHasher::new_with_keys(self.keys[0], self.keys[1]);
     }
 }
 

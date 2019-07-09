@@ -25,8 +25,8 @@ pub struct AHasher {
 impl AHasher {
     /// Creates a new hasher keyed to the provided keys.
     #[inline]
-    pub(crate) fn new_with_key(key: u64, loc: u64) -> AHasher {
-        AHasher { buffer: key ^ (loc.rotate_left(ROT)) }
+    pub(crate) fn new_with_keys(key1: u64, key2: u64) -> AHasher {
+        AHasher { buffer: key1 ^ (key2.rotate_left(ROT)) }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
@@ -72,7 +72,7 @@ impl AHasher {
 #[inline(never)]
 #[no_mangle]
 fn hash_test(input: &[u8]) -> u64 {
-    let mut a = AHasher::new_with_key(67, 87);
+    let mut a = AHasher::new_with_keys(67, 87);
     a.write(input);
     a.finish()
 }
@@ -169,11 +169,11 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let mut hasher = AHasher::new_with_key(0,0);
+        let mut hasher = AHasher::new_with_keys(0,0);
         let value: u64 = 1 << 32;
         hasher.update(value);
         let result = hasher.buffer;
-        let mut hasher = AHasher::new_with_key(0,0);
+        let mut hasher = AHasher::new_with_keys(0,0);
         let value2: u64 = 1;
         hasher.update(value2);
         let result2 = hasher.buffer;

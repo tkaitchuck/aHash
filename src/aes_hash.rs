@@ -41,11 +41,6 @@ impl AHasher {
     pub(crate) fn new_with_keys(key0: u64, key1: u64) -> AHasher {
         AHasher { buffer: [key0, key1] }
     }
-
-    #[inline]
-    pub(crate) fn new_with_key(key: [u64; 2], loc: usize) -> AHasher {
-        AHasher { buffer: [key[0], key[1] ^ (loc as u64)] }
-    }
 }
 
 #[inline(never)]
