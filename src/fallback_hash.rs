@@ -26,7 +26,7 @@ impl AHasher {
 
     /// Creates a new hasher keyed to the provided key.
     #[inline]
-    pub(crate) fn new_with_key(key: u64) -> AHasher {
+    pub fn new_with_key(key: u64) -> AHasher {
         AHasher { buffer: key }
     }
 
