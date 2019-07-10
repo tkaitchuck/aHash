@@ -44,16 +44,10 @@ impl AHasher {
     /// can never affect the bits to the right of it. This version avoids this vulnerability by rotating and
     /// performing a second multiply. This makes it impossible for an attacker to place a single bit
     /// difference between two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
-    ///
-    /// The update of the buffer to perform the second multiply is moved from the end to the beginning of the method.
-    /// This has the effect of causing the next call to update to perform he second multiply. For the final
-    /// update this is performed in the finalize method. This might seem wasteful, but its actually an optimization.
-    /// If the method get's inlined into the caller where it is being invoked on a single primitive, the first call
-    /// to update the buffer will be operating on constants and the compiler will optimize it out, by replacing it with
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
         let result: [u64;2] = ((new_data ^ self.buffer) as u128).wrapping_mul(MULTIPLE as u128).convert();
-        self.buffer = result[0] ^ result[1];
+        self.buffer = result[0].wrapping_add(result[1]);
     }
 
     /// This is similar to the above update function (see it's description). But is designed to run in a loop
