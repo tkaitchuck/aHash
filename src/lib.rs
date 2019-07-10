@@ -93,10 +93,24 @@ impl Default for AHasher {
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
 #[derive(Clone)]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub struct ABuildHasher {
     k0: u64,
     k1: u64,
 }
+
+/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
+/// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
+///
+/// [build_hasher]: ahash::
+/// [Hasher]: std::hash::Hasher
+/// [BuildHasher]: std::hash::BuildHasher
+#[derive(Clone)]
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+pub struct ABuildHasher {
+    key: u64,
+}
+
 
 impl ABuildHasher {
     #[inline]
@@ -111,7 +125,10 @@ impl ABuildHasher {
         k0 = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
         SEED.store(k0 as usize, Ordering::Relaxed);
         k1 = k1.rotate_left(37);
-        ABuildHasher{ k0:k0, k1:k1 }
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+        return ABuildHasher{ k0:k0, k1:k1 };
+        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+        return ABuildHasher{ key:k0.wrapping_add(k1) };
     }
 }
 
@@ -155,7 +172,10 @@ impl BuildHasher for ABuildHasher {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
         return AHasher::new_with_keys(self.k0, self.k1);
+        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+        return AHasher::new_with_key(self.key);
     }
 }
 
