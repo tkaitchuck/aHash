@@ -25,6 +25,8 @@ mod hash_quality_test;
 
 use const_random::const_random;
 use core::hash::{BuildHasher};
+use core::sync::atomic::AtomicUsize;
+use core::sync::atomic::Ordering;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -35,8 +37,8 @@ pub use crate::fallback_hash::AHasher;
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
 //pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
-///Const random provides randomized keys with no runtime cost.
-const DEFAULT_KEYS: [u64; 2] = [const_random!(u64), const_random!(u64)];
+///Const random provides randomized starting key with no runtime cost.
+static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 
 /// Provides a default [Hasher] compile time generated constants for keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -79,7 +81,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        return AHasher::new_with_keys(DEFAULT_KEYS[0], DEFAULT_KEYS[1]);
+        return AHasher::new_with_keys(const_random!(u64), const_random!(u64));
     }
 }
 
@@ -92,23 +94,24 @@ impl Default for AHasher {
 /// [HashMap]: std::collections::HashMap
 #[derive(Clone)]
 pub struct ABuildHasher {
-    keys: [u64; 2],
+    k0: u64,
+    k1: u64,
 }
 
 impl ABuildHasher {
     #[inline]
     pub fn new() -> ABuildHasher {
-        let mut result = ABuildHasher {
-            keys: [0, 0]
-        };
         //Using a self pointer. When running with ASLR this is a random value.
-        let k0 = &DEFAULT_KEYS as *const _ as usize as u64;
-        let mut k1 = &result.keys as *const _ as usize as u64;
-        //Scramble seeds (from xoroshiro128+) //It's important that this is not similar to the hash algorithm
+        let mut k0 = SEED.load(Ordering::Relaxed) as u64;
+        let k1 = (&SEED as *const _ as u64).rotate_left(32);
+        let mut k1= &k1 as *const _ as u64 ^ k1;
+        //Scramble seeds (based on xoroshiro128+)
+        //It's important that this is not similar to the hash algorithm
         k1 ^= k0;
-        result.keys[0] = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
-        result.keys[1] = k1.rotate_left(37);
-        result
+        k0 = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
+        SEED.store(k0 as usize, Ordering::Relaxed);
+        k1 = k1.rotate_left(37);
+        ABuildHasher{ k0:k0, k1:k1 }
     }
 }
 
@@ -152,7 +155,7 @@ impl BuildHasher for ABuildHasher {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        return AHasher::new_with_keys(self.keys[0], self.keys[1]);
+        return AHasher::new_with_keys(self.k0, self.k1);
     }
 }
 
