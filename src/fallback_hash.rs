@@ -62,10 +62,7 @@ impl AHasher {
     /// run another operation afterwords if does not depend on the output of the multiply operation.
     #[inline(always)]
     fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
-//        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
-//        key.wrapping_add(INCREMENT)
-        let result: [u64;2] =  ((new_data ^ key) as u128).wrapping_mul(MULTIPLE as u128).convert();
-        self.buffer ^= result[0] ^ result[1];
+        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
         key.wrapping_add(INCREMENT)
     }
 }
