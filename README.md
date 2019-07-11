@@ -4,8 +4,8 @@ AHash is a high speed keyed hashing algorithm intended for use in in-memory hash
 AHash is designed for performance and is *not cryptographically secure*.
 
 When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) algorithm based rotation 
-and multiplication. 
+on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) algorithm based on 
+multiplication. 
 
 Similar to Sip_hash, aHash is a keyed hash, so two instances initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
@@ -45,10 +45,10 @@ On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C
 | 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **1.8557 ns** | 2.1884 ns |
 | 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **2.1901 ns** | 2.2695 ns |
 | 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **2.1816 ns** | 2.2304 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **2.1792 ns** | 4.5479 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **4.0138 ns** | 8.7728 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.4584 ns** | 15.592 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **29.863 ns** | 112.60 ns |
+| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **2.1792 ns** | 4.4364 ns |
+| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **4.0138 ns** | 8.5719 ns |
+| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **5.4584 ns** | 14.608 ns |
+|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **29.863 ns** | 98.323 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instruction are unavailable. 
 For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
