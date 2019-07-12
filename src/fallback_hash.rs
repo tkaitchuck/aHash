@@ -2,7 +2,7 @@ use crate::convert::*;
 use core::hash::{Hasher};
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-const MULTIPLE: u64 = 6364136223846793005;
+const MULTIPLE: u64 = crate::MULTIPLE;
 const INCREMENT: u64 = 1442695040888963407;
 const ROT: u32 = 23; //17
 

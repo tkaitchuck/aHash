@@ -37,6 +37,9 @@ pub use crate::fallback_hash::AHasher;
 /// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
 //pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
+///This constant come from Kunth's prng
+const MULTIPLE: u64 = 6364136223846793005;
+
 ///Const random provides randomized starting key with no runtime cost.
 static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 
@@ -116,19 +119,24 @@ impl ABuildHasher {
     #[inline]
     pub fn new() -> ABuildHasher {
         //Using a self pointer. When running with ASLR this is a random value.
-        let mut k0 = SEED.load(Ordering::Relaxed) as u64;
-        let k1 = (&SEED as *const _ as u64).rotate_left(32);
-        let mut k1= &k1 as *const _ as u64 ^ k1;
+        let previous = SEED.load(Ordering::Relaxed) as u64;
+        let stack_mem_loc = &previous as *const _ as u64;
+        //This is similar to the update function in the fallback.
+        //only one multiply is needed because memory locations are not under an attackers control.
+        let current_seed = (previous ^ stack_mem_loc).wrapping_mul(MULTIPLE).rotate_left(31);
+        SEED.store(current_seed as usize, Ordering::Relaxed);
+
         //Scramble seeds (based on xoroshiro128+)
-        //It's important that this is not similar to the hash algorithm
-        k1 ^= k0;
+        //This is intentionally not similar the hash algorithm
+        let mut k0 = &SEED as *const _ as u64;
+        let mut k1 = current_seed ^ k0;
         k0 = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
-        SEED.store(k0 as usize, Ordering::Relaxed);
         k1 = k1.rotate_left(37);
+
         #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return ABuildHasher{ k0:k0, k1:k1 };
+        return ABuildHasher { k0: k0, k1: k1 };
         #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-        return ABuildHasher{ key:k0.wrapping_add(k1) };
+        return ABuildHasher { key: k0.wrapping_add(k1) };
     }
 }
 
