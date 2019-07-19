@@ -39,6 +39,7 @@ codegen-units = 1
 
 [dependencies]
 const-random = "0.1.3"
+no-panic = "0.1.10"
 
 [dev-dependencies]
 criterion = "0.2.10"

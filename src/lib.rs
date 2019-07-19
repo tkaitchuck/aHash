@@ -13,6 +13,8 @@
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
 extern crate const_random;
+extern crate no_panic;
+extern crate alloc;
 
 #[macro_use]
 mod convert;
@@ -27,6 +29,8 @@ use const_random::const_random;
 use core::hash::{BuildHasher};
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
+use no_panic::no_panic;
+
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -188,13 +192,16 @@ impl BuildHasher for ABuildHasher {
 }
 
 #[inline(never)]
+#[no_panic]
 #[no_mangle]
-fn hash_test_final(input: usize) -> u64 {
+fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
     use core::hash::{Hasher};
     let builder = ABuildHasher::default();
-    let mut hasher = builder.build_hasher();
-    hasher.write_usize(input);
-    hasher.finish()
+    let mut hasher1 = builder.build_hasher();
+    let mut hasher2 = builder.build_hasher();
+    hasher1.write_i32(num);
+    hasher2.write(string.as_bytes());
+    (hasher1.finish(), hasher2.finish())
 }
 
 #[cfg(test)]
@@ -203,6 +210,11 @@ mod test {
     use std::collections::HashMap;
     use crate::convert::Convert;
     use crate::*;
+
+    #[test]
+    fn test_no_panic() {
+        hash_test_final(2, "");
+    }
 
     #[test]
     fn test_default_builder() {

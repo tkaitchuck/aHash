@@ -370,7 +370,7 @@ mod fallback_tests {
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 0))
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 1))
     }
 
     #[test]
