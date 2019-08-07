@@ -1,8 +1,8 @@
 use crate::convert::*;
-use core::hash::{Hasher};
+use core::hash::Hasher;
 
 ///Just a simple bit pattern.
-const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
+const PAD: u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -70,7 +70,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        self.buffer = aeshash(self.buffer.convert(),i).convert();
+        self.buffer = aeshash(self.buffer.convert(), i).convert();
     }
 
     #[inline]
@@ -94,12 +94,12 @@ impl Hasher for AHasher {
             if data.len() >= 2 {
                 if data.len() >= 4 {
                     //len 4-8
-                    self.buffer = aeshash(self.buffer.convert(),data.read_u32().0 as u128).convert();
-                    self.buffer = aeshash(self.buffer.convert(),data.read_last_u32() as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data.read_u32().0 as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data.read_last_u32() as u128).convert();
                 } else {
                     //len 2-3
-                    self.buffer = aeshash(self.buffer.convert(),data.read_u16().0 as u128).convert();
-                    self.buffer = aeshash(self.buffer.convert(),data[data.len()-1] as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data.read_u16().0 as u128).convert();
+                    self.buffer = aeshash(self.buffer.convert(), data[data.len() - 1] as u128).convert();
                 }
             } else {
                 let value;
@@ -153,18 +153,18 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let result: [u64; 2] = aeshash(aeshash(self.buffer.convert(), PAD), PAD).convert();
-        result[0]//.wrapping_add(result[1])
+        result[0] //.wrapping_add(result[1])
     }
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
 fn aeshash(value: u128, xor: u128) -> u128 {
-    use core::mem::transmute;
     #[cfg(target_arch = "x86")]
     use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
     use core::arch::x86_64::*;
+    use core::mem::transmute;
     unsafe {
         let value = transmute(value);
         transmute(_mm_aesdec_si128(value, transmute(xor)))
@@ -173,10 +173,10 @@ fn aeshash(value: u128, xor: u128) -> u128 {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::hash::{BuildHasherDefault};
-    use crate::convert::Convert;
     use crate::aes_hash::*;
+    use crate::convert::Convert;
+    use std::collections::HashMap;
+    use std::hash::BuildHasherDefault;
 
     #[test]
     fn test_builder() {
