@@ -14,7 +14,6 @@
 //#![feature(core_intrinsics)]
 extern crate const_random;
 extern crate no_panic;
-extern crate alloc;
 
 #[macro_use]
 mod convert;
