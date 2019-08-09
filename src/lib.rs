@@ -1,9 +1,9 @@
 //! # aHash
 //!
 //! This hashing algorithm is intended to be a high performance, (hardware specific), keyed hash function.
-//! This can be seen as a DOS resistant alternative to FxHash, or a fast equivalent to SipHash.
+//! This can be seen as a DOS resistant alternative to `FxHash`, or a fast equivalent to `SipHash`.
 //! It provides a high speed hash algorithm, but where the result is not predictable without knowing a Key.
-//! This allows it to be used in a HashMap without allowing for the possibility that an malicious user can
+//! This allows it to be used in a `HashMap` without allowing for the possibility that an malicious user can
 //! induce a collision.
 //!
 //! # How aHash works
@@ -39,7 +39,7 @@ pub use crate::aes_hash::AHasher;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 pub use crate::fallback_hash::AHasher;
 
-/// A `HashMap` using a `BuildHasherDefault` BuildHasher to hash the items.
+/// A `HashMap` using `ABuildHasher` to hash the items.
 //pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
 
 ///This constant come from Kunth's prng
@@ -49,7 +49,7 @@ const MULTIPLE: u64 = 6364136223846793005;
 static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 
 /// Provides a default [Hasher] compile time generated constants for keys.
-/// This is typically used in conjunction with [BuildHasherDefault] to create
+/// This is typically used in conjunction with [`BuildHasherDefault`] to create
 /// [AHasher]s in order to hash the keys of the map.
 ///
 /// # Example
@@ -89,11 +89,11 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        return AHasher::new_with_keys(const_random!(u64), const_random!(u64));
+        AHasher::new_with_keys(const_random!(u64), const_random!(u64))
     }
 }
 
-/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
+/// Provides a [Hasher] factory. This is typically used (e.g. by [`HashMap`]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
 ///
 /// [build_hasher]: ahash::
@@ -139,7 +139,7 @@ impl ABuildHasher {
         k1 = k1.rotate_left(37);
 
         #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return ABuildHasher { k0: k0, k1: k1 };
+        return ABuildHasher { k0, k1 };
         #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
         return ABuildHasher { key: k0.wrapping_add(k1) };
     }
@@ -147,8 +147,8 @@ impl ABuildHasher {
 
 impl Default for ABuildHasher {
     #[inline]
-    fn default() -> ABuildHasher {
-        ABuildHasher::new()
+    fn default() -> Self {
+        Self::new()
     }
 }
 

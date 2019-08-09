@@ -8,7 +8,7 @@ const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
-/// Instances of [AHasher] represent state that is updated while hashing data.
+/// Instances of [`AHasher`] represent state that is updated while hashing data.
 ///
 /// Each method updates the internal state based on the new data provided. Once
 /// all of the data has been provided, the resulting hash can be obtained by calling
@@ -142,12 +142,11 @@ impl Hasher for AHasher {
                     self.update(val as u64);
                 }
             } else {
-                let value;
-                if data.len() > 0 {
-                    value = data[0]; //len 1
+                let value= if data.len() > 0 {
+                    data[0] //len 1
                 } else {
-                    value = 0;
-                }
+                    0
+                };
                 self.update(value as u64);
             }
         }

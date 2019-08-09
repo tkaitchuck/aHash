@@ -6,7 +6,7 @@ const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
-/// Instances of [AHasher] represent state that is updated while hashing data.
+/// Instances of [`AHasher`] represent state that is updated while hashing data.
 ///
 /// Each method updates the internal state based on the new data provided. Once
 /// all of the data has been provided, the resulting hash can be obtained by calling
@@ -38,8 +38,8 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key0: u64, key1: u64) -> AHasher {
-        AHasher { buffer: [key0, key1] }
+    pub fn new_with_keys(key0: u64, key1: u64) -> Self {
+        Self { buffer: [key0, key1] }
     }
 }
 
