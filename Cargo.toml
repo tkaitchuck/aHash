@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.2.11"
+version = "0.2.12"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryprographic hash function using AES-NI for high performance"
@@ -42,9 +42,9 @@ codegen-units = 1
 
 [dependencies]
 const-random = "0.1.6"
-no-panic = "0.1.10"
 
 [dev-dependencies]
+no-panic = "0.1.10"
 criterion = "0.2.10"
 seahash = "3.0.5"
 fnv = "1.0.5"

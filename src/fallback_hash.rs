@@ -142,7 +142,7 @@ impl Hasher for AHasher {
                     self.update(val as u64);
                 }
             } else {
-                let value= if data.len() > 0 {
+                let value = if data.len() > 0 {
                     data[0] //len 1
                 } else {
                     0
