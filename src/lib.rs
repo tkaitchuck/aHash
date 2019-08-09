@@ -13,6 +13,7 @@
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
 extern crate const_random;
+#[cfg(test)]
 extern crate no_panic;
 
 #[macro_use]
@@ -28,6 +29,7 @@ use const_random::const_random;
 use core::hash::{BuildHasher};
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
+#[cfg(test)]
 use no_panic::no_panic;
 
 
@@ -190,6 +192,7 @@ impl BuildHasher for ABuildHasher {
     }
 }
 
+#[cfg(test)]
 #[inline(never)]
 #[no_panic]
 #[no_mangle]
