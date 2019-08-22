@@ -37,8 +37,8 @@ impl AHasher {
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
-    /// FxHash does this but is venerable to attack. To avoid this input needs to be masked to with an
-    /// unpredictable value. Other hashes such as murmurhash have taken this approach but were found venerable
+    /// FxHash does this but is vulnerable to attack. To avoid this input needs to be masked to with an
+    /// unpredictable value. Other hashes such as murmurhash have taken this approach but were found vulnerable
     /// to attack. The attack was based on the idea of reversing the pre-mixing (Which is necessarily
     /// reversible otherwise bits would be lost) then placing a difference in the highest bit before the
     /// multiply used to mix the data. Because a multiply can never affect the bits to the right of it, a
@@ -77,7 +77,7 @@ impl AHasher {
     /// To achieve this the input needs to be modified in an unpredictable (to an attacker) way before it is
     /// combined with the value in the buffer. This is done by xoring it with `key`.
     ///
-    /// Other hashes such as murmurhash have taken that approach but were found venerable to attack.
+    /// Other hashes such as murmurhash have taken that approach but were found vulnerable to attack.
     /// The attack was based on the idea of reversing any pre-mixing (Which is necessarily reversible otherwise
     /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
     /// can never affect the bits to the right of it, a subsequent update that also only differed in the high
