@@ -65,6 +65,8 @@ Because of this, and it's optimized logic aHash is able to outperform FxHash wit
 It also provides especially good performance dealing with unaligned input. 
 (Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in FxHash above)
 
+For more a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown#performance) as HashBrown now uses aHash as it's hasher by default. 
+
 ## Security
 
 AHash is designed to prevent an adversary that does not know the key from being able to create hash collisions or partial collisions. 
