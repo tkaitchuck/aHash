@@ -37,20 +37,58 @@ impl AHasher {
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
-    /// FxHash does this but is venerable to attack. To avoid this input needs to be masked to with an unpredictable value.
-    /// However other hashes such as murmurhash have taken that approach but were found venerable to attack.
-    /// The attack was based on the idea of reversing the pre-mixing (Which is necessarily reversible otherwise
-    /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
-    /// can never affect the bits to the right of it. This version avoids this vulnerability by rotating and
-    /// performing a second multiply. This makes it impossible for an attacker to place a single bit
-    /// difference between two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
+    /// FxHash does this but is venerable to attack. To avoid this input needs to be masked to with an
+    /// unpredictable value. Other hashes such as murmurhash have taken this approach but were found venerable
+    /// to attack. The attack was based on the idea of reversing the pre-mixing (Which is necessarily
+    /// reversible otherwise bits would be lost) then placing a difference in the highest bit before the
+    /// multiply used to mix the data. Because a multiply can never affect the bits to the right of it, a
+    /// subsequent update that also differed in this bit could result in a predictable collision.
+    ///
+    /// This version avoids this vulnerability while still only using a single multiply. It takes advantage
+    /// of the fact that when a 64 bit multiply is performed the upper 64 bits are usually computed and thrown
+    /// away. Instead it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
+    /// (The compiler is smart enough to turn this into a 64 bit multiplication in the assembly)
+    /// Then the upper bits are added to the lower bits to produce a single 64 bit result.
+    ///
+    /// To understand why this is a good scrambling function it helps to understand multiply-with-carry PRNGs:
+    /// https://en.wikipedia.org/wiki/Multiply-with-carry_pseudorandom_number_generator
+    /// If the multiple is chosen well, this creates a long period, decent quality PRNG.
+    /// Notice that this function is equivalent to this except the `buffer`/`state` is being xored with each
+    /// new block of data. In the event that data is all zeros, it is exactly equivalent to a MWC PRNG.
+    ///
+    /// This is impervious to attack because every bit buffer at the end is dependent on every bit in
+    /// `new_data ^ buffer`. For example suppose two inputs differed in only the 5th bit. Then when the
+    /// multiplication is performed the `result` will differ in bits 5-69. More specifically it will differ by
+    /// 2^5 * MULTIPLE. However in the next step bits 65-128 are turned into a separate 64 bit value. So the
+    /// differing bits will be in the lower 6 bits of this value. The two intermediate values that differ in
+    /// bits 5-63 and in bits 0-5 respectively get added together. Producing an output that differs in every
+    /// bit. The addition carries in the multiplication and at the end additionally mean that the even if an
+    /// attacker somehow knew part of (but not all) the contents of the buffer before hand,
+    /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
         let result: [u64;2] = ((new_data ^ self.buffer) as u128).wrapping_mul(MULTIPLE as u128).convert();
         self.buffer = result[0].wrapping_add(result[1]);
     }
 
-    /// This is similar to the above update function (see it's description). But is designed to run in a loop
+    /// This update function updates the buffer with the new information in a way that can't be canceled
+    /// with a subsequent update without knowledge of the content of the buffer prior to the update.
+    ///
+    /// To achieve this the input needs to be modified in an unpredictable (to an attacker) way before it is
+    /// combined with the value in the buffer. This is done by xoring it with `key`.
+    ///
+    /// Other hashes such as murmurhash have taken that approach but were found venerable to attack.
+    /// The attack was based on the idea of reversing any pre-mixing (Which is necessarily reversible otherwise
+    /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
+    /// can never affect the bits to the right of it, a subsequent update that also only differed in the high
+    /// order bit could cancel out the change to `buffer` from the first update. This allowed murmurhash to be
+    /// attacked. In this update function aHash avoids this vulnerability by rotating and performing a second
+    /// multiply.
+    ///
+    /// This makes it impossible for an attacker to place a single bit difference between
+    /// two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
+    ///
+    /// This is similar to the above update function but is designed to run in a loop
     /// that will be unrolled and vectorized. So instead of using the buffer, it uses a 'key' that it updates
     /// and returns. The buffer is only xored at the end. This structure is so that when the method is inlined,
     /// the compiler will unroll any loop this gets placed in and the loop can be automatically vectorized
@@ -153,7 +191,6 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        //self.buffer.wrapping_mul(MULTIPLE).rotate_left(9).wrapping_mul(MULTIPLE)
         self.buffer
     }
 }
