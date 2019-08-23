@@ -4,8 +4,8 @@ AHash is a high speed keyed hashing algorithm intended for use in in-memory hash
 AHash is designed for performance and is *not cryptographically secure*.
 
 When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) algorithm based on 
-multiplication. 
+on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) [algorithm based on 
+multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm). 
 
 Similar to Sip_hash, aHash is a keyed hash, so two instances initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
@@ -69,7 +69,7 @@ For more a more representative performance comparison which includes the overhea
 
 ## Security
 
-AHash is designed to prevent an adversary that does not know the key from being able to create hash collisions or partial collisions. 
+AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/Attacking-aHash-or-why-it's-good-enough-for-a-hashmap)
 
 This achieved by ensuring that:
 - It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
