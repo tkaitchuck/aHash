@@ -3,12 +3,30 @@ use core::hash::{Hash, Hasher};
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
     assert!(same_byte_count <= tolerance, "{:x} vs {:x}: {:}", a, b, same_byte_count);
-    assert!(same_nibble_count <= tolerance * 3, "{:x} vs {:x}: {:}", a, b, same_nibble_count);
+    assert!(
+        same_nibble_count <= tolerance * 3,
+        "{:x} vs {:x}: {:}",
+        a,
+        b,
+        same_nibble_count
+    );
     let flipped_bits = (a ^ b).count_ones();
-    assert!(flipped_bits > 12 && flipped_bits < 52, "{:x} and {:x}: {:}", a, b, flipped_bits);
+    assert!(
+        flipped_bits > 12 && flipped_bits < 52,
+        "{:x} and {:x}: {:}",
+        a,
+        b,
+        flipped_bits
+    );
     for rotate in 0..64 {
         let flipped_bits2 = (a ^ (b.rotate_left(rotate))).count_ones();
-        assert!(flipped_bits2 > 10 && flipped_bits2 < 54, "{:x} and {:x}: {:}", a, b.rotate_left(rotate), flipped_bits2);
+        assert!(
+            flipped_bits2 > 10 && flipped_bits2 < 54,
+            "{:x} and {:x}: {:}",
+            a,
+            b.rotate_left(rotate),
+            flipped_bits2
+        );
     }
 }
 
@@ -53,7 +71,7 @@ fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) 
     0.hash(&mut base);
     let base = base.finish();
     for shift in 0..16 {
-        let mut alternitives = vec!();
+        let mut alternitives = vec![];
         for v in 1..256 {
             let input = (v as u128) << (shift * 8);
             let mut hasher = constructor(0, 0);
@@ -69,8 +87,8 @@ fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     0.hash(&mut base);
     let base = base.finish();
     for shift in 0..8 {
-        let mut alternitives1 = vec!();
-        let mut alternitives2 = vec!();
+        let mut alternitives1 = vec![];
+        let mut alternitives2 = vec![];
         for v in 1..256 {
             let input = (v as u64) << (shift * 8);
             let mut hasher1 = constructor(input, 0);
@@ -183,8 +201,14 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                 string.push(c as char);
                 string.hash(&mut long);
                 let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
-                assert!(same_bytes <= 2, format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()));
-                assert!(same_nibbles <= 8, format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()));
+                assert!(
+                    same_bytes <= 2,
+                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                );
+                assert!(
+                    same_nibbles <= 8,
+                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                );
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
             }
@@ -301,7 +325,10 @@ water, way, we, weapon, wear, week, weight, well, west, western, what, whatever,
 when, where, whether, which, while, white, who, whole, whom, whose, why, wide,
 wife, will, win, wind, window, wish, with, within, without, woman, wonder, word,
 work, worker, world, worry, would, write, writer, wrong, yard, yeah, year, yes,
-yet, you, young, your, yourself"#.split(',').map(|word| word.trim()).collect();
+yet, you, young, your, yourself"#
+        .split(',')
+        .map(|word| word.trim())
+        .collect();
 
     let mut word_pairs: Vec<_> = Vec::new();
     for word in &words {
@@ -325,7 +352,6 @@ fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &Vec
     assert!((min as f64) > (mean as f64) * 0.95, "min: {}, max:{}", min, max);
     assert!((max as f64) < (mean as f64) * 1.05, "min: {}, max:{}", min, max);
 }
-
 
 #[cfg(test)]
 mod fallback_tests {
@@ -367,7 +393,6 @@ mod fallback_tests {
         test_finish_is_consistant(AHasher::new_with_keys)
     }
 
-
     #[test]
     fn fallback_padding_doesnot_collide() {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 1))
@@ -388,9 +413,9 @@ mod fallback_tests {
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[cfg(test)]
 mod aes_tests {
-    use std::hash::{Hash, Hasher};
     use crate::aes_hash::*;
     use crate::hash_quality_test::*;
+    use std::hash::{Hash, Hasher};
 
     const BAD_KEY: u64 = 0x5252_5252_5252_5252; //Thi   s encrypts to 0.
 

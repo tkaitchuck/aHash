@@ -63,21 +63,17 @@ convert!(f64, [u8; 8]);
 convert!([f32; 2], [u8; 8]);
 convert!(f32, [u8; 4]);
 
-
-
 macro_rules! as_array {
     ($input:expr, $len:expr) => {{
         {
             #[inline(always)]
             fn as_array<T>(slice: &[T]) -> &[T; $len] {
                 assert_eq!(slice.len(), $len);
-                unsafe {
-                    &*(slice.as_ptr() as *const [_; $len])
-                }
+                unsafe { &*(slice.as_ptr() as *const [_; $len]) }
             }
             as_array($input)
         }
-    }}
+    }};
 }
 
 pub(crate) trait ReadFromSlice {
@@ -115,7 +111,6 @@ impl ReadFromSlice for [u8] {
         let (value, rest) = self.split_at(16);
         (as_array!(value, 16).convert(), rest)
     }
-
 
     #[inline(always)]
     fn read_last_u16(&self) -> u16 {

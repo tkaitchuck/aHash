@@ -19,19 +19,18 @@ extern crate no_panic;
 #[macro_use]
 mod convert;
 
-mod fallback_hash;
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 mod aes_hash;
+mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
 use const_random::const_random;
-use core::hash::{BuildHasher};
+use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
 #[cfg(test)]
 use no_panic::no_panic;
-
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -66,7 +65,6 @@ static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
 impl Default for AHasher {
-
     /// Constructs a new [AHasher] with compile time generated constants for keys.
     /// This means the keys will be the same from one instance to another,
     /// but different from build to the next. So if it is possible for a potential
@@ -119,7 +117,6 @@ pub struct ABuildHasher {
     key: u64,
 }
 
-
 impl ABuildHasher {
     #[inline]
     pub fn new() -> ABuildHasher {
@@ -141,7 +138,9 @@ impl ABuildHasher {
         #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
         return ABuildHasher { k0, k1 };
         #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-        return ABuildHasher { key: k0.wrapping_add(k1) };
+        return ABuildHasher {
+            key: k0.wrapping_add(k1),
+        };
     }
 }
 
@@ -197,7 +196,7 @@ impl BuildHasher for ABuildHasher {
 #[no_panic]
 #[no_mangle]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
-    use core::hash::{Hasher};
+    use core::hash::Hasher;
     let builder = ABuildHasher::default();
     let mut hasher1 = builder.build_hasher();
     let mut hasher2 = builder.build_hasher();
@@ -208,10 +207,10 @@ fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
 
 #[cfg(test)]
 mod test {
-    use core::hash::BuildHasherDefault;
-    use std::collections::HashMap;
     use crate::convert::Convert;
     use crate::*;
+    use core::hash::BuildHasherDefault;
+    use std::collections::HashMap;
 
     #[test]
     fn test_no_panic() {
