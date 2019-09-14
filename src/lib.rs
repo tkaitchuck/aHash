@@ -12,7 +12,6 @@
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
-extern crate const_random;
 #[cfg(all(test, feature = "no_panic"))]
 extern crate no_panic;
 
@@ -25,7 +24,9 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
+#[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
+
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
@@ -44,8 +45,12 @@ pub use crate::fallback_hash::AHasher;
 ///This constant come from Kunth's prng
 const MULTIPLE: u64 = 6364136223846793005;
 
-///Const random provides randomized starting key with no runtime cost.
+// Const random provides randomized starting key with no runtime cost.
+#[cfg(feature = "compile-time-rng")]
 static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
+
+#[cfg(not(feature = "compile-time-rng"))]
+static SEED: AtomicUsize = AtomicUsize::new(MULTIPLE as usize);
 
 /// Provides a default [Hasher] compile time generated constants for keys.
 /// This is typically used in conjunction with [`BuildHasherDefault`] to create
@@ -64,12 +69,15 @@ static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 /// [BuildHasherDefault]: std::hash::BuildHasherDefault
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
+#[cfg(feature = "compile-time-rng")]
 impl Default for AHasher {
     /// Constructs a new [AHasher] with compile time generated constants for keys.
     /// This means the keys will be the same from one instance to another,
     /// but different from build to the next. So if it is possible for a potential
     /// attacker to have access to the compiled binary it would be better
     /// to specify keys generated at runtime.
+    ///
+    /// This is defined only if the `compile-time-rng` feature is enabled.
     ///
     /// # Examples
     ///
@@ -154,10 +162,12 @@ impl Default for ABuildHasher {
 impl BuildHasher for ABuildHasher {
     type Hasher = AHasher;
 
-    /// Constructs a new [AHasher] with keys based on compile time generated constants and the location
+    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location
     /// of the this object in memory. This means that two different [BuildHasher]s will will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
+    ///
+    /// ** - only if the `compile-time-rng` feature is enabled.
     ///
     /// # Examples
     ///
@@ -218,6 +228,7 @@ mod test {
         hash_test_final(2, "");
     }
 
+    #[cfg(feature = "compile-time-rng")]
     #[test]
     fn test_default_builder() {
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();

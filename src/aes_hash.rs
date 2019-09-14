@@ -178,12 +178,14 @@ mod tests {
     use std::collections::HashMap;
     use std::hash::BuildHasherDefault;
 
+    #[cfg(feature = "compile-time-rng")]
     #[test]
     fn test_builder() {
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
 
+    #[cfg(feature = "compile-time-rng")]
     #[test]
     fn test_default() {
         let hasher_a = AHasher::default();
