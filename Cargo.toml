@@ -44,7 +44,7 @@ codegen-units = 1
 const-random = "0.1.6"
 
 [dev-dependencies]
-no-panic = "0.1.10"
+no-panic = { version = "0.1.10", optional = true }
 criterion = "0.2.10"
 seahash = "3.0.5"
 fnv = "1.0.5"

@@ -13,7 +13,7 @@
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
 extern crate const_random;
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 extern crate no_panic;
 
 #[macro_use]
@@ -29,7 +29,7 @@ use const_random::const_random;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 use no_panic::no_panic;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
@@ -191,7 +191,7 @@ impl BuildHasher for ABuildHasher {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 #[inline(never)]
 #[no_panic]
 #[no_mangle]
@@ -212,6 +212,7 @@ mod test {
     use core::hash::BuildHasherDefault;
     use std::collections::HashMap;
 
+    #[cfg(feature = "no_panic")]
     #[test]
     fn test_no_panic() {
         hash_test_final(2, "");
