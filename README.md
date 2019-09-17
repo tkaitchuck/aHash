@@ -18,7 +18,11 @@ Failing in any of these criteria will be treated as a bug.
 
 # Non-Goals
 
-AHash is not intended to be a cryptographically secure hash, nor is it intended for network or persisted use. 
+AHash is not:
+* A cryptographically secure hash
+* Intended to be a MAC
+* Intended for network or persisted use
+
 Different computers using aHash will arrive at different hashes for the same input. Similarly the same computer running 
 different versions of the code may hash the same input to different values.
 
@@ -83,7 +87,7 @@ analysis from finding they key. Instead the security model is to not allow the h
 issue for hashMaps because they aren't normally even stored. In practice this means using unique keys for each map 
 (RandomState does this for you by default), and not exposing the iteration order of long lived maps that an attacker could 
 conceivably insert elements into. (This is generally recommended anyway, regardless of hash function, 
-[because even without knowledge of the hash function an attack is possible](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion).
+[because even without knowledge of the hash function an attack is possible](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion).)
 
 
 ## Hash quality
