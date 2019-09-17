@@ -1,5 +1,5 @@
 use crate::convert::*;
-use core::hash::{Hasher};
+use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = crate::MULTIPLE;
@@ -24,7 +24,7 @@ pub struct AHasher {
 }
 
 impl AHasher {
-    /// Creates a new hasher keyed to the provided keys.
+    /// Creates a new hasher keyed to the provided key.
     #[inline]
     pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
         AHasher { buffer: key1, pad: key2 }
@@ -34,7 +34,10 @@ impl AHasher {
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher { buffer: k1, pad: k2 }
+        AHasher {
+            buffer: k1,
+            pad: k2
+        }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
@@ -68,7 +71,9 @@ impl AHasher {
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        let result: [u64;2] = ((new_data ^ self.buffer) as u128).wrapping_mul(MULTIPLE as u128).convert();
+        let result: [u64; 2] = ((new_data ^ self.buffer) as u128)
+            .wrapping_mul(MULTIPLE as u128)
+            .convert();
         self.buffer = result[0].wrapping_add(result[1]);
     }
 
@@ -101,7 +106,10 @@ impl AHasher {
     /// run another operation afterwords if does not depend on the output of the multiply operation.
     #[inline(always)]
     fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
-        self.buffer ^= (new_data ^ key).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+        self.buffer ^= (new_data ^ key)
+            .wrapping_mul(MULTIPLE)
+            .rotate_left(ROT)
+            .wrapping_mul(MULTIPLE);
         key.wrapping_add(INCREMENT)
     }
 }
@@ -116,7 +124,6 @@ fn hash_test(input: &[u8]) -> u64 {
 
 /// Provides methods to hash all of the primitive types.
 impl Hasher for AHasher {
-
     #[inline]
     fn write_u8(&mut self, i: u8) {
         self.update(i as u64);
@@ -139,7 +146,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        let data: [u64;2] = i.convert();
+        let data: [u64; 2] = i.convert();
         self.update(data[0]);
         self.update(data[1]);
     }
@@ -196,7 +203,6 @@ impl Hasher for AHasher {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::convert::Convert;
@@ -204,11 +210,11 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let mut hasher = AHasher::new_with_keys(0,0);
+        let mut hasher = AHasher::new_with_keys(0, 0);
         let value: u64 = 1 << 32;
         hasher.update(value);
         let result = hasher.buffer;
-        let mut hasher = AHasher::new_with_keys(0,0);
+        let mut hasher = AHasher::new_with_keys(0, 0);
         let value2: u64 = 1;
         hasher.update(value2);
         let result2 = hasher.buffer;

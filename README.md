@@ -4,8 +4,8 @@ AHash is a high speed keyed hashing algorithm intended for use in in-memory hash
 AHash is designed for performance and is *not cryptographically secure*.
 
 When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) algorithm based on 
-multiplication. 
+on X86 processors. If it is not available it falls back on a lower quality (but still DOS resistant) [algorithm based on 
+multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm). 
 
 Similar to Sip_hash, aHash is a keyed hash, so two instances initialized with different keys will produce completely different
 hashes and the resulting hashes cannot be predicted without knowing the keys. 
@@ -18,7 +18,11 @@ Failing in any of these criteria will be treated as a bug.
 
 # Non-Goals
 
-AHash is not intended to be a cryptographically secure hash, nor is it intended for network or persisted use. 
+AHash is not:
+* A cryptographically secure hash
+* Intended to be a MAC
+* Intended for network or persisted use
+
 Different computers using aHash will arrive at different hashes for the same input. Similarly the same computer running 
 different versions of the code may hash the same input to different values.
 
@@ -69,7 +73,7 @@ For more a more representative performance comparison which includes the overhea
 
 ## Security
 
-AHash is designed to prevent an adversary that does not know the key from being able to create hash collisions or partial collisions. 
+AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/Attacking-aHash-or-why-it's-good-enough-for-a-hashmap)
 
 This achieved by ensuring that:
 - It obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)': 
@@ -83,7 +87,7 @@ analysis from finding they key. Instead the security model is to not allow the h
 issue for hashMaps because they aren't normally even stored. In practice this means using unique keys for each map 
 (RandomState does this for you by default), and not exposing the iteration order of long lived maps that an attacker could 
 conceivably insert elements into. (This is generally recommended anyway, regardless of hash function, 
-[because even without knowledge of the hash function an attack is possible](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion).
+[because even without knowledge of the hash function an attack is possible](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion).)
 
 
 ## Hash quality

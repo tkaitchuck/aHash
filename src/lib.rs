@@ -13,25 +13,24 @@
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
 extern crate const_random;
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 extern crate no_panic;
 
 #[macro_use]
 mod convert;
 
-mod fallback_hash;
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 mod aes_hash;
+mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
 use const_random::const_random;
-use core::hash::{BuildHasher};
+use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 use no_panic::no_panic;
-
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -66,7 +65,6 @@ static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
 impl Default for AHasher {
-
     /// Constructs a new [AHasher] with compile time generated constants for keys.
     /// This means the keys will be the same from one instance to another,
     /// but different from build to the next. So if it is possible for a potential
@@ -116,7 +114,10 @@ impl ABuildHasher {
         //only one multiply is needed because memory locations are not under an attackers control.
         let current_seed = previous.wrapping_mul(MULTIPLE).wrapping_add(stack_mem_loc).rotate_left(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
-        return ABuildHasher { k0: &SEED as *const _ as u64, k1: current_seed };
+        return ABuildHasher {
+            k0: &SEED as *const _ as u64,
+            k1: current_seed
+        };
     }
 }
 
@@ -173,15 +174,14 @@ pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
     let k0 = k0.rotate_left(24) ^ k1 ^ (k1.wrapping_shl(16));
     let result2 = k0.wrapping_add(k1.rotate_left(37));
     return (result2, result1);
-
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "no_panic"))]
 #[inline(never)]
 #[no_panic]
 //#[no_mangle]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
-    use core::hash::{Hasher};
+    use core::hash::Hasher;
     let builder = ABuildHasher::new();
     let mut hasher1 = builder.build_hasher();
     let mut hasher2 = builder.build_hasher();
@@ -192,16 +192,17 @@ fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
 
 #[cfg(test)]
 mod test {
-    use core::hash::BuildHasherDefault;
-    use std::collections::HashMap;
     use crate::convert::Convert;
     use crate::*;
+    use core::hash::BuildHasherDefault;
+    use std::collections::HashMap;
 
     #[inline(never)]
     fn hash_test_final_wrapper(num: i32, string: &str) {
         hash_test_final(num, string);
     }
 
+    #[cfg(feature = "no_panic")]
     #[test]
     fn test_no_panic() {
         hash_test_final_wrapper(2, "");

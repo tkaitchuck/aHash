@@ -1,8 +1,8 @@
+use ahash::AHasher;
 use criterion::*;
-use std::hash::{Hash, Hasher};
+use fxhash::FxHasher;
 use std::collections::hash_map::DefaultHasher;
-use ahash::{AHasher};
-use fxhash::{FxHasher};
+use std::hash::{Hash, Hasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn aeshash<H: Hash>(b: H) -> u64 {
@@ -53,15 +53,17 @@ fn seahash<H: Hash>(b: H) -> u64 {
 const STRING_LENGTHS: [u32; 11] = [1, 3, 4, 7, 8, 15, 16, 24, 68, 132, 1024];
 
 fn gen_strings() -> Vec<String> {
-    STRING_LENGTHS.iter().map(|len| {
-        let mut string = String::default();
-        for pos in 1..=*len {
-            let c = (48 + (pos % 10) as u8) as char;
-            string.push(c);
-        }
-        string
-    }).collect()
-
+    STRING_LENGTHS
+        .iter()
+        .map(|len| {
+            let mut string = String::default();
+            for pos in 1..=*len {
+                let c = (48 + (pos % 10) as u8) as char;
+                string.push(c);
+            }
+            string
+        })
+        .collect()
 }
 
 const U8_VALUES: [u8; 1] = [8];
@@ -213,4 +215,12 @@ fn bench_sip(c: &mut Criterion) {
 }
 
 criterion_main!(benches);
-criterion_group!(benches, bench_ahash, bench_fallback, bench_fx, bench_fnv, bench_sea, bench_sip);
+criterion_group!(
+    benches,
+    bench_ahash,
+    bench_fallback,
+    bench_fx,
+    bench_fnv,
+    bench_sea,
+    bench_sip
+);
