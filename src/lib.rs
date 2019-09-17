@@ -246,4 +246,10 @@ mod test {
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
     }
+
+    #[test]
+    fn test_ahasher_construction() {
+        let _ = AHasher::new_with_key(1234);
+        let _ = AHasher::new_with_keys(1245, 5678);
+    }
 }

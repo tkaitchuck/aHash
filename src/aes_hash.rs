@@ -21,6 +21,12 @@ pub struct AHasher {
 }
 
 impl AHasher {
+    /// Creates a new hasher keyed to the provided key.
+    #[inline]
+    pub fn new_with_key(key: u64) -> AHasher {
+        AHasher { buffer: [key, !key] }
+    }
+
     /// Creates a new hasher keyed to the provided keys.
     /// # Example
     ///

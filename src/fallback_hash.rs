@@ -31,7 +31,7 @@ impl AHasher {
 
     /// Creates a new hasher keyed to the provided keys.
     #[inline]
-    pub(crate) fn new_with_keys(key1: u64, key2: u64) -> AHasher {
+    pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
         AHasher {
             buffer: key1 ^ (key2.rotate_left(ROT)),
         }
