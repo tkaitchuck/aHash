@@ -19,21 +19,22 @@ const ROT: u32 = 23; //17
 ///
 #[derive(Debug, Clone)]
 pub struct AHasher {
-    buffer: u64
+    buffer: u64,
+    pad: u64,
 }
 
 impl AHasher {
-
-    /// Creates a new hasher keyed to the provided key.
-    #[inline]
-    pub fn new_with_key(key: u64) -> AHasher {
-        AHasher { buffer: key }
-    }
-
     /// Creates a new hasher keyed to the provided keys.
     #[inline]
-    pub(crate) fn new_with_keys(key1: u64, key2: u64) -> AHasher {
-        AHasher { buffer: key1 ^ (key2.rotate_left(ROT)) }
+    pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
+        AHasher { buffer: key1, pad: key2 }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
+        use crate::scramble_keys;
+        let (k1, k2) = scramble_keys(key1, key2);
+        AHasher { buffer: k1, pad: k2 }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply
@@ -108,7 +109,7 @@ impl AHasher {
 #[inline(never)]
 #[no_mangle]
 fn hash_test(input: &[u8]) -> u64 {
-    let mut a = AHasher::new_with_key(67);
+    let mut a = AHasher::new_with_keys(12345, 67);
     a.write(input);
     a.finish()
 }
@@ -191,7 +192,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        self.buffer
+        (self.buffer ^ self.pad)
     }
 }
 

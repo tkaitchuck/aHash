@@ -1,8 +1,9 @@
 use crate::convert::*;
+use crate::scramble_keys;
 use core::hash::{Hasher};
+use const_random::const_random;
 
-///Just a simple bit pattern.
-const PAD : u128 = 0xF0E1_D2C3_B4A5_9687_7869_5A4B_3C2D_1E0F;
+const PAD : u128 = const_random!(u128);
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -40,6 +41,12 @@ impl AHasher {
     #[inline]
     pub fn new_with_keys(key0: u64, key1: u64) -> Self {
         Self { buffer: [key0, key1] }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
+        let (k1, k2) = scramble_keys(key1, key2);
+        AHasher { buffer: [k1, k2] }
     }
 }
 

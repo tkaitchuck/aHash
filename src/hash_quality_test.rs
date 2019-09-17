@@ -54,7 +54,7 @@ fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) 
     let base = base.finish();
     for shift in 0..16 {
         let mut alternitives = vec!();
-        for v in 1..256 {
+        for v in 0..256 {
             let input = (v as u128) << (shift * 8);
             let mut hasher = constructor(0, 0);
             input.hash(&mut hasher);
@@ -71,7 +71,7 @@ fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     for shift in 0..8 {
         let mut alternitives1 = vec!();
         let mut alternitives2 = vec!();
-        for v in 1..256 {
+        for v in 0..256 {
             let input = (v as u64) << (shift * 8);
             let mut hasher1 = constructor(input, 0);
             let mut hasher2 = constructor(0, input);
@@ -90,7 +90,7 @@ fn assert_each_byte_differes(base: u64, alternitives: Vec<u64>) {
     for alternitive in alternitives {
         changed_bits |= base ^ alternitive
     }
-    assert_eq!(core::u64::MAX, changed_bits, "Bits unchanged: {:x}", changed_bits);
+    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x}", changed_bits);
 }
 
 fn test_finish_is_consistant<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
@@ -317,13 +317,14 @@ fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &Vec
     let mut buckets = vec![0; bucket_count];
     for item in items {
         let value = hash(item, &hasher) as usize;
+        println!("{:x}", value);
         buckets[value % bucket_count] += 1;
     }
     let mean = items.len() / bucket_count;
     let max = *buckets.iter().max().unwrap();
     let min = *buckets.iter().min().unwrap();
-    assert!((min as f64) > (mean as f64) * 0.95, "min: {}, max:{}", min, max);
-    assert!((max as f64) < (mean as f64) * 1.05, "min: {}, max:{}", min, max);
+    assert!((min as f64) > (mean as f64) * 0.95, "min: {}, max:{}, {:?}", min, max, buckets);
+    assert!((max as f64) < (mean as f64) * 1.05, "min: {}, max:{}, {:?}", min, max, buckets);
 }
 
 
@@ -334,53 +335,53 @@ mod fallback_tests {
 
     #[test]
     fn fallback_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::new_with_keys(0, 0))
+        test_single_bit_flip(|| AHasher::test_with_keys(0, 0))
     }
 
     #[test]
     fn fallback_single_key_bit_flip() {
-        test_single_key_bit_flip(AHasher::new_with_keys)
+        test_single_key_bit_flip(AHasher::test_with_keys)
     }
 
     #[test]
     fn fallback_all_bytes_matter() {
-        test_all_bytes_matter(|| AHasher::new_with_keys(0, 0));
+        test_all_bytes_matter(|| AHasher::test_with_keys(0, 0));
     }
 
     #[test]
     fn fallback_keys_change_output() {
-        test_keys_change_output(AHasher::new_with_keys);
+        test_keys_change_output(AHasher::test_with_keys);
     }
 
     #[test]
     fn fallback_input_affect_every_byte() {
-        test_input_affect_every_byte(AHasher::new_with_keys);
+        test_input_affect_every_byte(AHasher::test_with_keys);
     }
 
     #[test]
     fn fallback_keys_affect_every_byte() {
-        test_keys_affect_every_byte(AHasher::new_with_keys);
+        test_keys_affect_every_byte(AHasher::test_with_keys);
     }
 
     #[test]
     fn fallback_finish_is_consistant() {
-        test_finish_is_consistant(AHasher::new_with_keys)
+        test_finish_is_consistant(AHasher::test_with_keys)
     }
 
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 1))
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 1))
     }
 
     #[test]
     fn fallback_bucket_distributin() {
-        test_bucket_distributin(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_bucket_distributin(|| AHasher::test_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 
     #[test]
     fn fallback_word_distribution() {
-        test_hash_common_words(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_hash_common_words(|| AHasher::test_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 }
 
@@ -405,50 +406,50 @@ mod aes_tests {
 
     #[test]
     fn aes_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY))
+        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY))
     }
 
     #[test]
     fn aes_single_key_bit_flip() {
-        test_single_key_bit_flip(|k1, k2| AHasher::new_with_keys(k1, k2))
+        test_single_key_bit_flip(|k1, k2| AHasher::test_with_keys(k1, k2))
     }
 
     #[test]
     fn aes_all_bytes_matter() {
-        test_all_bytes_matter(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
+        test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
     }
 
     #[test]
     fn aes_keys_change_output() {
-        test_keys_change_output(AHasher::new_with_keys);
+        test_keys_change_output(AHasher::test_with_keys);
     }
 
     #[test]
     fn aes_input_affect_every_byte() {
-        test_input_affect_every_byte(AHasher::new_with_keys);
+        test_input_affect_every_byte(AHasher::test_with_keys);
     }
 
     #[test]
     fn aes_keys_affect_every_byte() {
-        test_keys_affect_every_byte(AHasher::new_with_keys);
+        test_keys_affect_every_byte(AHasher::test_with_keys);
     }
     #[test]
     fn aes_finish_is_consistant() {
-        test_finish_is_consistant(AHasher::new_with_keys)
+        test_finish_is_consistant(AHasher::test_with_keys)
     }
 
     #[test]
     fn aes_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY))
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY))
     }
 
     #[test]
     fn aes_bucket_distributin() {
-        test_bucket_distributin(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_bucket_distributin(|| AHasher::test_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 
     #[test]
     fn aes_word_distribution() {
-        test_hash_common_words(|| AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
+        test_hash_common_words(|| AHasher::test_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF))
     }
 }
