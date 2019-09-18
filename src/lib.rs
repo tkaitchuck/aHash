@@ -197,6 +197,7 @@ mod test {
     use core::hash::BuildHasherDefault;
     use std::collections::HashMap;
 
+    #[cfg(feature = "no_panic")]
     #[inline(never)]
     fn hash_test_final_wrapper(num: i32, string: &str) {
         hash_test_final(num, string);
