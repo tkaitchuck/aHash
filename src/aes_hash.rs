@@ -1,9 +1,5 @@
 use crate::convert::*;
-use crate::scramble_keys;
 use core::hash::{Hasher};
-use const_random::const_random;
-
-const PAD : u128 = const_random!(u128);
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -19,6 +15,7 @@ const PAD : u128 = const_random!(u128);
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
+    key: [u64; 2],
 }
 
 impl AHasher {
@@ -40,13 +37,14 @@ impl AHasher {
     /// ```
     #[inline]
     pub fn new_with_keys(key0: u64, key1: u64) -> Self {
-        Self { buffer: [key0, key1] }
+        Self { buffer: [key0, key1], key: [key1, key0]  }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
+        use crate::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher { buffer: [k1, k2] }
+        AHasher { buffer: [k1, k2], key: [k2, k1] }
     }
 }
 
@@ -159,7 +157,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshash(aeshash(self.buffer.convert(), PAD), PAD).convert();
+        let result: [u64; 2] = aeshash(aeshash(self.buffer.convert(), self.key.convert()), self.key.convert()).convert();
         result[0] //.wrapping_add(result[1])
     }
 }
