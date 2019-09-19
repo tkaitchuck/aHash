@@ -107,22 +107,9 @@ impl Default for AHasher {
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
 #[derive(Clone)]
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub struct ABuildHasher {
     k0: u64,
     k1: u64,
-}
-
-/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
-/// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
-///
-/// [build_hasher]: ahash::
-/// [Hasher]: std::hash::Hasher
-/// [BuildHasher]: std::hash::BuildHasher
-#[derive(Clone)]
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-pub struct ABuildHasher {
-    key: u64,
 }
 
 impl ABuildHasher {
@@ -133,21 +120,11 @@ impl ABuildHasher {
         let stack_mem_loc = &previous as *const _ as u64;
         //This is similar to the update function in the fallback.
         //only one multiply is needed because memory locations are not under an attackers control.
-        let current_seed = (previous ^ stack_mem_loc).wrapping_mul(MULTIPLE).rotate_left(31);
+        let current_seed = previous.wrapping_mul(MULTIPLE).wrapping_add(stack_mem_loc).rotate_left(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
-
-        //Scramble seeds (based on xoroshiro128+)
-        //This is intentionally not similar the hash algorithm
-        let mut k0 = &SEED as *const _ as u64;
-        let mut k1 = current_seed ^ k0;
-        k0 = k0.rotate_left(24) ^ k1 ^ (k1 << 16);
-        k1 = k1.rotate_left(37);
-
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return ABuildHasher { k0, k1 };
-        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
         return ABuildHasher {
-            key: k0.wrapping_add(k1),
+            k0: &SEED as *const _ as u64,
+            k1: current_seed
         };
     }
 }
@@ -194,20 +171,28 @@ impl BuildHasher for ABuildHasher {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
-        return AHasher::new_with_keys(self.k0, self.k1);
-        #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
-        return AHasher::new_with_key(self.key);
+        let (k0, k1) = scramble_keys(self.k0, self.k1);
+        return AHasher::new_with_keys(k0, k1);
     }
+}
+
+pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
+    //Scramble seeds (based on xoroshiro128+)
+    //This is intentionally not similar the hash algorithm
+    let result1 = k0.wrapping_add(k1);
+    let k1 = k1 ^ k0;
+    let k0 = k0.rotate_left(24) ^ k1 ^ (k1.wrapping_shl(16));
+    let result2 = k0.wrapping_add(k1.rotate_left(37));
+    return (result2, result1);
 }
 
 #[cfg(all(test, feature = "no_panic"))]
 #[inline(never)]
 #[no_panic]
-#[no_mangle]
+//#[no_mangle]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
     use core::hash::Hasher;
-    let builder = ABuildHasher::default();
+    let builder = ABuildHasher::new();
     let mut hasher1 = builder.build_hasher();
     let mut hasher2 = builder.build_hasher();
     hasher1.write_i32(num);
@@ -223,9 +208,15 @@ mod test {
     use std::collections::HashMap;
 
     #[cfg(feature = "no_panic")]
+    #[inline(never)]
+    fn hash_test_final_wrapper(num: i32, string: &str) {
+        hash_test_final(num, string);
+    }
+
+    #[cfg(feature = "no_panic")]
     #[test]
     fn test_no_panic() {
-        hash_test_final(2, "");
+        hash_test_final_wrapper(2, "");
     }
 
     #[cfg(feature = "compile-time-rng")]

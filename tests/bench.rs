@@ -17,7 +17,7 @@ fn aeshash<H: Hash>(_b: H) -> u64 {
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn fallbackhash<H: Hash>(b: H) -> u64 {
-    let mut hasher = AHasher::new_with_key(1234);
+    let mut hasher = AHasher::new_with_keys(1234, 5678);
     b.hash(&mut hasher);
     hasher.finish()
 }
