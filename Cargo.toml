@@ -18,6 +18,13 @@ doctest = true
 bench = true
 doc = true
 
+[features]
+default = ["compile-time-rng"]
+
+# Disabling this feature will make the `ABuildHasher::new` use a preset seed
+# and disable the `Default` impl for `AHasher`
+compile-time-rng = ["const-random"]
+
 [[bench]]
 name = "ahash"
 path = "tests/bench.rs"
@@ -41,7 +48,7 @@ debug-assertions = false
 codegen-units = 1
 
 [dependencies]
-const-random = "0.1.6"
+const-random = { version = "0.1.6", optional = true }
 no-panic = { version = "0.1.10", optional = true }
 
 [dev-dependencies]
