@@ -240,7 +240,6 @@ mod test {
 
     #[test]
     fn test_ahasher_construction() {
-        let _ = AHasher::new_with_key(1234);
         let _ = AHasher::new_with_keys(1245, 5678);
     }
 }
