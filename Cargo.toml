@@ -21,6 +21,9 @@ doc = true
 [features]
 default = ["compile-time-rng"]
 
+# Enabling this will enable `AHashMap` and `AHashSet`
+std = []
+
 # Disabling this feature will make the `ABuildHasher::new` use a preset seed
 # and disable the `Default` impl for `AHasher`
 compile-time-rng = ["const-random"]
@@ -62,3 +65,4 @@ rand = "0.6.5"
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+aes"]
 rustdoc-args = ["-C", "target-feature=+aes"]
+features = ["std"]
