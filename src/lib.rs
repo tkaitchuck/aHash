@@ -12,8 +12,7 @@
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
 #![cfg_attr(not(test), no_std)]
 //#![feature(core_intrinsics)]
-#[cfg(all(test, feature = "no_panic"))]
-extern crate no_panic;
+extern crate const_random;
 
 #[macro_use]
 mod convert;
@@ -30,8 +29,6 @@ use const_random::const_random;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-#[cfg(all(test, feature = "no_panic"))]
-use no_panic::no_panic;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 pub use crate::aes_hash::AHasher;
@@ -186,20 +183,6 @@ pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
     return (result2, result1);
 }
 
-#[cfg(all(test, feature = "no_panic"))]
-#[inline(never)]
-#[no_panic]
-//#[no_mangle]
-fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
-    use core::hash::Hasher;
-    let builder = ABuildHasher::new();
-    let mut hasher1 = builder.build_hasher();
-    let mut hasher2 = builder.build_hasher();
-    hasher1.write_i32(num);
-    hasher2.write(string.as_bytes());
-    (hasher1.finish(), hasher2.finish())
-}
-
 #[cfg(test)]
 mod test {
     use crate::convert::Convert;
@@ -207,19 +190,6 @@ mod test {
     use core::hash::BuildHasherDefault;
     use std::collections::HashMap;
 
-    #[cfg(feature = "no_panic")]
-    #[inline(never)]
-    fn hash_test_final_wrapper(num: i32, string: &str) {
-        hash_test_final(num, string);
-    }
-
-    #[cfg(feature = "no_panic")]
-    #[test]
-    fn test_no_panic() {
-        hash_test_final_wrapper(2, "");
-    }
-
-    #[cfg(feature = "compile-time-rng")]
     #[test]
     fn test_default_builder() {
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
