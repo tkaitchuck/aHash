@@ -10,7 +10,7 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 //#![feature(core_intrinsics)]
 #[cfg(all(test, feature = "no_panic"))]
 extern crate no_panic;
@@ -23,6 +23,11 @@ mod aes_hash;
 mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
+
+#[cfg(feature = "std")]
+mod hash_map;
+#[cfg(feature = "std")]
+mod hash_set;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
@@ -39,8 +44,10 @@ pub use crate::aes_hash::AHasher;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 pub use crate::fallback_hash::AHasher;
 
-/// A `HashMap` using `ABuildHasher` to hash the items.
-//pub type AHashMap<K, V> = HashMap<K, V, ABuildHasher>;
+#[cfg(feature = "std")]
+pub use crate::hash_map::AHashMap;
+#[cfg(feature = "std")]
+pub use crate::hash_set::AHashSet;
 
 ///This constant come from Kunth's prng
 const MULTIPLE: u64 = 6364136223846793005;
