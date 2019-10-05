@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.2.13"
+version = "0.2.14"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryprographic hash function using AES-NI for high performance"
@@ -20,6 +20,9 @@ doc = true
 
 [features]
 default = ["compile-time-rng"]
+
+# Enabling this will enable `AHashMap` and `AHashSet`
+std = []
 
 # Disabling this feature will make the `ABuildHasher::new` use a preset seed
 # and disable the `Default` impl for `AHasher`
@@ -62,3 +65,4 @@ rand = "0.6.5"
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+aes"]
 rustdoc-args = ["-C", "target-feature=+aes"]
+features = ["std"]
