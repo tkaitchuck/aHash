@@ -1,5 +1,4 @@
-use std::hash::BuildHasher;
-use ahash::{ABuildHasher, AHasher};
+use ahash::{AHasher};
 
 #[macro_use]
 extern crate no_panic;
