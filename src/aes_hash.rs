@@ -15,7 +15,7 @@ use core::hash::{Hasher};
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
-    key: [u64; 2],
+    key: u128,
 }
 
 impl AHasher {
@@ -37,14 +37,14 @@ impl AHasher {
     /// ```
     #[inline]
     pub fn new_with_keys(key0: u64, key1: u64) -> Self {
-        Self { buffer: [key0, key1], key: [key1, key0]  }
+        Self { buffer: [key0, key1], key: [key1, key0].convert()  }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher { buffer: [k1, k2], key: [k2, k1] }
+        AHasher { buffer: [k1, k2], key: [k2, k1].convert() }
     }
 }
 
@@ -75,7 +75,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        self.buffer = aeshashx2(self.buffer.convert(), i, self.key.convert()).convert();
+        self.buffer = aeshashx2(self.buffer.convert(), i, self.key).convert();
     }
 
     #[inline]
@@ -115,7 +115,7 @@ impl Hasher for AHasher {
                 }
                 self.buffer = aeshash(self.buffer.convert(), value as u128).convert();
             }
-            self.buffer = aeshash(self.buffer.convert(), self.key.convert()).convert();
+            self.buffer = aeshash(self.buffer.convert(), self.key).convert();
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
@@ -123,42 +123,42 @@ impl Hasher for AHasher {
                     let mut par_block: u128 = self.buffer.convert();
                     while data.len() > 32 {
                         let (b1, rest) = data.read_u128();
-                        self.buffer = aeshashx2(self.buffer.convert(), b1, self.key.convert()).convert();
+                        self.buffer = aeshashx2(self.buffer.convert(), b1, self.key).convert();
                         data = rest;
                         let (b2, rest) = data.read_u128();
-                        par_block = aeshashx2(par_block, b2, self.key.convert());
+                        par_block = aeshashx2(par_block, b2, self.key);
                         data = rest;
                     }
                     let (b1, rest) = tail.read_u128();
-                    self.buffer = aeshashx2(self.buffer.convert(), b1, self.key.convert()).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), b1, self.key).convert();
                     let (b2, _) = rest.read_u128();
-                    par_block = aeshashx2(par_block, b2, self.key.convert());
-                    self.buffer = aeshashx2(self.buffer.convert(), par_block, self.key.convert()).convert();
+                    par_block = aeshashx2(par_block, b2, self.key);
+                    self.buffer = aeshashx2(self.buffer.convert(), par_block, self.key).convert();
                 } else {
                     //len 33-64
                     let (head, _) = data.split_at(32);
                     let (_, tail) = data.split_at(data.len() - 32);
-                    self.buffer = aeshashx2(self.buffer.convert(), head.read_u128().0, self.key.convert()).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), head.read_last_u128(), self.key.convert()).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_u128().0, self.key.convert()).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_last_u128(), self.key.convert()).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), head.read_u128().0, self.key).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), head.read_last_u128(), self.key).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_u128().0, self.key).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_last_u128(), self.key).convert();
                 }
             } else {
                 if data.len() > 16 {
                     //len 17-32
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_u128().0, self.key.convert()).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u128(), self.key.convert()).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), data.read_u128().0, self.key).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u128(), self.key).convert();
                 } else {
                     //len 9-16
                     self.buffer = aeshash(self.buffer.convert(), data.read_u64().0 as u128).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u64() as u128, self.key.convert()).convert();
+                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u64() as u128, self.key).convert();
                 }
             }
         }
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshash(self.buffer.convert(), self.key.convert()).convert();
+        let result: [u64; 2] = aeshash(self.buffer.convert(), self.key).convert();
         result[0] //.wrapping_add(result[1])
     }
 }
