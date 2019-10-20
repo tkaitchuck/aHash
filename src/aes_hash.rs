@@ -1,5 +1,5 @@
 use crate::convert::*;
-use core::hash::{Hasher};
+use core::hash::Hasher;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -37,14 +37,20 @@ impl AHasher {
     /// ```
     #[inline]
     pub fn new_with_keys(key0: u64, key1: u64) -> Self {
-        Self { buffer: [key0, key1], key: [key1, key0].convert()  }
+        Self {
+            buffer: [key0, key1],
+            key: [key1, key0].convert(),
+        }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher { buffer: [k1, k2], key: [k2, k1].convert() }
+        AHasher {
+            buffer: [k1, k2],
+            key: [k2, k1].convert(),
+        }
     }
 }
 
@@ -96,26 +102,22 @@ impl Hasher for AHasher {
         self.buffer[1] = self.buffer[1].wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() <= 8 {
-            if data.len() >= 2 {
+            let value: [u64; 2] = if data.len() >= 2 {
                 if data.len() >= 4 {
                     //len 4-8
-                    self.buffer = aeshash(self.buffer.convert(), data.read_u32().0 as u128).convert();
-                    self.buffer = aeshash(self.buffer.convert(), data.read_last_u32() as u128).convert();
+                    [data.read_u32().0 as u64, data.read_last_u32() as u64]
                 } else {
                     //len 2-3
-                    self.buffer = aeshash(self.buffer.convert(), data.read_u16().0 as u128).convert();
-                    self.buffer = aeshash(self.buffer.convert(), data[data.len() - 1] as u128).convert();
+                    [data.read_u16().0 as u64, data[data.len() - 1] as u64]
                 }
             } else {
-                let value;
                 if data.len() > 0 {
-                    value = data[0]; //len 1
+                    [data[0] as u64, 0]
                 } else {
-                    value = 0;
+                    [0, 0]
                 }
-                self.buffer = aeshash(self.buffer.convert(), value as u128).convert();
-            }
-            self.buffer = aeshash(self.buffer.convert(), self.key).convert();
+            };
+            self.buffer = aeshashx2(self.buffer.convert(), value.convert(), self.key).convert();
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
@@ -150,8 +152,8 @@ impl Hasher for AHasher {
                     self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u128(), self.key).convert();
                 } else {
                     //len 9-16
-                    self.buffer = aeshash(self.buffer.convert(), data.read_u64().0 as u128).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u64() as u128, self.key).convert();
+                    let value: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
+                    self.buffer = aeshashx2(self.buffer.convert(), value.convert(), self.key).convert();
                 }
             }
         }
@@ -190,7 +192,6 @@ fn aeshashx2(value: u128, k1: u128, k2: u128) -> u128 {
         transmute(_mm_aesdec_si128(value, transmute(k2)))
     }
 }
-
 
 #[cfg(test)]
 mod tests {
