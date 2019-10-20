@@ -220,7 +220,7 @@ impl<'a, T, S> IntoIterator for &'a AHashSet<T, S> {
     type Item = (&'a T);
     type IntoIter = hash_set::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        (&self.0).into_iter()
+        (&self.0).iter()
     }
 }
 

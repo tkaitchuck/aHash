@@ -128,10 +128,10 @@ impl ABuildHasher {
         //only one multiply is needed because memory locations are not under an attackers control.
         let current_seed = previous.wrapping_mul(MULTIPLE).wrapping_add(stack_mem_loc).rotate_left(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
-        return ABuildHasher {
+        ABuildHasher {
             k0: &SEED as *const _ as u64,
             k1: current_seed
-        };
+        }
     }
 }
 
@@ -178,7 +178,7 @@ impl BuildHasher for ABuildHasher {
     #[inline]
     fn build_hasher(&self) -> AHasher {
         let (k0, k1) = scramble_keys(self.k0, self.k1);
-        return AHasher::new_with_keys(k0, k1);
+        AHasher::new_with_keys(k0, k1)
     }
 }
 
@@ -189,7 +189,7 @@ pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
     let k1 = k1 ^ k0;
     let k0 = k0.rotate_left(24) ^ k1 ^ (k1.wrapping_shl(16));
     let result2 = k0.wrapping_add(k1.rotate_left(37));
-    return (result2, result1);
+    (result2, result1)
 }
 
 #[cfg(test)]
@@ -212,7 +212,7 @@ mod test {
 
     #[test]
     fn test_conversion() {
-        let input: &[u8] = "dddddddd".as_bytes();
+        let input: &[u8] = b"dddddddd";
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
     }

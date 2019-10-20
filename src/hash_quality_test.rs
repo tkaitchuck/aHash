@@ -340,7 +340,7 @@ yet, you, young, your, yourself"#
     check_for_collisions(&hasher, &word_pairs, 32);
 }
 
-fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &Vec<H>, bucket_count: usize) {
+fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &[H], bucket_count: usize) {
     let mut buckets = vec![0; bucket_count];
     for item in items {
         let value = hash(item, &hasher) as usize;
