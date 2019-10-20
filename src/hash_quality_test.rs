@@ -34,8 +34,8 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     let mut same_byte_count = 0;
     let mut same_nibble_count = 0;
     for byte in 0..8 {
-        let ba = (a >> 8 * byte) as u8;
-        let bb = (b >> 8 * byte) as u8;
+        let ba = (a >> (8 * byte)) as u8;
+        let bb = (b >> (8 * byte)) as u8;
         if ba == bb {
             same_byte_count += 1;
         }
@@ -172,26 +172,26 @@ fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
     let size = 32;
     let compare_value = hash(&0u32, &hasher);
     for pos in 0..size {
-        let test_value = hash(&(0 ^ (1u32 << pos)), &hasher);
+        let test_value = hash(&(1u32 << pos), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 64;
     let compare_value = hash(&0u64, &hasher);
     for pos in 0..size {
-        let test_value = hash(&(0 ^ (1u64 << pos)), &hasher);
+        let test_value = hash(&(1u64 << pos), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
     let size = 128;
     let compare_value = hash(&0u128, &hasher);
     for pos in 0..size {
-        let test_value = hash(&(0 ^ (1u128 << pos)), &hasher);
+        let test_value = hash(&(1u128 << pos), &hasher);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
 }
 
 fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
     for c in 0..128u8 {
-        for string in ["", "1234", "12345678", "1234567812345678"].into_iter() {
+        for string in ["", "1234", "12345678", "1234567812345678"].iter() {
             let mut short = hasher();
             string.hash(&mut short);
             let value = short.finish();
@@ -217,13 +217,13 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
 }
 
 fn test_bucket_distributin<T: Hasher>(hasher: impl Fn() -> T) {
-    let sequence: Vec<_> = (0..320000).into_iter().collect();
+    let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
-    let sequence: Vec<_> = (0..2560000).into_iter().collect();
+    let sequence: Vec<_> = (0..2560000).collect();
     check_for_collisions(&hasher, &sequence, 256);
-    let sequence: Vec<_> = (0..320000).into_iter().map(|i| i * 1024).collect();
+    let sequence: Vec<_> = (0..320000).map(|i| i * 1024).collect();
     check_for_collisions(&hasher, &sequence, 32);
-    let sequence: Vec<_> = (0..2560000_u64).into_iter().map(|i| i * 1024).collect();
+    let sequence: Vec<_> = (0..2560000_u64).map(|i| i * 1024).collect();
     check_for_collisions(&hasher, &sequence, 256);
 }
 
