@@ -14,11 +14,11 @@ macro_rules! convert {
             }
             #[inline(always)]
             fn convert_ref(&self) -> &$to {
-                unsafe { transmute(self) }
+                unsafe { &*(self as *const $from as *const $to) }
             }
             #[inline(always)]
             fn convert_mut_ref(&mut self) -> &mut $to {
-                unsafe { transmute(self) }
+                unsafe { &mut *(self as *mut $from as *mut $to) }
             }
         }
         impl Convert<$from> for $to {
@@ -28,11 +28,11 @@ macro_rules! convert {
             }
             #[inline(always)]
             fn convert_ref(&self) -> &$from {
-                unsafe { transmute(self) }
+                unsafe { &*(self as *const $to as *const $from) }
             }
             #[inline(always)]
             fn convert_mut_ref(&mut self) -> &mut $from {
-                unsafe { transmute(self) }
+                unsafe { &mut *(self as *mut $to as *mut $from) }
             }
         }
     };
