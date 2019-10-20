@@ -10,8 +10,10 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
+#![deny(clippy::correctness, clippy::complexity, clippy::perf)]
+#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
+
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-//#![feature(core_intrinsics)]
 extern crate const_random;
 
 #[macro_use]
