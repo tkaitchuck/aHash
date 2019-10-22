@@ -57,6 +57,12 @@ impl AHasher {
     fn hash_in(&mut self, new_value: u128) {
         self.buffer = aeshashx2(self.buffer.convert(), new_value, self.key).convert();
     }
+
+    #[inline(always)]
+    fn hash_in_2(&mut self, v1: u128, v2: u128) {
+        let updated = aeshash(self.buffer.convert(), v1);
+        self.buffer = aeshashx2(updated, v2, updated).convert();
+    }
 }
 
 #[inline(never)]
@@ -126,35 +132,30 @@ impl Hasher for AHasher {
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
-                    let (_, tail) = data.split_at(data.len() - 32);
+                    let tail = data.read_last_u128x4();
                     let mut par_block: u128 = self.buffer.convert();
-                    while data.len() > 32 {
-                        let (b1, rest) = data.read_u128();
-                        self.buffer = aeshashx2(self.buffer.convert(), b1, self.key).convert();
+                    while data.len() > 64 {
+                        let (blocks, rest) = data.read_u128x4();
                         data = rest;
-                        let (b2, rest) = data.read_u128();
-                        par_block = aeshashx2(par_block, b2, self.key);
-                        data = rest;
+                        self.hash_in_2(blocks[0], blocks[1]);
+                        par_block = aeshash(par_block, blocks[2]);
+                        par_block = aeshashx2(par_block, blocks[3], par_block);
                     }
-                    let (b1, rest) = tail.read_u128();
-                    self.buffer = aeshashx2(self.buffer.convert(), b1, self.key).convert();
-                    let (b2, _) = rest.read_u128();
-                    par_block = aeshashx2(par_block, b2, self.key);
-                    self.buffer = aeshashx2(self.buffer.convert(), par_block, self.key).convert();
+                    self.hash_in_2(tail[0], tail[1]);
+                    par_block = aeshash(par_block, tail[2]);
+                    par_block = aeshashx2(par_block, tail[3], par_block);
+                    self.hash_in(par_block);
                 } else {
                     //len 33-64
-                    let (head, _) = data.split_at(32);
-                    let (_, tail) = data.split_at(data.len() - 32);
-                    self.hash_in(head.read_u128().0);
-                    self.hash_in(head.read_last_u128());
-                    self.hash_in(tail.read_u128().0);
-                    self.hash_in(tail.read_last_u128());
+                    let (head, _) = data.read_u128x2();
+                    let tail = data.read_last_u128x2();
+                    self.hash_in_2(head[0], head[1]);
+                    self.hash_in_2(tail[0], tail[1]);
                 }
             } else {
                 if data.len() > 16 {
                     //len 17-32
-                    self.hash_in(data.read_u128().0);
-                    self.hash_in(data.read_last_u128());
+                    self.hash_in_2(data.read_u128().0, data.read_last_u128());
                 } else {
                     //len 9-16
                     let value: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
@@ -169,6 +170,8 @@ impl Hasher for AHasher {
         result[0] //.wrapping_add(result[1])
     }
 }
+
+
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
