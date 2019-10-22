@@ -52,6 +52,11 @@ impl AHasher {
             key: [k2, k1].convert(),
         }
     }
+
+    #[inline(always)]
+    fn hash_in(&mut self, new_value: u128) {
+        self.buffer = aeshashx2(self.buffer.convert(), new_value, self.key).convert();
+    }
 }
 
 #[inline(never)]
@@ -81,7 +86,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        self.buffer = aeshashx2(self.buffer.convert(), i, self.key).convert();
+        self.hash_in(i);
     }
 
     #[inline]
@@ -117,7 +122,7 @@ impl Hasher for AHasher {
                     [0, 0]
                 }
             };
-            self.buffer = aeshashx2(self.buffer.convert(), value.convert(), self.key).convert();
+            self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
@@ -140,20 +145,20 @@ impl Hasher for AHasher {
                     //len 33-64
                     let (head, _) = data.split_at(32);
                     let (_, tail) = data.split_at(data.len() - 32);
-                    self.buffer = aeshashx2(self.buffer.convert(), head.read_u128().0, self.key).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), head.read_last_u128(), self.key).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_u128().0, self.key).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), tail.read_last_u128(), self.key).convert();
+                    self.hash_in(head.read_u128().0);
+                    self.hash_in(head.read_last_u128());
+                    self.hash_in(tail.read_u128().0);
+                    self.hash_in(tail.read_last_u128());
                 }
             } else {
                 if data.len() > 16 {
                     //len 17-32
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_u128().0, self.key).convert();
-                    self.buffer = aeshashx2(self.buffer.convert(), data.read_last_u128(), self.key).convert();
+                    self.hash_in(data.read_u128().0);
+                    self.hash_in(data.read_last_u128());
                 } else {
                     //len 9-16
                     let value: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
-                    self.buffer = aeshashx2(self.buffer.convert(), value.convert(), self.key).convert();
+                    self.hash_in(value.convert());
                 }
             }
         }
