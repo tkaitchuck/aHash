@@ -14,7 +14,6 @@
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-extern crate const_random;
 
 #[macro_use]
 mod convert;
