@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.2.18"
+version = "0.3.0"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryprographic hash function using AES-NI for high performance"
@@ -19,7 +19,7 @@ bench = true
 doc = true
 
 [features]
-default = ["compile-time-rng"]
+default = ["compile-time-rng", "std"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`
 std = []

@@ -2,7 +2,7 @@ use crate::convert::*;
 use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-const MULTIPLE: u64 = crate::MULTIPLE;
+const MULTIPLE: u64 = crate::random_state::MULTIPLE;
 const INCREMENT: u64 = 1442695040888963407;
 const ROT: u32 = 23; //17
 
@@ -32,7 +32,7 @@ impl AHasher {
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
-        use crate::scramble_keys;
+        use crate::random_state::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
         AHasher {
             buffer: k1,
