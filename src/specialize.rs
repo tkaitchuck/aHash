@@ -1,7 +1,7 @@
 use crate::{RandomState, AHasher};
 use core::hash::Hasher;
 use core::hash::Hash;
-use crate::convert::Convert;
+use crate::folded_multiply::FoldedMultiply;
 
 pub struct PrimitiveHasher {
     value: u64,
@@ -9,10 +9,7 @@ pub struct PrimitiveHasher {
 
 impl PrimitiveHasher {
     fn update(&mut self, value: u64) {
-        let result: [u64; 2] = ((value ^ self.value) as u128)
-            .wrapping_mul(crate::random_state::MULTIPLE as u128)
-            .convert();
-        self.value = result[0].wrapping_add(result[1]);
+        self.value = (value ^ self.value).folded_multiply(&crate::random_state::MULTIPLE);
     }
 }
 

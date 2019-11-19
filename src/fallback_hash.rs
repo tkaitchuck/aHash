@@ -71,10 +71,8 @@ impl AHasher {
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        let result: [u64; 2] = ((new_data ^ self.buffer) as u128)
-            .wrapping_mul(MULTIPLE as u128)
-            .convert();
-        self.buffer = result[0].wrapping_add(result[1]);
+        use crate::folded_multiply::FoldedMultiply;
+        self.buffer = (new_data ^ self.buffer).folded_multiply(&MULTIPLE);
     }
 
     /// This update function updates the buffer with the new information in a way that can't be canceled

@@ -30,6 +30,7 @@ mod hash_map;
 mod hash_set;
 mod random_state;
 mod specialize;
+mod folded_multiply;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
