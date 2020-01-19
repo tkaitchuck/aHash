@@ -27,17 +27,17 @@ impl AHasher {
     /// Creates a new hasher keyed to the provided key.
     #[inline]
     pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
-        AHasher { buffer: key1, pad: key2 }
+        AHasher {
+            buffer: key1,
+            pad: key2,
+        }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher {
-            buffer: k1,
-            pad: k2
-        }
+        AHasher { buffer: k1, pad: k2 }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply

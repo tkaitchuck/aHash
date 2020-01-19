@@ -1,7 +1,7 @@
+use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-use crate::AHasher;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
@@ -37,9 +37,12 @@ impl RandomState {
         let stack_mem_loc = &previous as *const _ as u64;
         //This is similar to the update function in the fallback.
         //only one multiply is needed because memory locations are not under an attackers control.
-        let current_seed = previous.wrapping_mul(MULTIPLE).wrapping_add(stack_mem_loc).rotate_left(31);
+        let current_seed = previous
+            .wrapping_mul(MULTIPLE)
+            .wrapping_add(stack_mem_loc)
+            .rotate_left(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
-        let  (k0, k1) = scramble_keys(&SEED as *const _ as u64, current_seed);
+        let (k0, k1) = scramble_keys(&SEED as *const _ as u64, current_seed);
         RandomState { k0, k1 }
     }
 }

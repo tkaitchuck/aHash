@@ -12,7 +12,6 @@
 //! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
-
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 
 #[macro_use]
@@ -24,13 +23,13 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
+mod folded_multiply;
 #[cfg(feature = "std")]
 mod hash_map;
 #[cfg(feature = "std")]
 mod hash_set;
 mod random_state;
 mod specialize;
-mod folded_multiply;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
@@ -47,7 +46,6 @@ pub use crate::specialize::*;
 pub use crate::hash_map::AHashMap;
 #[cfg(feature = "std")]
 pub use crate::hash_set::AHashSet;
-
 
 /// Provides a default [Hasher] compile time generated constants for keys.
 /// This is typically used in conjunction with [`BuildHasherDefault`] to create
@@ -95,7 +93,6 @@ impl Default for AHasher {
         AHasher::new_with_keys(const_random!(u64), const_random!(u64))
     }
 }
-
 
 #[cfg(test)]
 mod test {

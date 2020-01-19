@@ -171,8 +171,6 @@ impl Hasher for AHasher {
     }
 }
 
-
-
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 #[inline(always)]
 fn aeshash(value: u128, xor: u128) -> u128 {

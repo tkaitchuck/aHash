@@ -1,7 +1,7 @@
-use crate::{RandomState, AHasher};
-use core::hash::Hasher;
-use core::hash::Hash;
 use crate::folded_multiply::FoldedMultiply;
+use crate::{AHasher, RandomState};
+use core::hash::Hash;
+use core::hash::Hasher;
 
 pub struct PrimitiveHasher {
     value: u64,
@@ -14,7 +14,6 @@ impl PrimitiveHasher {
 }
 
 impl Hasher for PrimitiveHasher {
-
     fn finish(&self) -> u64 {
         self.value
     }
@@ -76,7 +75,7 @@ pub trait Specialize<H: Hasher> {
     fn get_specialized_hasher(&self, state: &RandomState) -> H;
 }
 
-pub trait IsPrimitive : Hash { }
+pub trait IsPrimitive: Hash {}
 impl IsPrimitive for u8 {}
 impl IsPrimitive for u16 {}
 impl IsPrimitive for u32 {}
@@ -88,15 +87,16 @@ impl IsPrimitive for i32 {}
 impl IsPrimitive for i64 {}
 impl IsPrimitive for isize {}
 
-
-impl <T: Hash> Specialize<AHasher> for &T {
+impl<T: Hash> Specialize<AHasher> for &T {
     fn get_specialized_hasher(&self, state: &RandomState) -> AHasher {
         AHasher::new_with_keys(state.k0, state.k1)
     }
 }
 
-impl <T: IsPrimitive> Specialize<PrimitiveHasher> for T {
+impl<T: IsPrimitive> Specialize<PrimitiveHasher> for T {
     fn get_specialized_hasher(&self, state: &RandomState) -> PrimitiveHasher {
-        PrimitiveHasher{ value: state.k0.wrapping_add(state.k1) }
+        PrimitiveHasher {
+            value: state.k0.wrapping_add(state.k1),
+        }
     }
 }

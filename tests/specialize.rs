@@ -1,5 +1,5 @@
 use ahash::*;
-use std::hash::{Hash, BuildHasher, Hasher};
+use std::hash::{BuildHasher, Hash, Hasher};
 
 #[derive(Hash)]
 struct Value(u32, u32);
@@ -23,4 +23,3 @@ fn test_specialization() {
     assert_eq!(special_hasher.finish(), normal_hasher.finish());
     let _is_not_primitive: AHasher = special_hasher;
 }
-
