@@ -29,7 +29,6 @@ mod hash_map;
 #[cfg(feature = "std")]
 mod hash_set;
 mod random_state;
-mod specialize;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
@@ -40,7 +39,6 @@ pub use crate::aes_hash::AHasher;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 pub use crate::fallback_hash::AHasher;
 pub use crate::random_state::RandomState;
-pub use crate::specialize::*;
 
 #[cfg(feature = "std")]
 pub use crate::hash_map::AHashMap;
