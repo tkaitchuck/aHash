@@ -157,7 +157,7 @@ fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let hasher =  || AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF);
+    let hasher = || AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
     let sequence: Vec<_> = (0..2560000).collect();
@@ -169,7 +169,7 @@ fn test_bucket_distribution() {
 }
 
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
-    let mut total : u64 = 0;
+    let mut total: u64 = 0;
     for item in b {
         let mut hasher = AHasher::new_with_keys(1234, 5678);
         item.hash(&mut hasher);
@@ -179,7 +179,7 @@ fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
 }
 
 fn fxhash_vec<H: Hash>(b: &Vec<H>) -> u64 {
-    let mut total : u64 = 0;
+    let mut total: u64 = 0;
     for item in b {
         let mut hasher = FxHasher::default();
         item.hash(&mut hasher);
@@ -199,8 +199,4 @@ fn bench_fx_words(c: &mut Criterion) {
 }
 
 criterion_main!(benches);
-criterion_group!(
-    benches,
-    bench_ahash_words,
-    bench_fx_words,
-);
+criterion_group!(benches, bench_ahash_words, bench_fx_words,);
