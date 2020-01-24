@@ -33,6 +33,11 @@ name = "ahash"
 path = "tests/bench.rs"
 harness = false
 
+[[bench]]
+name = "map"
+path = "tests/map_tests.rs"
+harness = false
+
 [profile.test]
 opt-level = 2
 
