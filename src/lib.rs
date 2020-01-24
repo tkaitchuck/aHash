@@ -94,6 +94,14 @@ impl Default for AHasher {
     }
 }
 
+//#[inline(never)]
+//pub fn hash_test(input: &[u8]) -> u64 {
+//    use std::hash::Hasher;
+//    let mut a = AHasher::new_with_keys(67, 87);
+//    a.write(input);
+//    a.finish()
+//}
+
 #[cfg(test)]
 mod test {
     use crate::convert::Convert;

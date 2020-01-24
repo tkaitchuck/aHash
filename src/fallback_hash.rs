@@ -112,14 +112,6 @@ impl AHasher {
     }
 }
 
-//#[inline(never)]
-//#[no_mangle]
-//fn hash_test(input: &[u8]) -> u64 {
-//    let mut a = AHasher::new_with_keys(12345, 67);
-//    a.write(input);
-//    a.finish()
-//}
-
 /// Provides methods to hash all of the primitive types.
 impl Hasher for AHasher {
     #[inline]
