@@ -1,5 +1,6 @@
 use crate::convert::*;
 use core::hash::Hasher;
+use std::intrinsics::transmute;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -15,6 +16,7 @@ use core::hash::Hasher;
 #[derive(Debug, Clone)]
 pub struct AHasher {
     buffer: [u64; 2],
+    sum: [u64; 2],
     key: u128,
 }
 
@@ -39,7 +41,8 @@ impl AHasher {
     pub fn new_with_keys(key0: u64, key1: u64) -> Self {
         Self {
             buffer: [key0, key1],
-            key: [key1, key0].convert(),
+            sum: [key1, key0],
+            key: [key0, key1].convert(),
         }
     }
 
@@ -49,19 +52,21 @@ impl AHasher {
         let (k1, k2) = scramble_keys(key1, key2);
         AHasher {
             buffer: [k1, k2],
-            key: [k2, k1].convert(),
+            sum: [k2, k1],
+            key: [k1, k2].convert(),
         }
     }
 
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
-        self.buffer = aeshashx2(self.buffer.convert(), new_value, self.key).convert();
+        self.buffer = aeshash(self.buffer.convert(), new_value).convert();
+        self.sum =  add_by_64s(self.sum.convert(), self.buffer.convert()).convert();
     }
 
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
-        let updated = aeshash(self.buffer.convert(), v1);
-        self.buffer = aeshashx2(updated, v2, updated).convert();
+        self.hash_in(v1);
+        self.hash_in(v2);
     }
 }
 
@@ -125,18 +130,31 @@ impl Hasher for AHasher {
             if data.len() > 32 {
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
-                    let mut par_block: u128 = self.buffer.convert();
+                    let mut current: [u128; 2] = [self.buffer.convert(), self.key];
+                    let mut sum: [u128; 2] = [0, 0];
+                    current[0] = aeshash(current[0], tail[0]);
+                    current[1] = aeshash(current[1], tail[1]);
+                    sum[0] = add_by_64s(sum[0], current[0]);
+                    sum[1] = add_by_64s(sum[1], current[1]);
+                    current[0] = aeshash(current[0], tail[2]);
+                    current[1] = aeshash(current[1], tail[3]);
+                    sum[0] = add_by_64s(sum[0], current[0]);
+                    sum[1] = add_by_64s(sum[1], current[1]);
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
+                        current[0] = aeshash(current[0], blocks[0]);
+                        current[1] = aeshash(current[1], blocks[1]);
+                        sum[0] = add_by_64s(sum[0], current[0]);
+                        sum[1] = add_by_64s(sum[1], current[1]);
+                        current[0] = aeshash(current[0], blocks[2]);
+                        current[1] = aeshash(current[1], blocks[3]);
+                        sum[0] = add_by_64s(sum[0], current[0]);
+                        sum[1] = add_by_64s(sum[1], current[1]);
                         data = rest;
-                        self.hash_in_2(blocks[0], blocks[1]);
-                        par_block = aeshash(par_block, blocks[2]);
-                        par_block = aeshashx2(par_block, blocks[3], par_block);
                     }
-                    self.hash_in_2(tail[0], tail[1]);
-                    par_block = aeshash(par_block, tail[2]);
-                    par_block = aeshashx2(par_block, tail[3], par_block);
-                    self.hash_in(par_block);
+                    self.buffer = current[0].convert();
+                    self.hash_in(current[1]);
+                    self.hash_in_2(sum[0], sum[1]);
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();
@@ -158,9 +176,30 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshash(self.buffer.convert(), self.key).convert();
+        let result: [u64; 2] = aeshashx2(self.sum.convert(), self.key, self.buffer.convert()).convert();
         result[0] //.wrapping_add(result[1])
     }
+}
+
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2"))]
+#[inline(always)]
+fn add_by_64s(a: u128, b: u128) -> u128 {
+    unsafe {
+        #[cfg(target_arch = "x86")]
+        use core::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use core::arch::x86_64::*;
+        transmute(_mm_add_epi64(transmute(a), transmute(b)))
+    }
+}
+
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2")))]
+#[inline(always)]
+fn add_by_64s(a: u128, b: u128) -> u128 {
+    let a: [u64;2] = a.convert();
+    let b: [u64;2] = b.convert();
+    let c: [u64;2] = [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])];
+    c.convert()
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
