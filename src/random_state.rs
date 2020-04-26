@@ -67,8 +67,8 @@ impl Default for RandomState {
 impl BuildHasher for RandomState {
     type Hasher = AHasher;
 
-    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location
-    /// of the this object in memory. This means that two different [BuildHasher]s will will generate
+    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location 
+    /// this object was constructed at in memory. This means that two different [BuildHasher]s will will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
