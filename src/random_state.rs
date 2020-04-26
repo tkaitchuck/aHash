@@ -45,6 +45,15 @@ impl RandomState {
         let (k0, k1) = scramble_keys(&SEED as *const _ as u64, current_seed);
         RandomState { k0, k1 }
     }
+
+    /// Allows for explicetly setting the seeds to used.
+    pub fn with_seeds(k0: u64, k1: u64) -> RandomState {
+        RandomState {
+            k0, 
+            k1,
+        }
+    }
+
 }
 
 pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
@@ -101,4 +110,5 @@ impl BuildHasher for RandomState {
     fn build_hasher(&self) -> AHasher {
         AHasher::new_with_keys(self.k0, self.k1)
     }
+
 }
