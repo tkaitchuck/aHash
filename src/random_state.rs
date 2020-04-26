@@ -48,12 +48,8 @@ impl RandomState {
 
     /// Allows for explicetly setting the seeds to used.
     pub fn with_seeds(k0: u64, k1: u64) -> RandomState {
-        RandomState {
-            k0, 
-            k1,
-        }
+        RandomState { k0, k1 }
     }
-
 }
 
 pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
@@ -76,7 +72,7 @@ impl Default for RandomState {
 impl BuildHasher for RandomState {
     type Hasher = AHasher;
 
-    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location 
+    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location
     /// this object was constructed at in memory. This means that two different [BuildHasher]s will will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
@@ -110,5 +106,4 @@ impl BuildHasher for RandomState {
     fn build_hasher(&self) -> AHasher {
         AHasher::new_with_keys(self.k0, self.k1)
     }
-
 }

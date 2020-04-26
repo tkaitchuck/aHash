@@ -1,6 +1,5 @@
 use crate::convert::*;
 use core::hash::Hasher;
-use std::intrinsics::transmute;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -60,7 +59,7 @@ impl AHasher {
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
         self.buffer = aeshash(self.buffer.convert(), new_value).convert();
-        self.sum =  add_by_64s(self.sum.convert(), self.buffer.convert()).convert();
+        self.sum = add_by_64s(self.sum.convert(), self.buffer.convert()).convert();
     }
 
     #[inline(always)]
@@ -184,6 +183,7 @@ impl Hasher for AHasher {
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2"))]
 #[inline(always)]
 fn add_by_64s(a: u128, b: u128) -> u128 {
+    use core::mem::transmute;
     unsafe {
         #[cfg(target_arch = "x86")]
         use core::arch::x86::*;
@@ -196,9 +196,9 @@ fn add_by_64s(a: u128, b: u128) -> u128 {
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2")))]
 #[inline(always)]
 fn add_by_64s(a: u128, b: u128) -> u128 {
-    let a: [u64;2] = a.convert();
-    let b: [u64;2] = b.convert();
-    let c: [u64;2] = [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])];
+    let a: [u64; 2] = a.convert();
+    let b: [u64; 2] = b.convert();
+    let c: [u64; 2] = [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])];
     c.convert()
 }
 
