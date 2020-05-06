@@ -72,7 +72,7 @@ impl AHasher {
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
         use crate::folded_multiply::FoldedMultiply;
-        self.buffer = (new_data ^ self.buffer).folded_multiply(&MULTIPLE);
+        self.buffer = (new_data ^ self.buffer).folded_multiply(MULTIPLE);
     }
 
     /// This update function updates the buffer with the new information in a way that can't be canceled
