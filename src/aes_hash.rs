@@ -180,7 +180,7 @@ impl Hasher for AHasher {
     }
 }
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))]
 #[inline(always)]
 fn add_by_64s(a: u128, b: u128) -> u128 {
     use core::mem::transmute;
@@ -193,7 +193,7 @@ fn add_by_64s(a: u128, b: u128) -> u128 {
     }
 }
 
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2")))]
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri))))]
 #[inline(always)]
 fn add_by_64s(a: u128, b: u128) -> u128 {
     let a: [u64; 2] = a.convert();
@@ -202,7 +202,7 @@ fn add_by_64s(a: u128, b: u128) -> u128 {
     c.convert()
 }
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[inline(always)]
 fn aeshash(value: u128, xor: u128) -> u128 {
     #[cfg(target_arch = "x86")]
@@ -215,7 +215,7 @@ fn aeshash(value: u128, xor: u128) -> u128 {
         transmute(_mm_aesdec_si128(value, transmute(xor)))
     }
 }
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[inline(always)]
 fn aeshashx2(value: u128, k1: u128, k2: u128) -> u128 {
     #[cfg(target_arch = "x86")]

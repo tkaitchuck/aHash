@@ -17,7 +17,7 @@
 #[macro_use]
 mod convert;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 mod aes_hash;
 mod fallback_hash;
 #[cfg(test)]
@@ -33,10 +33,10 @@ mod random_state;
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 pub use crate::aes_hash::AHasher;
 
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
 pub use crate::fallback_hash::AHasher;
 pub use crate::random_state::RandomState;
 

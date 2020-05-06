@@ -50,10 +50,10 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
 }
 
 fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
-    let mut a = constructor(0, 0);
-    let mut b = constructor(0, 1);
-    let mut c = constructor(1, 0);
-    let mut d = constructor(1, 1);
+    let mut a = constructor(1, 1);
+    let mut b = constructor(1, 2);
+    let mut c = constructor(2, 1);
+    let mut d = constructor(2, 2);
     "test".hash(&mut a);
     "test".hash(&mut b);
     "test".hash(&mut c);
@@ -263,7 +263,7 @@ mod fallback_tests {
 }
 
 ///Basic sanity tests of the cypto properties of aHash.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[cfg(test)]
 mod aes_tests {
     use crate::aes_hash::*;
