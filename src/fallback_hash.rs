@@ -1,4 +1,5 @@
 use crate::convert::*;
+use crate::folded_multiply::*;
 use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
@@ -71,7 +72,6 @@ impl AHasher {
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        use crate::folded_multiply::FoldedMultiply;
         self.buffer = (new_data ^ self.buffer).folded_multiply(MULTIPLE);
     }
 
