@@ -154,7 +154,8 @@ impl Hasher for AHasher {
                     }
                     self.buffer = current[0].convert();
                     self.hash_in(current[1]);
-                    self.hash_in_2(sum[0], sum[1]);
+                    self.sum = add_by_64s(self.sum.convert(), sum[0]).convert();
+                    self.sum = add_by_64s(self.sum.convert(), sum[1]).convert();
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();
