@@ -162,6 +162,31 @@ fn test_all_bytes_matter<T: Hasher>(hasher: impl Fn() -> T) {
     }
 }
 
+fn test_no_pair_collisions<T: Hasher>(hasher: impl Fn() -> T) {
+    let base = [0_u64, 0_u64];
+    let base_hash = hash(&base, &hasher);
+    for bitpos1 in 0..64 {
+        let a = 1_u64 << bitpos1;
+        for bitpos2 in 0..bitpos1 {
+            let b = 1_u64 << bitpos2;
+            let aa = hash(&[a, a], &hasher);
+            let ab = hash(&[a, b], &hasher);
+            let ba = hash(&[b, a], &hasher);
+            let bb = hash(&[b, b], &hasher);
+            assert_sufficiently_different(base_hash, aa, 3);
+            assert_sufficiently_different(base_hash, ab, 3);
+            assert_sufficiently_different(base_hash, ba, 3);
+            assert_sufficiently_different(base_hash, bb, 3);
+            assert_sufficiently_different(aa, ab, 3);
+            assert_sufficiently_different(ab, ba, 3);
+            assert_sufficiently_different(ba, bb, 3);
+            assert_sufficiently_different(aa, ba, 3);
+            assert_sufficiently_different(ab, bb, 3);
+            assert_sufficiently_different(aa, bb, 3);
+        }
+    }
+}
+
 fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
     let mut hasher = hasher();
     b.hash(&mut hasher);
@@ -237,6 +262,11 @@ mod fallback_tests {
     }
 
     #[test]
+    fn fallback_test_no_pair_collisions() {
+        test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
+    }
+
+    #[test]
     fn fallback_keys_change_output() {
         test_keys_change_output(AHasher::test_with_keys);
     }
@@ -270,7 +300,8 @@ mod aes_tests {
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
 
-    const BAD_KEY: u64 = 0x5252_5252_5252_5252; //Thi   s encrypts to 0.
+    const BAD_KEY: u64  = 0x5252_5252_5252_5252; //This encrypts to 0.
+    const BAD_KEY2: u64 = 0x6363_6363_6363_6363; //This decrypts to 0.
 
     #[test]
     fn test_single_bit_in_byte() {
@@ -283,7 +314,8 @@ mod aes_tests {
 
     #[test]
     fn aes_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY))
+        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
+        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
     }
 
     #[test]
@@ -294,6 +326,13 @@ mod aes_tests {
     #[test]
     fn aes_all_bytes_matter() {
         test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
+        test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+    }
+
+    #[test]
+    fn aes_test_no_pair_collisions() {
+        test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
+        test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
     }
 
     #[test]
@@ -317,6 +356,7 @@ mod aes_tests {
 
     #[test]
     fn aes_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY))
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
     }
 }
