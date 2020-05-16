@@ -1,3 +1,4 @@
+use crate::convert::Convert;
 use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
@@ -8,13 +9,16 @@ use const_random::const_random;
 
 ///This constant come from Kunth's prng
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
+pub(crate) const INCREMENT: u64 = 1442695040888963407;
 
 // Const random provides randomized starting key with no runtime cost.
 #[cfg(feature = "compile-time-rng")]
-static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
+const INIT_SEED: u64 = const_random!(u64);
 
 #[cfg(not(feature = "compile-time-rng"))]
-static SEED: AtomicUsize = AtomicUsize::new(MULTIPLE as usize);
+const INIT_SEED: u64 = INCREMENT;
+
+static SEED: AtomicUsize = AtomicUsize::new(INIT_SEED as usize);
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [`HashMap`]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
@@ -38,9 +42,9 @@ impl RandomState {
         //This is similar to the update function in the fallback.
         //only one multiply is needed because memory locations are not under an attackers control.
         let current_seed = previous
-            .wrapping_mul(MULTIPLE)
             .wrapping_add(stack_mem_loc)
-            .rotate_left(31);
+            .wrapping_mul(MULTIPLE)
+            .rotate_right(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
         let (k0, k1) = scramble_keys(&SEED as *const _ as u64, current_seed);
         RandomState { k0, k1 }
