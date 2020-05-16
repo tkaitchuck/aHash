@@ -189,7 +189,7 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        (self.buffer ^ self.pad)
+        self.buffer ^ self.pad
     }
 }
 
