@@ -178,7 +178,7 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let result: [u64; 2] = aeshashx2(self.sum.convert(), self.key, self.buffer.convert()).convert();
-        result[0] //.wrapping_add(result[1])
+        result[0].wrapping_add(result[1])
     }
 }
 
