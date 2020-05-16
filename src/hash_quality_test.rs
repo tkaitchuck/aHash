@@ -247,11 +247,25 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                     let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                     assert!(
                         same_bytes <= 3,
-                        format!("string {:?} + {} bytes of {} -> {:x} vs {:x}", string, num, c, value, long.finish())
+                        format!(
+                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                            string,
+                            num,
+                            c,
+                            value,
+                            long.finish()
+                        )
                     );
                     assert!(
                         same_nibbles <= 8,
-                        format!("string {:?} + {} bytes of {} -> {:x} vs {:x}", string, num, c, value, long.finish())
+                        format!(
+                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                            string,
+                            num,
+                            c,
+                            value,
+                            long.finish()
+                        )
                     );
                     let flipped_bits = (value ^ long.finish()).count_ones();
                     assert!(flipped_bits > 10);
@@ -323,7 +337,7 @@ mod aes_tests {
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
 
-    const BAD_KEY: u64  = 0x5252_5252_5252_5252; //This encrypts to 0.
+    const BAD_KEY: u64 = 0x5252_5252_5252_5252; //This encrypts to 0.
     const BAD_KEY2: u64 = 0x6363_6363_6363_6363; //This decrypts to 0.
 
     #[test]
