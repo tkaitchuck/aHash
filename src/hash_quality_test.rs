@@ -216,18 +216,18 @@ fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
 
 fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
     for c in 0..128u8 {
-        for string in ["", "1234", "12345678", "1234567812345678"].iter() {
+        for string in ["", "\0", "\x01", "1234", "12345678", "1234567812345678"].iter() {
             let mut short = hasher();
             string.hash(&mut short);
             let value = short.finish();
-            let mut string = string.to_string();
+            let mut padded = string.to_string();
             for num in 1..=128 {
                 let mut long = hasher();
-                string.push(c as char);
-                string.hash(&mut long);
+                padded.push(c as char);
+                padded.hash(&mut long);
                 let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                 assert!(
-                    same_bytes <= 2,
+                    same_bytes <= 3,
                     format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
                 );
                 assert!(
@@ -236,6 +236,26 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                 );
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
+            }
+            if string.len() > 0 {
+                let mut padded = string[1..].to_string();
+                padded.push(c as char);
+                for num in 2..=128 {
+                    let mut long = hasher();
+                    padded.push(c as char);
+                    padded.hash(&mut long);
+                    let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
+                    assert!(
+                        same_bytes <= 3,
+                        format!("string {:?} + {} bytes of {} -> {:x} vs {:x}", string, num, c, value, long.finish())
+                    );
+                    assert!(
+                        same_nibbles <= 8,
+                        format!("string {:?} + {} bytes of {} -> {:x} vs {:x}", string, num, c, value, long.finish())
+                    );
+                    let flipped_bits = (value ^ long.finish()).count_ones();
+                    assert!(flipped_bits > 10);
+                }
             }
         }
     }
@@ -288,7 +308,10 @@ mod fallback_tests {
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 1))
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 0));
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 1));
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(1, 0));
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(1, 1));
     }
 }
 
