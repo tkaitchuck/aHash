@@ -173,9 +173,8 @@ impl Hasher for AHasher {
                     let block: [u32; 2] = [data.read_u32().0, data.read_last_u32()];
                     self.update(block.convert());
                 } else {
-                    let block: [u16; 2] = [data.read_u16().0, data.read_last_u16()];
-                    let val: u32 = block.convert();
-                    self.update(val as u64);
+                    let value = [data.read_u16().0 as u32, data[data.len() - 1] as u32];
+                    self.update(value.convert());
                 }
             } else {
                 let value = if data.len() > 0 {
@@ -189,7 +188,8 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        self.buffer ^ self.pad
+        let rot = (self.pad & 63) as u32;
+        (self.buffer ^ self.pad).rotate_left(rot)
     }
 }
 
