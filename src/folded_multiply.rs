@@ -16,7 +16,7 @@ impl FoldedMultiply for u64 {
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))]
 #[inline(always)]
-pub(crate) fn add_by_64s(a: u128, b: u128) -> u128 {
+pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
     use core::mem::transmute;
     unsafe {
         #[cfg(target_arch = "x86")]
@@ -29,9 +29,6 @@ pub(crate) fn add_by_64s(a: u128, b: u128) -> u128 {
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri))))]
 #[inline(always)]
-pub(crate) fn add_by_64s(a: u128, b: u128) -> u128 {
-    let a: [u64; 2] = a.convert();
-    let b: [u64; 2] = b.convert();
-    let c: [u64; 2] = [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])];
-    c.convert()
+pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
+    [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
 }

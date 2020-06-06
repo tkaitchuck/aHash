@@ -1,6 +1,7 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
 use core::hash::Hasher;
+use std::hint::unreachable_unchecked;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -60,13 +61,40 @@ impl AHasher {
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
         self.buffer = aeshash(self.buffer.convert(), new_value).convert();
-        self.sum = add_by_64s(self.sum.convert(), self.buffer.convert()).convert();
+        self.sum = add_by_64s(self.sum, self.buffer);
     }
 
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
         self.hash_in(v1);
         self.hash_in(v2);
+    }
+
+    #[inline(always)]
+    fn hash_in_b0(&mut self, data: &[u8]) {
+        self.hash_in(0);
+    }
+    #[inline(always)]
+    fn hash_in_b1(&mut self, data: &[u8]) {
+        self.hash_in(data[0] as u128);
+    }
+    #[inline(always)]
+    fn hash_in_b2(&mut self, data: &[u8]) {
+        self.hash_in(data.read_u16().0 as u128);
+    }
+    #[inline(always)]
+    fn hash_in_b3(&mut self, data: &[u8]) {
+        let value: [u64; 2] = [data.read_u16().0 as u64, data.read_last_u16() as u64];
+        self.hash_in(value.convert());
+    }
+    #[inline(always)]
+    fn hash_in_b4(&mut self, data: &[u8]) {
+        self.hash_in(data.read_u32().0 as u128);
+    }
+    #[inline(always)]
+    fn hash_in_b5_8(&mut self, data: &[u8]) {
+        let value: [u64; 2] = [data.read_u32().0 as u64, data.read_last_u32() as u64];
+        self.hash_in(value.convert());
     }
 }
 
@@ -110,52 +138,46 @@ impl Hasher for AHasher {
         self.buffer[1] = self.buffer[1].wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() <= 8 {
-            let value: [u64; 2] = if data.len() >= 2 {
-                if data.len() >= 4 {
-                    //len 4-8
-                    [data.read_u32().0 as u64, data.read_last_u32() as u64]
-                } else {
-                    //len 2-3
-                    [data.read_u16().0 as u64, data[data.len() - 1] as u64]
-                }
-            } else {
-                if data.len() > 0 {
-                    [data[0] as u64, 0]
-                } else {
-                    [0, 0]
-                }
-            };
-            self.hash_in(value.convert());
+            match data.len() {
+                0 => self.hash_in_b0(data),
+                1 => self.hash_in_b1(data),
+                2 => self.hash_in_b2(data),
+                3 => self.hash_in_b3(data),
+                4 => self.hash_in_b4(data),
+                5 => self.hash_in_b5_8(data),
+                6 => self.hash_in_b5_8(data),
+                7 => self.hash_in_b5_8(data),
+                8 => self.hash_in_b5_8(data),
+                _ => unsafe { unreachable_unchecked() }, //enum is exhaustive
+            }
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
-                    let mut current: [u128; 2] = [self.buffer.convert(), self.key];
-                    let mut sum: [u128; 2] = [0, 0];
+                    let mut current: [u128; 4] = [self.key; 4];
                     current[0] = aeshash(current[0], tail[0]);
                     current[1] = aeshash(current[1], tail[1]);
-                    sum[0] = add_by_64s(sum[0], current[0]);
-                    sum[1] = add_by_64s(sum[1], current[1]);
-                    current[0] = aeshash(current[0], tail[2]);
-                    current[1] = aeshash(current[1], tail[3]);
-                    sum[0] = add_by_64s(sum[0], current[0]);
-                    sum[1] = add_by_64s(sum[1], current[1]);
+                    current[2] = aeshash(current[2], tail[2]);
+                    current[3] = aeshash(current[3], tail[3]);
+                    let mut sum: [u64; 2] = add_by_64s(add_by_64s(current[0].convert(), current[1].convert()),
+                                                       add_by_64s(current[2].convert(), current[3].convert()));
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
                         current[0] = aeshash(current[0], blocks[0]);
+                        sum = add_by_64s(sum, current[0].convert());
                         current[1] = aeshash(current[1], blocks[1]);
-                        sum[0] = add_by_64s(sum[0], current[0]);
-                        sum[1] = add_by_64s(sum[1], current[1]);
-                        current[0] = aeshash(current[0], blocks[2]);
-                        current[1] = aeshash(current[1], blocks[3]);
-                        sum[0] = add_by_64s(sum[0], current[0]);
-                        sum[1] = add_by_64s(sum[1], current[1]);
+                        sum = add_by_64s(sum, current[1].convert());
+                        current[2] = aeshash(current[2], blocks[2]);
+                        sum = add_by_64s(sum, current[2].convert());
+                        current[3] = aeshash(current[3], blocks[3]);
+                        sum = add_by_64s(sum, current[3].convert());
                         data = rest;
                     }
-                    self.buffer = current[0].convert();
+                    self.hash_in(current[0]);
                     self.hash_in(current[1]);
-                    self.sum = add_by_64s(self.sum.convert(), sum[0]).convert();
-                    self.sum = add_by_64s(self.sum.convert(), sum[1]).convert();
+                    self.hash_in(current[2]);
+                    self.hash_in(current[3]);
+                    self.sum = add_by_64s(self.sum, sum);
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();
@@ -177,10 +199,12 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshashx2(self.sum.convert(), self.key, self.buffer.convert()).convert();
+        let result: [u64; 2] = aeshashx2(self.sum.convert(), self.buffer.convert(), self.key).convert();
         result[0].wrapping_add(result[1])
     }
 }
+
+
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[inline(always)]
