@@ -69,33 +69,6 @@ impl AHasher {
         self.hash_in(v1);
         self.hash_in(v2);
     }
-
-    #[inline(always)]
-    fn hash_in_b0(&mut self, data: &[u8]) {
-        self.hash_in(0);
-    }
-    #[inline(always)]
-    fn hash_in_b1(&mut self, data: &[u8]) {
-        self.hash_in(data[0] as u128);
-    }
-    #[inline(always)]
-    fn hash_in_b2(&mut self, data: &[u8]) {
-        self.hash_in(data.read_u16().0 as u128);
-    }
-    #[inline(always)]
-    fn hash_in_b3(&mut self, data: &[u8]) {
-        let value: [u64; 2] = [data.read_u16().0 as u64, data.read_last_u16() as u64];
-        self.hash_in(value.convert());
-    }
-    #[inline(always)]
-    fn hash_in_b4(&mut self, data: &[u8]) {
-        self.hash_in(data.read_u32().0 as u128);
-    }
-    #[inline(always)]
-    fn hash_in_b5_8(&mut self, data: &[u8]) {
-        let value: [u64; 2] = [data.read_u32().0 as u64, data.read_last_u32() as u64];
-        self.hash_in(value.convert());
-    }
 }
 
 /// Provides methods to hash all of the primitive types.
@@ -138,18 +111,22 @@ impl Hasher for AHasher {
         self.buffer[1] = self.buffer[1].wrapping_add(length);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() <= 8 {
-            match data.len() {
-                0 => self.hash_in_b0(data),
-                1 => self.hash_in_b1(data),
-                2 => self.hash_in_b2(data),
-                3 => self.hash_in_b3(data),
-                4 => self.hash_in_b4(data),
-                5 => self.hash_in_b5_8(data),
-                6 => self.hash_in_b5_8(data),
-                7 => self.hash_in_b5_8(data),
-                8 => self.hash_in_b5_8(data),
-                _ => unsafe { unreachable_unchecked() }, //enum is exhaustive
-            }
+            let value: [u64; 2] = if data.len() >= 2 {
+                if data.len() >= 4 {
+                    //len 4-8
+                    [data.read_u32().0 as u64, data.read_last_u32() as u64]
+                } else {
+                    //len 2-3
+                    [data.read_u16().0 as u64, data[data.len() - 1] as u64]
+                }
+            } else {
+                if data.len() > 0 {
+                    [data[0] as u64, 0]
+                } else {
+                    [0, 0]
+                }
+            };
+            self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
