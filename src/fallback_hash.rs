@@ -154,7 +154,7 @@ impl Hasher for AHasher {
         let mut data = input;
         let length = data.len() as u64;
         //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
-        self.buffer = self.buffer.wrapping_add(length.wrapping_mul(MULTIPLE));
+        self.buffer = self.buffer.wrapping_add(length).wrapping_mul(MULTIPLE);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
             if data.len() > 16 {
