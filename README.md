@@ -30,33 +30,33 @@ different versions of the code may hash the same input to different values.
 ## Speed
 
 When it is available aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input.
-On an intel i5-6200u this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger
+On an intel i7-6700 this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger
 permutation and handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing,
 and does a better job of scrambling data than most non-secure hashes.
 
-On an intel i5-6200u compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
+On an intel i7-6700 compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
 
 | Input   | SipHash 1-3 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
-| u8             | 12.766 ns | 1.1561 ns | **1.1474 ns** | 1.4607 ns | 1.2010 ns |
-| u16            | 13.095 ns | 1.3030 ns | **1.1589 ns** | 1.4677 ns | 1.1991 ns |
-| u32            | 12.303 ns | 2.1232 ns | **1.1491 ns** | 1.4659 ns | 1.1992 ns |
-| u64            | 14.648 ns | 4.3945 ns | **1.1623 ns** | 1.4769 ns | 1.2105 ns |
-| u128           | 17.207 ns | 9.5498 ns | **1.4231 ns** | 1.4613 ns | 1.7041 ns |
-| 1 byte string  | 16.042 ns | 1.9192 ns | 2.5481 ns | **2.1789 ns** | 2.1790 ns |
-| 3 byte string  | 16.775 ns | 3.5305 ns | 4.5138 ns | **2.1914 ns** | 2.1809 ns |
-| 4 byte string  | 15.726 ns | 3.8268 ns | **1.2745 ns** | 2.2099 ns | 2.1902 ns |
-| 7 byte string  | 19.970 ns | 5.9849 ns | 3.9006 ns | **2.1830 ns** | 2.1836 ns |
-| 8 byte string  | 18.103 ns | 4.5923 ns | 2.2808 ns | **2.1691 ns** | 2.1884 ns |
-| 15 byte string | 22.637 ns | 10.361 ns | 6.0990 ns | **2.1663 ns** | 2.2695 ns |
-| 16 byte string | 19.882 ns | 9.8525 ns | 2.7562 ns | **2.1658 ns** | 2.2304 ns |
-| 24 byte string | 21.893 ns | 16.640 ns | 3.2014 ns | **2.1657 ns** | 4.4364 ns |
-| 68 byte string | 33.370 ns | 65.900 ns | 6.4713 ns | **6.1354 ns** | 8.5719 ns |
-| 132 byte string| 52.996 ns | 158.34 ns | 14.245 ns | **8.3096 ns** | 14.608 ns |
-|1024 byte string| 337.01 ns | 1453.1 ns | 205.60 ns | **46.916 ns** | 98.323 ns |
+| u8             | 9.3271 ns | 0.808 ns  | **0.594** ns  | 1.5601 ns | 0.688 ns |
+| u16            | 9.5139 ns | 0.803 ns  | **0.594** ns  | 1.5643 ns | 0.681 ns |
+| u32            | 9.1196 ns | 1.4424 ns | **0.594** ns  | 1.4938 ns | 0.727 ns |
+| u64            | 10.854 ns | 3.0484 ns | **0.628** ns  | 1.4793 ns | 0.814 ns |
+| u128           | 12.465 ns | 7.0728 ns | **0.799** ns  | 1.4631 ns | 1.3713 ns |
+| 1 byte string  | 11.745 ns | 2.4743 ns | **2.4000** ns | 2.7106 ns | 2.7111 ns |
+| 3 byte string  | 12.066 ns | 3.5221 ns | 2.9253 ns | 2.7104 ns | **2.4384** ns |
+| 4 byte string  | 11.634 ns | 4.0770 ns | **1.8818** ns | 2.7105 ns | 2.7105 ns |
+| 7 byte string  | 14.762 ns | 5.9780 ns | 3.2282 ns | **2.6523** ns | 2.7104 ns |
+| 8 byte string  | 13.442 ns | 4.0535 ns | 2.9422 ns | 2.9100 ns | **2.7090** ns |
+| 15 byte string | 16.880 ns | 8.3434 ns | 4.6070 ns | 2.7103 ns | **2.4393** ns |
+| 16 byte string | 15.155 ns | 7.5796 ns | 3.2619 ns | 2.7104 ns | **2.4394** ns |
+| 24 byte string | 16.521 ns | 12.492 ns | 3.5424 ns | **2.7111** ns | 5.1749 ns |
+| 68 byte string | 24.598 ns | 50.715 ns | 5.8312 ns | **5.4573** ns | 6.9370 ns |
+| 132 byte string| 39.224 ns | 119.96 ns | 11.777 ns | **6.4372** ns | 11.739 ns |
+|1024 byte string| 254.00 ns | 1087.3 ns | 156.41 ns | **21.392** ns | 75.133 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instruction are unavailable.
-For reference a hash that does nothing (not even reads the input data takes) **0.844 ns**. So that represents the fastest
+For reference a hash that does nothing (not even reads the input data takes) **0.520 ns**. So that represents the fastest
 possible time.
 
 As you can see above aHash like FxHash provides a large speedup over SipHash-1-3 which is already nearly twice as fast as SipHash-2-4.
