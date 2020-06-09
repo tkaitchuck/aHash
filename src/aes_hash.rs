@@ -1,7 +1,6 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
 use core::hash::Hasher;
-use std::hint::unreachable_unchecked;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///

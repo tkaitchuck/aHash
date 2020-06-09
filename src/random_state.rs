@@ -1,4 +1,3 @@
-use crate::convert::Convert;
 use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
