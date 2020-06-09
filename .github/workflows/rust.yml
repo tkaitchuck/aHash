@@ -12,15 +12,15 @@ jobs:
         with:
             toolchain: stable
             components: clippy
-
-      - name: cargo check
+      - name: check nostd
         uses: actions-rs/cargo@v1
         with:
           command: check
-      - name: Run
+          args: --no-default-features
+      - name: check
         uses: actions-rs/cargo@v1
         with:
-          command: check --no-default-features
+          command: check
       - name: test
         uses: actions-rs/cargo@v1
         with:
