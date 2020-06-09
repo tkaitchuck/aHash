@@ -4,14 +4,24 @@ on: [push, pull_request]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
-    - name: Build
-      run: cargo build --verbose
-    - name: No std build
-      run: cargo build --no-default-features --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v2
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            components: clippy
+
+      - name: cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+      - name: Run
+        uses: actions-rs/cargo@v1
+        with:
+          command: check --no-default-features
+      - name: test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
