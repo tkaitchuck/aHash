@@ -60,7 +60,7 @@ const-random = { version = "0.1.6", optional = true }
 
 [dev-dependencies]
 no-panic = "0.1.10"
-criterion = {version =  "0.3.0", features =["real_blackbox"]}
+criterion = {version =  "0.3.2"}
 seahash = "3.0.5"
 fnv = "1.0.5"
 fxhash = "0.2.1"
