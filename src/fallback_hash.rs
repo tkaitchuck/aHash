@@ -4,7 +4,7 @@ use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = crate::random_state::MULTIPLE;
-const INCREMENT: u64 = 1442695040888963407;
+const INCREMENT: u64 = crate::random_state::INCREMENT;
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.

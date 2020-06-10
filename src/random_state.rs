@@ -2,6 +2,8 @@ use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
+use crate::convert::*;
+use crate::folded_multiply::*;
 
 #[cfg(feature = "compile-time-rng")]
 use const_random::const_random;
@@ -11,10 +13,10 @@ pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 pub(crate) const INCREMENT: u64 = 1442695040888963407;
 
 // Const random provides randomized starting key with no runtime cost.
-#[cfg(feature = "compile-time-rng")]
+#[cfg(all(feature = "compile-time-rng", not(test)))]
 const INIT_SEED: u64 = const_random!(u64);
 
-#[cfg(not(feature = "compile-time-rng"))]
+#[cfg(any(not(feature = "compile-time-rng"), test))]
 const INIT_SEED: u64 = INCREMENT;
 
 static SEED: AtomicUsize = AtomicUsize::new(INIT_SEED as usize);
@@ -55,14 +57,15 @@ impl RandomState {
     }
 }
 
-pub(crate) fn scramble_keys(k0: u64, k1: u64) -> (u64, u64) {
-    //Scramble seeds (based on xoroshiro128+)
-    //This is intentionally not similar the hash algorithm
-    let result1 = k0.wrapping_add(k1);
-    let k1 = k1 ^ k0;
-    let k0 = k0.rotate_left(24) ^ k1 ^ (k1.wrapping_shl(16));
-    let result2 = k0.wrapping_add(k1.rotate_left(37));
-    (result2, result1)
+/// This is based on the fallback hasher
+#[inline]
+pub(crate) fn scramble_keys(a: u64, b: u64) -> (u64, u64) {
+    let ab = (INIT_SEED ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
+    let ba = (INIT_SEED ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
+    let combined = (a ^ b).folded_multiply(MULTIPLE).wrapping_add(INIT_SEED);
+    let rot1 = (combined & 63) as u32;
+    let rot2 = (combined >> 58) as u32;
+    (ab.rotate_left(rot2), ba.rotate_left(rot1))
 }
 
 impl Default for RandomState {
@@ -108,5 +111,15 @@ impl BuildHasher for RandomState {
     #[inline]
     fn build_hasher(&self) -> AHasher {
         AHasher::new_with_keys(self.k0, self.k1)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_const_rand_disabled() {
+        assert_eq!(INIT_SEED, INCREMENT);
     }
 }

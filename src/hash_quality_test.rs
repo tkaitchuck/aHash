@@ -82,9 +82,10 @@ fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) 
     }
 }
 
-fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+///Ensures that for every bit in the output there is some value for each byte in the key that flips it.
+fn test_keys_affect_every_byte<H: Hash, T: Hasher>(item: H, constructor: impl Fn(u64, u64) -> T) {
     let mut base = constructor(0, 0);
-    0.hash(&mut base);
+    item.hash(&mut base);
     let base = base.finish();
     for shift in 0..8 {
         let mut alternitives1 = vec![];
@@ -93,8 +94,8 @@ fn test_keys_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
             let input = (v as u64) << (shift * 8);
             let mut hasher1 = constructor(input, 0);
             let mut hasher2 = constructor(0, input);
-            0.hash(&mut hasher1);
-            0.hash(&mut hasher2);
+            item.hash(&mut hasher1);
+            item.hash(&mut hasher2);
             alternitives1.push(hasher1.finish());
             alternitives2.push(hasher2.finish());
         }
@@ -312,7 +313,9 @@ mod fallback_tests {
 
     #[test]
     fn fallback_keys_affect_every_byte() {
-        test_keys_affect_every_byte(AHasher::test_with_keys);
+        test_keys_affect_every_byte(0, AHasher::test_with_keys);
+        test_keys_affect_every_byte("", AHasher::test_with_keys);
+        test_keys_affect_every_byte((0,0), AHasher::test_with_keys);
     }
 
     #[test]
@@ -384,7 +387,9 @@ mod aes_tests {
 
     #[test]
     fn aes_keys_affect_every_byte() {
-        test_keys_affect_every_byte(AHasher::test_with_keys);
+        test_keys_affect_every_byte(0, AHasher::test_with_keys);
+        test_keys_affect_every_byte("", AHasher::test_with_keys);
+        test_keys_affect_every_byte((0,0), AHasher::test_with_keys);
     }
     #[test]
     fn aes_finish_is_consistant() {
