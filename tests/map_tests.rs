@@ -158,6 +158,7 @@ fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 #[test]
 fn test_bucket_distribution() {
     let hasher = || AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF);
+    test_hash_common_words(&hasher);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
     let sequence: Vec<_> = (0..2560000).collect();
