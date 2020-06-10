@@ -2,10 +2,9 @@ use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-use crate::convert::*;
 use crate::folded_multiply::*;
 
-#[cfg(feature = "compile-time-rng")]
+#[cfg(all(feature = "compile-time-rng", not(test)))]
 use const_random::const_random;
 
 ///This constant come from Kunth's prng

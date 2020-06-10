@@ -103,6 +103,7 @@ impl Hasher for AHasher {
     }
 
     #[inline]
+    #[allow(clippy::collapsible_if)]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;

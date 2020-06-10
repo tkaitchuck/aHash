@@ -28,6 +28,7 @@ pub struct AHasher {
 impl AHasher {
     /// Creates a new hasher keyed to the provided key.
     #[inline]
+    #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
         AHasher {
             buffer: key1,
@@ -150,6 +151,7 @@ impl Hasher for AHasher {
     }
 
     #[inline]
+    #[allow(clippy::collapsible_if)]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len() as u64;
