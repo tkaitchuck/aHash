@@ -41,7 +41,11 @@ impl AHasher {
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
         let (k1, k2) = scramble_keys(key1, key2);
-        AHasher { buffer: k1, pad: k2, updates: 0 }
+        AHasher {
+            buffer: k1,
+            pad: k2,
+            updates: 0,
+        }
     }
 
     /// This update function has the goal of updating the buffer with a single multiply

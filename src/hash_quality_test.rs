@@ -315,7 +315,7 @@ mod fallback_tests {
     fn fallback_keys_affect_every_byte() {
         test_keys_affect_every_byte(0, AHasher::test_with_keys);
         test_keys_affect_every_byte("", AHasher::test_with_keys);
-        test_keys_affect_every_byte((0,0), AHasher::test_with_keys);
+        test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
     }
 
     #[test]
@@ -389,7 +389,7 @@ mod aes_tests {
     fn aes_keys_affect_every_byte() {
         test_keys_affect_every_byte(0, AHasher::test_with_keys);
         test_keys_affect_every_byte("", AHasher::test_with_keys);
-        test_keys_affect_every_byte((0,0), AHasher::test_with_keys);
+        test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
     }
     #[test]
     fn aes_finish_is_consistant() {

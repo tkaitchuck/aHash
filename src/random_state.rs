@@ -1,8 +1,8 @@
+use crate::folded_multiply::*;
 use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
-use crate::folded_multiply::*;
 
 #[cfg(all(feature = "compile-time-rng", not(test)))]
 use const_random::const_random;

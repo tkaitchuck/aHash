@@ -136,8 +136,10 @@ impl Hasher for AHasher {
                     current[1] = aeshash(current[1], tail[1]);
                     current[2] = aeshash(current[2], tail[2]);
                     current[3] = aeshash(current[3], tail[3]);
-                    let mut sum: [u64; 2] = add_by_64s(add_by_64s(current[0].convert(), current[1].convert()),
-                                                       add_by_64s(current[2].convert(), current[3].convert()));
+                    let mut sum: [u64; 2] = add_by_64s(
+                        add_by_64s(current[0].convert(), current[1].convert()),
+                        add_by_64s(current[2].convert(), current[3].convert()),
+                    );
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
                         current[0] = aeshash(current[0], blocks[0]);
@@ -180,8 +182,6 @@ impl Hasher for AHasher {
         result[0].wrapping_add(result[1])
     }
 }
-
-
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[inline(always)]
