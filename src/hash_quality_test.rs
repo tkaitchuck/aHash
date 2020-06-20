@@ -50,7 +50,7 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     (same_byte_count, same_nibble_count)
 }
 
-fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
     let mut a = constructor(1, 1);
     let mut b = constructor(1, 2);
     let mut c = constructor(2, 1);
@@ -76,33 +76,31 @@ fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u64, u64) -> 
             let hasher = constructor(0, 0);
             alternitives.push(input.get_hash(hasher));
         }
-        assert_each_byte_differes(base, alternitives);
+        assert_each_byte_differs(base, alternitives);
     }
 }
 
 ///Ensures that for every bit in the output there is some value for each byte in the key that flips it.
-fn test_keys_affect_every_byte<H: Hash, T: Hasher>(item: H, constructor: impl Fn(u64, u64) -> T) {
-    let mut base = constructor(0, 0);
-    item.hash(&mut base);
-    let base = base.finish();
+fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl Fn(u64, u64) -> T) {
+    let base = item.get_hash(constructor(0, 0));
     for shift in 0..8 {
         let mut alternitives1 = vec![];
         let mut alternitives2 = vec![];
         for v in 0..256 {
             let input = (v as u64) << (shift * 8);
-            let mut hasher1 = constructor(input, 0);
-            let mut hasher2 = constructor(0, input);
-            item.hash(&mut hasher1);
-            item.hash(&mut hasher2);
-            alternitives1.push(hasher1.finish());
-            alternitives2.push(hasher2.finish());
+            let hasher1 = constructor(input, 0);
+            let hasher2 = constructor(0, input);
+            let h1 = item.get_hash(hasher1);
+            let h2 = item.get_hash(hasher2);
+            alternitives1.push(h1);
+            alternitives2.push(h2);
         }
-        assert_each_byte_differes(base, alternitives1);
-        assert_each_byte_differes(base, alternitives2);
+        assert_each_byte_differs(base, alternitives1);
+        assert_each_byte_differs(base, alternitives2);
     }
 }
 
-fn assert_each_byte_differes(base: u64, alternitives: Vec<u64>) {
+fn assert_each_byte_differs(base: u64, alternitives: Vec<u64>) {
     let mut changed_bits = 0_u64;
     for alternitive in alternitives {
         changed_bits |= base ^ alternitive
@@ -110,7 +108,7 @@ fn assert_each_byte_differes(base: u64, alternitives: Vec<u64>) {
     assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x}", changed_bits);
 }
 
-fn test_finish_is_consistant<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     let mut hasher = constructor(1, 2);
     "Foo".hash(&mut hasher);
     let a = hasher.finish();
@@ -150,7 +148,7 @@ fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     }
 }
 
-fn test_all_bytes_matter<T: Hasher>(hasher: impl Fn() -> T) {
+fn test_all_bytes_matter<T: HasherExt>(hasher: impl Fn() -> T) {
     let mut item = vec![0; 256];
     let base_hash = hash(&item, &hasher);
     for pos in 0..256 {
@@ -161,7 +159,7 @@ fn test_all_bytes_matter<T: Hasher>(hasher: impl Fn() -> T) {
     }
 }
 
-fn test_no_pair_collisions<T: Hasher>(hasher: impl Fn() -> T) {
+fn test_no_pair_collisions<T: HasherExt>(hasher: impl Fn() -> T) {
     let base = [0_u64, 0_u64];
     let base_hash = hash(&base, &hasher);
     for bitpos1 in 0..64 {
@@ -186,13 +184,11 @@ fn test_no_pair_collisions<T: Hasher>(hasher: impl Fn() -> T) {
     }
 }
 
-fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
-    let mut hasher = hasher();
-    b.hash(&mut hasher);
-    hasher.finish()
+fn hash<H: Hash, T: HasherExt>(b: &H, hasher: &dyn Fn() -> T) -> u64 {
+    b.get_hash(hasher())
 }
 
-fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
+fn test_single_bit_flip<T: HasherExt>(hasher: impl Fn() -> T) {
     let size = 32;
     let compare_value = hash(&0u32, &hasher);
     for pos in 0..size {
@@ -318,7 +314,7 @@ mod fallback_tests {
 
     #[test]
     fn fallback_finish_is_consistant() {
-        test_finish_is_consistant(AHasher::test_with_keys)
+        test_finish_is_consistent(AHasher::test_with_keys)
     }
 
     #[test]
@@ -391,7 +387,7 @@ mod aes_tests {
     }
     #[test]
     fn aes_finish_is_consistant() {
-        test_finish_is_consistant(AHasher::test_with_keys)
+        test_finish_is_consistent(AHasher::test_with_keys)
     }
 
     #[test]
