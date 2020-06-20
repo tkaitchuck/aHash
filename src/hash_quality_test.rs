@@ -1,4 +1,5 @@
 use core::hash::{Hash, Hasher};
+use crate::{CallHasher, HasherExt};
 
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
@@ -66,17 +67,14 @@ fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     assert_sufficiently_different(c.finish(), d.finish(), 1);
 }
 
-fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
-    let mut base = constructor(0, 0);
-    0.hash(&mut base);
-    let base = base.finish();
+fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
+    let base = 0.get_hash(constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives = vec![];
         for v in 0..256 {
             let input = (v as u128) << (shift * 8);
-            let mut hasher = constructor(0, 0);
-            input.hash(&mut hasher);
-            alternitives.push(hasher.finish());
+            let hasher = constructor(0, 0);
+            alternitives.push(input.get_hash(hasher));
         }
         assert_each_byte_differes(base, alternitives);
     }

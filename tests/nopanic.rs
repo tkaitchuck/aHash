@@ -1,4 +1,4 @@
-use ahash::AHasher;
+use ahash::{AHasher, CallHasher};
 
 #[macro_use]
 extern crate no_panic;
@@ -19,7 +19,22 @@ fn hash_test_final_wrapper(num: i32, string: &str) {
     hash_test_final(num, string);
 }
 
+#[inline(never)]
+#[no_panic]
+fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
+    let hasher1 = AHasher::new_with_keys(0, 1);
+    let hasher2 = AHasher::new_with_keys(0, 2);
+    (num.get_hash(hasher1), string.as_bytes().get_hash(hasher2))
+}
+
+#[inline(never)]
+fn hash_test_specialize_wrapper(num: i32, string: &str) {
+    hash_test_specialize(num, string);
+}
+
+
 #[test]
 fn test_no_panic() {
     hash_test_final_wrapper(2, "");
+    hash_test_specialize_wrapper(2, "");
 }

@@ -1,6 +1,7 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
 use core::hash::Hasher;
+use crate::HasherExt;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = crate::random_state::MULTIPLE;
@@ -117,6 +118,13 @@ impl AHasher {
             .rotate_left(ROT)
             .wrapping_mul(MULTIPLE);
         key.wrapping_add(INCREMENT)
+    }
+}
+
+impl HasherExt for AHasher {
+    #[inline]
+    fn short_finish(&self) -> u64 {
+        self.buffer
     }
 }
 

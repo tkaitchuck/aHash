@@ -24,6 +24,9 @@ default = ["compile-time-rng", "std"]
 # Enabling this will enable `AHashMap` and `AHashSet`
 std = []
 
+# Enables specilization (reuqires nightly)
+specialize = []
+
 # Disabling this feature will make the `ABuildHasher::new` use a preset seed
 # and disable the `Default` impl for `AHasher`
 compile-time-rng = ["const-random"]
