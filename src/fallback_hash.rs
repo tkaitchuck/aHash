@@ -23,7 +23,6 @@ const ROT: u32 = 23; //17
 pub struct AHasher {
     buffer: u64,
     pad: u64,
-    updates: u32,
 }
 
 impl AHasher {
@@ -34,7 +33,6 @@ impl AHasher {
         AHasher {
             buffer: key1,
             pad: key2,
-            updates: 0,
         }
     }
 
@@ -45,7 +43,6 @@ impl AHasher {
         AHasher {
             buffer: k1,
             pad: k2,
-            updates: 0,
         }
     }
 
@@ -80,7 +77,6 @@ impl AHasher {
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        self.updates += 1;
         self.buffer = (new_data ^ self.buffer).folded_multiply(MULTIPLE);
     }
 
@@ -179,7 +175,6 @@ impl Hasher for AHasher {
                     key = self.ordered_update(val, key);
                     data = rest;
                 }
-                self.updates += 1; //avoids updating for every ordered update
                 self.update(tail);
             } else {
                 self.update(data.read_u64().0);
@@ -206,12 +201,8 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        if self.updates == 1 {
-            self.buffer
-        } else {
-            let rot = (self.pad & 63) as u32;
-            (self.buffer ^ self.pad).rotate_left(rot)
-        }
+        let rot = (self.buffer & 63) as u32;
+        self.buffer.folded_multiply(self.pad).rotate_left(rot)
     }
 }
 
