@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn aeshash<H: Hash>(b: &H) -> u64 {
-    let hasher = AHasher::new_with_keys(1234, 5678);
+    let hasher = AHasher::new_with_keys(12, 34, 56, 78);
     b.get_hash(hasher)
 }
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
@@ -16,7 +16,7 @@ fn aeshash<H: Hash>(_b: &H) -> u64 {
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn fallbackhash<H: Hash>(b: &H) -> u64 {
-    let hasher = AHasher::new_with_keys(1234, 5678);
+    let hasher = AHasher::new_with_keys(12, 34, 56, 78);
     b.get_hash(hasher)
 }
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]

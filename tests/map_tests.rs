@@ -156,7 +156,7 @@ fn hash<T: HasherExt>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let hasher = || AHasher::new_with_keys(0x0123456789ABCDEF, 0x0123456789ABCDEF);
+    let hasher = || AHasher::new_with_keys(1, 2, 3, 4);
     test_hash_common_words(&hasher);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
@@ -171,7 +171,7 @@ fn test_bucket_distribution() {
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
-        let mut hasher = AHasher::new_with_keys(1234, 5678);
+        let mut hasher = AHasher::new_with_keys(12, 34, 56, 78);
         item.hash(&mut hasher);
         total = total.wrapping_add(hasher.finish());
     }

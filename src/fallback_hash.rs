@@ -23,26 +23,29 @@ const ROT: u32 = 23; //17
 pub struct AHasher {
     buffer: u64,
     pad: u64,
+    extra_keys: [u64; 2]
 }
 
 impl AHasher {
     /// Creates a new hasher keyed to the provided key.
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
-    pub fn new_with_keys(key1: u64, key2: u64) -> AHasher {
+    pub fn new_with_keys(key1: u64, key2: u64, key3: u64, key4: u64) -> AHasher {
         AHasher {
             buffer: key1,
             pad: key2,
+            extra_keys: [key3, key4],
         }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
-        let (k1, k2) = scramble_keys(key1, key2);
+        let (k1, k2, k3, k4) = scramble_keys(key1, key2);
         AHasher {
             buffer: k1,
             pad: k2,
+            extra_keys: [k3, k4]
         }
     }
 
@@ -213,11 +216,11 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let mut hasher = AHasher::new_with_keys(0, 0);
+        let mut hasher = AHasher::new_with_keys(0, 0, 0,0);
         let value: u64 = 1 << 32;
         hasher.update(value);
         let result = hasher.buffer;
-        let mut hasher = AHasher::new_with_keys(0, 0);
+        let mut hasher = AHasher::new_with_keys(0, 0, 0, 0);
         let value2: u64 = 1;
         hasher.update(value2);
         let result2 = hasher.buffer;

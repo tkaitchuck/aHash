@@ -7,8 +7,8 @@ extern crate no_panic;
 #[no_panic]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
     use core::hash::Hasher;
-    let mut hasher1 = AHasher::new_with_keys(0, 1);
-    let mut hasher2 = AHasher::new_with_keys(0, 2);
+    let mut hasher1 = AHasher::new_with_keys(0, 1, 3, 4);
+    let mut hasher2 = AHasher::new_with_keys(0, 2, 3, 4);
     hasher1.write_i32(num);
     hasher2.write(string.as_bytes());
     (hasher1.finish(), hasher2.finish())
@@ -22,8 +22,8 @@ fn hash_test_final_wrapper(num: i32, string: &str) {
 #[inline(never)]
 #[no_panic]
 fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
-    let hasher1 = AHasher::new_with_keys(0, 1);
-    let hasher2 = AHasher::new_with_keys(0, 2);
+    let hasher1 = AHasher::new_with_keys(0, 1, 2, 3);
+    let hasher2 = AHasher::new_with_keys(0, 2, 2, 3);
     (num.get_hash(hasher1), string.as_bytes().get_hash(hasher2))
 }
 

@@ -94,7 +94,8 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        AHasher::new_with_keys(const_random!(u64), const_random!(u64))
+        AHasher::new_with_keys(const_random!(u64), const_random!(u64),
+                               const_random!(u64), const_random!(u64))
     }
 }
 
@@ -139,6 +140,6 @@ mod test {
 
     #[test]
     fn test_ahasher_construction() {
-        let _ = AHasher::new_with_keys(1245, 5678);
+        let _ = AHasher::new_with_keys(1234, 5678, 9101112, 13141516);
     }
 }

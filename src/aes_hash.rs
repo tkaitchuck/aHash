@@ -23,13 +23,21 @@ pub struct AHasher {
 
 impl AHasher {
     /// Creates a new hasher keyed to the provided keys.
+    ///
+    /// Normally hashers are created via `AHasher::default()` for fixed keys or `RandomState::new()` for randomly
+    /// generated keys and `RandomState::with_seeds(a,b)` for seeds that are set and can be reused. All of these work at
+    /// map creation time (and hence don't have any overhead on a per-item bais).
+    ///
+    /// This method directly creates the hasher instance and performs no transformation on the provided seeds. This may
+    /// be useful where a HashBuilder is not desired, such as for testing purposes.
+    ///
     /// # Example
     ///
     /// ```
     /// use std::hash::Hasher;
     /// use ahash::AHasher;
     ///
-    /// let mut hasher = AHasher::new_with_keys(123, 456);
+    /// let mut hasher = AHasher::new_with_keys(12, 34, 56, 78);
     ///
     /// hasher.write_u32(1989);
     /// hasher.write_u8(11);
@@ -39,35 +47,37 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key0: u64, key1: u64) -> Self {
+    pub fn new_with_keys(key1: u64, key2: u64, key3: u64, key4: u64) -> Self {
         Self {
-            buffer: [key0, key1],
-            sum: [key1, key0],
-            key: [key0, key1].convert(),
+            buffer: [key1, key2],
+            sum: [key3, key4],
+            key: add_by_64s([key1, key2], [key3, key4]).convert(),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
-        let (k1, k2) = scramble_keys(key1, key2);
+        let (k1, k2, k3, k4) = scramble_keys(key1, key2);
         AHasher {
             buffer: [k1, k2],
-            sum: [k2, k1],
-            key: [k1, k2].convert(),
+            sum: [k3, k4],
+            key: add_by_64s([k1, k2], [k3, k4]).convert(),
         }
     }
 
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
         self.buffer = aeshash(self.buffer.convert(), new_value).convert();
-        self.sum = add_by_64s(self.sum, self.buffer);
+        self.sum = aeshash(self.sum.convert(), new_value).convert();
     }
 
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
-        self.hash_in(v1);
-        self.hash_in(v2);
+        self.buffer = aeshash(self.buffer.convert(), v1).convert();
+        self.sum = add_by_64s(self.sum, self.buffer);
+        self.buffer = aeshash(self.buffer.convert(), v2).convert();
+        self.sum = add_by_64s(self.sum, self.buffer);
     }
 }
 
@@ -151,12 +161,12 @@ impl Hasher for AHasher {
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
                         current[0] = aeshash(current[0], blocks[0]);
-                        sum = add_by_64s(sum, current[0].convert());
                         current[1] = aeshash(current[1], blocks[1]);
-                        sum = add_by_64s(sum, current[1].convert());
                         current[2] = aeshash(current[2], blocks[2]);
-                        sum = add_by_64s(sum, current[2].convert());
                         current[3] = aeshash(current[3], blocks[3]);
+                        sum = add_by_64s(sum, current[0].convert());
+                        sum = add_by_64s(sum, current[1].convert());
+                        sum = add_by_64s(sum, current[2].convert());
                         sum = add_by_64s(sum, current[3].convert());
                         data = rest;
                     }

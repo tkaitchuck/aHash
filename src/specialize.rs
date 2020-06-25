@@ -1,6 +1,20 @@
 use crate::HasherExt;
 use core::hash::Hash;
 
+/// Provides a way to get an optimized hasher for a given data type.
+/// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
+/// for a specific type. So this may be faster for primitive types. It does however consume the hasher in the process.
+/// #Example
+/// ```
+/// use std::hash::BuildHasher;
+/// use ahash::RandomState;
+/// use ahash::CallHasher;
+///
+/// let hash_builder = RandomState::new();
+/// //...
+/// let value = 17;
+/// let hash = value.get_hash(hash_builder.build_hasher());
+/// ```
 pub trait CallHasher: Hash {
     fn get_hash<H: HasherExt>(&self, hasher: H) -> u64;
 }
@@ -54,21 +68,27 @@ mod test {
     /// Tests that some non-trivial transformation takes place.
     #[test]
     pub fn test_input_processed() {
-        let hasher = || AHasher::new_with_keys(2, 1);
+        let hasher = || AHasher::new_with_keys(0, 1, 2, 3);
         assert_ne!(0, 0_u64.get_hash(hasher()));
         assert_ne!(1, 0_u64.get_hash(hasher()));
         assert_ne!(2, 0_u64.get_hash(hasher()));
         assert_ne!(3, 0_u64.get_hash(hasher()));
+        assert_ne!(4, 0_u64.get_hash(hasher()));
+        assert_ne!(5, 0_u64.get_hash(hasher()));
 
         assert_ne!(0, 1_u64.get_hash(hasher()));
         assert_ne!(1, 1_u64.get_hash(hasher()));
         assert_ne!(2, 1_u64.get_hash(hasher()));
         assert_ne!(3, 1_u64.get_hash(hasher()));
+        assert_ne!(4, 1_u64.get_hash(hasher()));
+        assert_ne!(5, 1_u64.get_hash(hasher()));
 
         let xored = 0_u64.get_hash(hasher()) ^ 1_u64.get_hash(hasher());
         assert_ne!(0, xored);
         assert_ne!(1, xored);
         assert_ne!(2, xored);
         assert_ne!(3, xored);
+        assert_ne!(4, xored);
+        assert_ne!(5, xored);
     }
 }

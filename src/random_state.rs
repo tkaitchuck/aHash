@@ -13,12 +13,16 @@ pub(crate) const INCREMENT: u64 = 1442695040888963407;
 
 // Const random provides randomized starting key with no runtime cost.
 #[cfg(all(feature = "compile-time-rng", not(test)))]
-const INIT_SEED: u64 = const_random!(u64);
+const INIT_SEED: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 #[cfg(any(not(feature = "compile-time-rng"), test))]
-const INIT_SEED: u64 = INCREMENT;
+const INIT_SEED: [u64; 2] = [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]; //From PCG-64
 
-static SEED: AtomicUsize = AtomicUsize::new(INIT_SEED as usize);
+#[cfg(all(feature = "compile-time-rng", not(test)))]
+static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64) as usize);
+
+#[cfg(any(not(feature = "compile-time-rng"), test))]
+static SEED: AtomicUsize = AtomicUsize::new(INCREMENT as usize);
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [`HashMap`]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
@@ -31,6 +35,8 @@ static SEED: AtomicUsize = AtomicUsize::new(INIT_SEED as usize);
 pub struct RandomState {
     pub(crate) k0: u64,
     pub(crate) k1: u64,
+    pub(crate) k2: u64,
+    pub(crate) k3: u64,
 }
 
 impl RandomState {
@@ -46,25 +52,30 @@ impl RandomState {
             .wrapping_mul(MULTIPLE)
             .rotate_right(31);
         SEED.store(current_seed as usize, Ordering::Relaxed);
-        let (k0, k1) = scramble_keys(&SEED as *const _ as u64, current_seed);
-        RandomState { k0, k1 }
+        let (k0, k1, k2, k3) = scramble_keys(&SEED as *const _ as u64, current_seed);
+        RandomState { k0, k1, k2, k3 }
     }
 
-    /// Allows for explicetly setting the seeds to used.
+    /// Allows for explicitly setting the seeds to used.
     pub fn with_seeds(k0: u64, k1: u64) -> RandomState {
-        RandomState { k0, k1 }
+        let (k0, k1, k2, k3) = scramble_keys(k0, k1);
+        RandomState { k0, k1, k2, k3 }
     }
 }
 
 /// This is based on the fallback hasher
 #[inline]
-pub(crate) fn scramble_keys(a: u64, b: u64) -> (u64, u64) {
-    let ab = (INIT_SEED ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
-    let ba = (INIT_SEED ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
-    let combined = (a ^ b).folded_multiply(MULTIPLE).wrapping_add(INIT_SEED);
+pub(crate) fn scramble_keys(a: u64, b: u64) -> (u64, u64, u64, u64) {
+    let k1 = (INIT_SEED[0] ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
+    let k2 = (INIT_SEED[0] ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
+    let k3 = (INIT_SEED[1] ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
+    let k4 = (INIT_SEED[1] ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
+    let combined = (a ^ b).folded_multiply(MULTIPLE).wrapping_add(INCREMENT);
     let rot1 = (combined & 63) as u32;
-    let rot2 = (combined >> 58) as u32;
-    (ab.rotate_left(rot2), ba.rotate_left(rot1))
+    let rot2 = ((combined >> 16) & 63) as u32;
+    let rot3 = ((combined >> 32) & 63) as u32;
+    let rot4 = ((combined >> 48) & 63) as u32;
+    (k1.rotate_left(rot1), k2.rotate_left(rot2), k3.rotate_left(rot3), k4.rotate_left(rot4))
 }
 
 impl Default for RandomState {
@@ -109,7 +120,7 @@ impl BuildHasher for RandomState {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        AHasher::new_with_keys(self.k0, self.k1)
+        AHasher::new_with_keys(self.k0, self.k1, self.k2, self.k3)
     }
 }
 
@@ -119,6 +130,6 @@ mod test {
 
     #[test]
     fn test_const_rand_disabled() {
-        assert_eq!(INIT_SEED, INCREMENT);
+        assert_eq!(INIT_SEED, [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]);
     }
 }

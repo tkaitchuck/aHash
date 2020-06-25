@@ -339,9 +339,9 @@ mod aes_tests {
 
     #[test]
     fn test_single_bit_in_byte() {
-        let mut hasher1 = AHasher::new_with_keys(64, 64);
+        let mut hasher1 = AHasher::new_with_keys(0, 0, 0, 0);
         8_u32.hash(&mut hasher1);
-        let mut hasher2 = AHasher::new_with_keys(64, 64);
+        let mut hasher2 = AHasher::new_with_keys(0, 0, 0, 0);
         0_u32.hash(&mut hasher2);
         assert_sufficiently_different(hasher1.finish(), hasher2.finish(), 1);
     }
