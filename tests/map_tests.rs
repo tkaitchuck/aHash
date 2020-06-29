@@ -129,7 +129,6 @@ fn check_for_collisions<T: HasherExt, H: Hash>(hasher: &impl Fn() -> T, items: &
     let mut buckets = vec![0; bucket_count];
     for item in items {
         let value = hash(item, &hasher) as usize;
-        println!("{:x}", value);
         buckets[value % bucket_count] += 1;
     }
     let mean = items.len() / bucket_count;
@@ -159,7 +158,7 @@ fn hash<T: HasherExt>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let hasher = || AHasher::new_with_keys(12, 34);
+    let hasher = || AHasher::new_with_keys(123456789, 987654321);
     test_hash_common_words(&hasher);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
