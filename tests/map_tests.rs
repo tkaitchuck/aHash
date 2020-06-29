@@ -118,11 +118,13 @@ yet, you, young, your, yourself"#
     word_pairs
 }
 
+#[allow(unused)] // False positive
 fn test_hash_common_words<T: HasherExt>(hasher: impl Fn() -> T) {
     let word_pairs: Vec<_> = gen_word_pairs();
     check_for_collisions(&hasher, &word_pairs, 32);
 }
 
+#[allow(unused)] // False positive
 fn check_for_collisions<T: HasherExt, H: Hash>(hasher: &impl Fn() -> T, items: &[H], bucket_count: usize) {
     let mut buckets = vec![0; bucket_count];
     for item in items {
@@ -149,6 +151,7 @@ fn check_for_collisions<T: HasherExt, H: Hash>(hasher: &impl Fn() -> T, items: &
     );
 }
 
+#[allow(unused)] // False positive
 fn hash<T: HasherExt>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
     let hasher = hasher();
     b.get_hash(hasher)
@@ -156,7 +159,7 @@ fn hash<T: HasherExt>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let hasher = || AHasher::new_with_keys(1, 2, 3, 4);
+    let hasher = || AHasher::new_with_keys(12, 34);
     test_hash_common_words(&hasher);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&hasher, &sequence, 32);
@@ -171,7 +174,7 @@ fn test_bucket_distribution() {
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
-        let mut hasher = AHasher::new_with_keys(12, 34, 56, 78);
+        let mut hasher = AHasher::new_with_keys(1234, 5678);
         item.hash(&mut hasher);
         total = total.wrapping_add(hasher.finish());
     }

@@ -46,6 +46,14 @@ macro_rules! call_hasher_impl {
         }
     };
 }
+#[cfg(feature = "specialize")]
+impl CallHasher for [u8] {
+    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+        hasher.write(self);
+        hasher.finish()
+    }
+}
+
 call_hasher_impl!(u64);
 call_hasher_impl!(u32);
 call_hasher_impl!(u16);
@@ -68,7 +76,7 @@ mod test {
     /// Tests that some non-trivial transformation takes place.
     #[test]
     pub fn test_input_processed() {
-        let hasher = || AHasher::new_with_keys(0, 1, 2, 3);
+        let hasher = || AHasher::new_with_keys(0, 1);
         assert_ne!(0, 0_u64.get_hash(hasher()));
         assert_ne!(1, 0_u64.get_hash(hasher()));
         assert_ne!(2, 0_u64.get_hash(hasher()));

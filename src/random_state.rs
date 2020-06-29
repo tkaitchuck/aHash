@@ -1,5 +1,6 @@
 use crate::folded_multiply::*;
 use crate::AHasher;
+use crate::convert::Convert;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
@@ -120,7 +121,7 @@ impl BuildHasher for RandomState {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        AHasher::new_with_keys(self.k0, self.k1, self.k2, self.k3)
+        AHasher::new_with_keys([self.k0, self.k1].convert(), [self.k2, self.k3].convert())
     }
 }
 

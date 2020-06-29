@@ -16,8 +16,8 @@ use crate::HasherExt;
 ///
 #[derive(Debug, Clone)]
 pub struct AHasher {
-    buffer: [u64; 2],
-    sum: [u64; 2],
+    enc: u128,
+    sum: u128,
     key: u128,
 }
 
@@ -37,7 +37,7 @@ impl AHasher {
     /// use std::hash::Hasher;
     /// use ahash::AHasher;
     ///
-    /// let mut hasher = AHasher::new_with_keys(12, 34, 56, 78);
+    /// let mut hasher = AHasher::new_with_keys(1234, 5678);
     ///
     /// hasher.write_u32(1989);
     /// hasher.write_u8(11);
@@ -47,11 +47,11 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key1: u64, key2: u64, key3: u64, key4: u64) -> Self {
+    pub fn new_with_keys(key1: u128, key2: u128) -> Self {
         Self {
-            buffer: [key1, key2],
-            sum: [key3, key4],
-            key: add_by_64s([key1, key2], [key3, key4]).convert(),
+            enc: key1,
+            sum: key2,
+            key: key1 ^ key2,
         }
     }
 
@@ -60,31 +60,40 @@ impl AHasher {
         use crate::random_state::scramble_keys;
         let (k1, k2, k3, k4) = scramble_keys(key1, key2);
         AHasher {
-            buffer: [k1, k2],
-            sum: [k3, k4],
+            enc: [k1, k2].convert(),
+            sum: [k3, k4].convert(),
             key: add_by_64s([k1, k2], [k3, k4]).convert(),
         }
     }
 
     #[inline(always)]
+    fn add_in_length(&mut self, length: u64) {
+        //This will be scrambled by the next AES round.
+        let mut enc: [u64; 2] = self.enc.convert();
+        enc[0] = enc[0].wrapping_add(length);
+        self.enc = enc.convert();
+    }
+
+    #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
-        self.buffer = aeshash(self.buffer.convert(), new_value).convert();
-        self.sum = aeshash(self.sum.convert(), new_value).convert();
+        self.enc = aesenc(self.enc, new_value);
+        self.sum = shuffle_and_add(self.sum, self.enc);
     }
 
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
-        self.buffer = aeshash(self.buffer.convert(), v1).convert();
-        self.sum = add_by_64s(self.sum, self.buffer);
-        self.buffer = aeshash(self.buffer.convert(), v2).convert();
-        self.sum = add_by_64s(self.sum, self.buffer);
+        self.enc = aesenc(self.enc, v1);
+        self.sum = shuffle_and_add(self.sum, self.enc);
+        self.enc = aesenc(self.enc, v2);
+        self.sum = shuffle_and_add(self.sum, self.enc);
     }
 }
 
 impl HasherExt for AHasher {
     #[inline]
     fn short_finish(&self) -> u64 {
-        (self.buffer[0] ^ self.buffer[1]).folded_multiply(crate::random_state::MULTIPLE)
+        let buffer: [u64; 2] = self.sum.convert();
+        buffer[0].folded_multiply(buffer[1])
     }
 }
 
@@ -92,17 +101,17 @@ impl HasherExt for AHasher {
 impl Hasher for AHasher {
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.write_u128(i as u128);
+        self.write_u64(i as u64);
     }
 
     #[inline]
     fn write_u16(&mut self, i: u16) {
-        self.write_u128(i as u128);
+        self.write_u64(i as u64);
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.write_u128(i as u128);
+        self.write_u64(i as u64);
     }
 
     #[inline]
@@ -124,11 +133,10 @@ impl Hasher for AHasher {
     #[allow(clippy::collapsible_if)]
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
-        let length = data.len() as u64;
-        //This will be scrambled by the first AES round in any branch.
-        self.buffer[1] = self.buffer[1].wrapping_add(length);
+        let length = data.len();
+        self.add_in_length(length as u64);
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() <= 8 {
+        if data.len() < 8 {
             let value: [u64; 2] = if data.len() >= 2 {
                 if data.len() >= 4 {
                     //len 4-8
@@ -150,31 +158,29 @@ impl Hasher for AHasher {
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
                     let mut current: [u128; 4] = [self.key; 4];
-                    current[0] = aeshash(current[0], tail[0]);
-                    current[1] = aeshash(current[1], tail[1]);
-                    current[2] = aeshash(current[2], tail[2]);
-                    current[3] = aeshash(current[3], tail[3]);
-                    let mut sum: [u64; 2] = add_by_64s(
-                        add_by_64s(current[0].convert(), current[1].convert()),
-                        add_by_64s(current[2].convert(), current[3].convert()),
-                    );
+                    current[0] = aesenc(current[0], tail[0]);
+                    current[1] = aesenc(current[1], tail[1]);
+                    current[2] = aesenc(current[2], tail[2]);
+                    current[3] = aesenc(current[3], tail[3]);
+                    let mut sum: [u128; 2] = [
+                        add_by_64s(current[2].convert(), current[3].convert()).convert(),
+                        add_by_64s(current[0].convert(), current[1].convert()).convert(),
+                    ];
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
-                        current[0] = aeshash(current[0], blocks[0]);
-                        current[1] = aeshash(current[1], blocks[1]);
-                        current[2] = aeshash(current[2], blocks[2]);
-                        current[3] = aeshash(current[3], blocks[3]);
-                        sum = add_by_64s(sum, current[0].convert());
-                        sum = add_by_64s(sum, current[1].convert());
-                        sum = add_by_64s(sum, current[2].convert());
-                        sum = add_by_64s(sum, current[3].convert());
+                        current[0] = aesenc(current[0], blocks[0]);
+                        current[1] = aesenc(current[1], blocks[1]);
+                        current[2] = aesenc(current[2], blocks[2]);
+                        current[3] = aesenc(current[3], blocks[3]);
+                        sum[0] = shuffle_and_add(sum[0], current[0]);
+                        sum[1] = shuffle_and_add(sum[1], current[1]);
+                        sum[0] = shuffle_and_add(sum[0], current[2]);
+                        sum[1] = shuffle_and_add(sum[1], current[3]);
                         data = rest;
                     }
-                    self.hash_in(current[0]);
-                    self.hash_in(current[1]);
-                    self.hash_in(current[2]);
-                    self.hash_in(current[3]);
-                    self.sum = add_by_64s(self.sum, sum);
+                    self.hash_in_2(current[0], current[1]);
+                    self.hash_in_2(current[2], current[3]);
+                    self.hash_in_2(sum[0], sum[1]);
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();
@@ -196,45 +202,31 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = aeshashx2(self.sum.convert(), self.buffer.convert(), self.key).convert();
-        result[0].wrapping_add(result[1])
-    }
-}
+        let combined = aesdec(self.sum, self.enc);
+        let result: [u64; 2] = aesenc(aesenc(combined, self.key), combined).convert();
+        result[0]
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-#[inline(always)]
-fn aeshash(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    use core::mem::transmute;
-    unsafe {
-        let value = transmute(value);
-        transmute(_mm_aesdec_si128(value, transmute(xor)))
-    }
-}
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-#[inline(always)]
-fn aeshashx2(value: u128, k1: u128, k2: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    use core::mem::transmute;
-    unsafe {
-        let value = transmute(value);
-        let value = _mm_aesdec_si128(value, transmute(k1));
-        transmute(_mm_aesdec_si128(value, transmute(k2)))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::aes_hash::*;
+    use crate::folded_multiply::aesenc;
     use crate::convert::Convert;
     use std::collections::HashMap;
-    use std::hash::BuildHasherDefault;
+    use std::hash::{BuildHasherDefault, BuildHasher, Hasher};
+    use crate::RandomState;
+
+    #[test]
+    fn test_sanity() {
+        let mut hasher = RandomState::with_seeds(192837465, 1234567890).build_hasher();
+        hasher.write_u64(0);
+        let h1 = hasher.finish();
+        hasher.write(&[1,0,0,0,0,0,0,0]);
+        let h2 = hasher.finish();
+        assert_ne!(h1, h2);
+    }
 
     #[cfg(feature = "compile-time-rng")]
     #[test]
@@ -247,24 +239,35 @@ mod tests {
     #[test]
     fn test_default() {
         let hasher_a = AHasher::default();
-        assert_ne!(0, hasher_a.buffer[0]);
-        assert_ne!(0, hasher_a.buffer[1]);
-        assert_ne!(hasher_a.buffer[0], hasher_a.buffer[1]);
+        let a_enc: [u64; 2] = hasher_a.enc.convert();
+        let a_sum: [u64; 2] = hasher_a.sum.convert();
+        assert_ne!(0, a_enc[0]);
+        assert_ne!(0, a_enc[1]);
+        assert_ne!(0, a_sum[0]);
+        assert_ne!(0, a_sum[1]);
+        assert_ne!(a_enc[0], a_enc[1]);
+        assert_ne!(a_sum[0], a_sum[1]);
+        assert_ne!(a_enc[0], a_sum[0]);
+        assert_ne!(a_enc[1], a_sum[1]);
         let hasher_b = AHasher::default();
-        assert_eq!(hasher_a.buffer[0], hasher_b.buffer[0]);
-        assert_eq!(hasher_a.buffer[1], hasher_b.buffer[1]);
+        let b_enc: [u64; 2] = hasher_b.enc.convert();
+        let b_sum: [u64; 2] = hasher_b.sum.convert();
+        assert_eq!(a_enc[0], b_enc[0]);
+        assert_eq!(a_enc[1], b_enc[1]);
+        assert_eq!(a_sum[0], b_sum[0]);
+        assert_eq!(a_sum[1], b_sum[1]);
     }
 
     #[test]
     fn test_hash() {
         let mut result: [u64; 2] = [0x6c62272e07bb0142, 0x62b821756295c58d];
         let value: [u64; 2] = [1 << 32, 0xFEDCBA9876543210];
-        result = aeshash(value.convert(), result.convert()).convert();
-        result = aeshash(result.convert(), result.convert()).convert();
+        result = aesenc(value.convert(), result.convert()).convert();
+        result = aesenc(result.convert(), result.convert()).convert();
         let mut result2: [u64; 2] = [0x6c62272e07bb0142, 0x62b821756295c58d];
         let value2: [u64; 2] = [1, 0xFEDCBA9876543210];
-        result2 = aeshash(value2.convert(), result2.convert()).convert();
-        result2 = aeshash(result2.convert(), result.convert()).convert();
+        result2 = aesenc(value2.convert(), result2.convert()).convert();
+        result2 = aesenc(result2.convert(), result.convert()).convert();
         let result: [u8; 16] = result.convert();
         let result2: [u8; 16] = result2.convert();
         assert_ne!(hex::encode(result), hex::encode(result2));

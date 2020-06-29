@@ -15,7 +15,6 @@
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(specialization))]
 
-
 #[macro_use]
 mod convert;
 
@@ -94,8 +93,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        AHasher::new_with_keys(const_random!(u64), const_random!(u64),
-                               const_random!(u64), const_random!(u64))
+        AHasher::new_with_keys(const_random!(u128), const_random!(u128))
     }
 }
 
@@ -105,13 +103,12 @@ pub trait HasherExt: Hasher {
     fn short_finish(&self) -> u64;
 }
 
-//#[inline(never)]
-//pub fn hash_test(input: &[u8]) -> u64 {
-//    use std::hash::Hasher;
-//    let mut a = AHasher::new_with_keys(67, 87);
-//    a.write(input);
-//    a.finish()
-//}
+// #[inline(never)]
+// #[doc(hidden)]
+// pub fn hash_test(input: &[u8]) -> u64 {
+//     let a = AHasher::new_with_keys(11111111111_u128, 2222222222_u128);
+//     input.get_hash(a)
+// }
 
 #[cfg(test)]
 mod test {
@@ -140,6 +137,6 @@ mod test {
 
     #[test]
     fn test_ahasher_construction() {
-        let _ = AHasher::new_with_keys(1234, 5678, 9101112, 13141516);
+        let _ = AHasher::new_with_keys(1234, 5678);
     }
 }

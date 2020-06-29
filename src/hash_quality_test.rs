@@ -1,5 +1,6 @@
 use core::hash::{Hash, Hasher};
 use crate::{CallHasher, HasherExt};
+use std::collections::HashMap;
 
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
@@ -48,6 +49,42 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
         }
     }
     (same_byte_count, same_nibble_count)
+}
+
+fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>)  {
+    if depth == 0 {
+        return;
+    }
+    for option in options {
+        let mut next = so_far.clone();
+        next.push(*option);
+        combinations.push(next.clone());
+        gen_combinations(options, depth - 1, next, combinations);
+    }
+}
+
+fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
+    let options: [u32; 8] = [0x00000000, 0x20000000, 0x40000000, 0x60000000, 0x80000000, 0xA0000000, 0xC0000000, 0xE0000000];
+    let mut combinations = Vec::new();
+    gen_combinations(&options, 7, Vec::new(), &mut combinations);
+    let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
+    for combination in combinations {
+        let array = unsafe {
+            let (begin, middle, end) = combination.align_to::<u8>();
+            assert_eq!(0, begin.len());
+            assert_eq!(0, end.len());
+            middle.to_vec()
+        };
+        let mut hasher = gen_hash();
+        hasher.write(&array);
+        let hash = hasher.finish();
+        if let Some(value) = map.get(&hash) {
+            assert_eq!(value, &array, "Found a collision between {:x?} and {:x?}", value, &array);
+        } else {
+            map.insert(hash, array);
+        }
+    }
+    assert_eq!(2396744, map.len());
 }
 
 fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
@@ -296,6 +333,11 @@ mod fallback_tests {
     }
 
     #[test]
+    fn fallback_test_no_full_collisions() {
+        test_no_full_collisions(|| AHasher::test_with_keys(12345, 67890));
+    }
+
+    #[test]
     fn fallback_keys_change_output() {
         test_keys_change_output(AHasher::test_with_keys);
     }
@@ -339,9 +381,9 @@ mod aes_tests {
 
     #[test]
     fn test_single_bit_in_byte() {
-        let mut hasher1 = AHasher::new_with_keys(0, 0, 0, 0);
+        let mut hasher1 = AHasher::new_with_keys(0, 0);
         8_u32.hash(&mut hasher1);
-        let mut hasher2 = AHasher::new_with_keys(0, 0, 0, 0);
+        let mut hasher2 = AHasher::new_with_keys(0, 0);
         0_u32.hash(&mut hasher2);
         assert_sufficiently_different(hasher1.finish(), hasher2.finish(), 1);
     }
@@ -367,6 +409,11 @@ mod aes_tests {
     fn aes_test_no_pair_collisions() {
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+    }
+
+    #[test]
+    fn ase_test_no_full_collisions() {
+        test_no_full_collisions(|| AHasher::test_with_keys(12345, 67890));
     }
 
     #[test]
