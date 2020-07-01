@@ -43,6 +43,7 @@ harness = false
 
 [profile.test]
 opt-level = 2
+lto = 'fat'
 
 [profile.release]
 opt-level = 3
