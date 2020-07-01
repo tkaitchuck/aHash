@@ -46,6 +46,7 @@ macro_rules! call_hasher_impl {
         }
     };
 }
+
 #[cfg(feature = "specialize")]
 impl CallHasher for [u8] {
     fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
@@ -54,6 +55,31 @@ impl CallHasher for [u8] {
     }
 }
 
+#[cfg(feature = "specialize")]
+impl CallHasher for Vec<u8> {
+    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+        hasher.write(self);
+        hasher.finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for str {
+    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+        hasher.write(self.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for String {
+    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+        hasher.write(self.as_bytes());
+        hasher.finish()
+    }
+}
+
+call_hasher_impl!(u128);
 call_hasher_impl!(u64);
 call_hasher_impl!(u32);
 call_hasher_impl!(u16);
