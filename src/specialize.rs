@@ -76,7 +76,7 @@ mod test {
     /// Tests that some non-trivial transformation takes place.
     #[test]
     pub fn test_input_processed() {
-        let hasher = || AHasher::new_with_keys(0, 1);
+        let hasher = || AHasher::new_with_keys(3, 2);
         assert_ne!(0, 0_u64.get_hash(hasher()));
         assert_ne!(1, 0_u64.get_hash(hasher()));
         assert_ne!(2, 0_u64.get_hash(hasher()));
