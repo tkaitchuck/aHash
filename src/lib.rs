@@ -117,6 +117,7 @@ mod test {
     use core::hash::BuildHasherDefault;
     use std::collections::HashMap;
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_default_builder() {
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();

@@ -37,13 +37,14 @@ pub(crate) fn shuffle(a: u128) -> u128 {
     }
 }
 
-#[allow(unused)]
+#[allow(unused)] //not used by fallback
 #[inline(always)]
 pub(crate) fn add_and_shuffle(a: u128, b: u128) -> u128 {
     let sum = add_by_64s(a.convert(), b.convert());
     shuffle(sum.convert())
 }
 
+#[allow(unused)] //not used by fallbac
 #[inline(always)]
 pub(crate) fn shuffle_and_add(base: u128, to_add: u128) -> u128 {
     let shuffled: [u64; 2] = shuffle(base).convert();
@@ -101,7 +102,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
 #[cfg(test)]
 mod test {
     use crate::convert::Convert;
-    use super::{aesenc, aesdec, shuffle};
+    use super::*;
 
     // This is code to search for the shuffle constant
     //
@@ -168,7 +169,7 @@ mod test {
     //     count
     // }
 
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3", not(miri)))]
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3", target_feature = "aes", not(miri)))]
     #[test]
     fn test_shuffle_does_not_collide_with_aes() {
         let mut value: [u8; 16] = [0; 16];
