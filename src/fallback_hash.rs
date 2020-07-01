@@ -5,7 +5,6 @@ use crate::HasherExt;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = crate::random_state::MULTIPLE;
-const INCREMENT: u64 = crate::random_state::INCREMENT;
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
@@ -62,7 +61,7 @@ impl AHasher {
     /// of the fact that when a 64 bit multiply is performed the upper 64 bits are usually computed and thrown
     /// away. Instead it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
     /// (The compiler is smart enough to turn this into a 64 bit multiplication in the assembly)
-    /// Then the upper bits are added to the lower bits to produce a single 64 bit result.
+    /// Then the upper bits are xored with the lower bits to produce a single 64 bit result.
     ///
     /// To understand why this is a good scrambling function it helps to understand multiply-with-carry PRNGs:
     /// https://en.wikipedia.org/wiki/Multiply-with-carry_pseudorandom_number_generator
@@ -84,47 +83,29 @@ impl AHasher {
         self.buffer = (new_data ^ self.buffer).folded_multiply(MULTIPLE);
     }
 
-    /// This update function updates the buffer with the new information in a way that can't be canceled
-    /// with a subsequent update without knowledge of the content of the buffer prior to the update.
-    ///
-    /// To achieve this the input needs to be modified in an unpredictable (to an attacker) way before it is
-    /// combined with the value in the buffer. This is done by xoring it with `key`.
-    ///
-    /// Other hashes such as murmurhash have taken that approach but were found vulnerable to attack.
-    /// The attack was based on the idea of reversing any pre-mixing (Which is necessarily reversible otherwise
-    /// bits would be lost) then placing a difference in the highest bit before the multiply. Because a multiply
-    /// can never affect the bits to the right of it, a subsequent update that also only differed in the high
-    /// order bit could cancel out the change to `buffer` from the first update. This allowed murmurhash to be
-    /// attacked. In this update function aHash avoids this vulnerability by rotating and performing a second
-    /// multiply.
+    /// Similar to the above this function performs an update using a "folded multiply".
+    /// However it takes in 128 bits of data instead of 64. Both halves must be masked.
     ///
     /// This makes it impossible for an attacker to place a single bit difference between
-    /// two blocks so as to cancel each other. (While the transform is still reversible if you know the key)
+    /// two blocks so as to cancel each other.
     ///
-    /// This is similar to the above update function but is designed to run in a loop
-    /// that will be unrolled and vectorized. So instead of using the buffer, it uses a 'key' that it updates
-    /// and returns. The buffer is only xored at the end. This structure is so that when the method is inlined,
-    /// the compiler will unroll any loop this gets placed in and the loop can be automatically vectorized
-    /// and the rotates, xors, and multiplies can be paralleled.
-    ///
-    /// The key needs to be incremented between consecutive calls to prevent (a,b) from hashing the same as (b,a).
-    /// The adding of the increment is moved to the bottom rather than the top. This allows one less add to be
-    /// performed overall, but more importantly, it follows the multiply, which is expensive. So the CPU can
-    /// run another operation afterwords if does not depend on the output of the multiply operation.
+    /// However this is not sufficient. to prevent (a,b) from hashing the same as (b,a) the buffer itself must
+    /// be updated between calls in a way that does not commute. To achieve this XOR and Rotate are used.
+    /// Add followed by xor is not the same as xor followed by add, and rotate ensures that the same out bits
+    /// can't be changed by the same set of input bits. To cancel this sequence with subsequent input would require
+    /// knowing the keys.
     #[inline(always)]
-    fn ordered_update(&mut self, new_data: u64, key: u64) -> u64 {
-        self.buffer ^= (new_data ^ key)
-            .wrapping_mul(MULTIPLE)
-            .rotate_left(ROT)
-            .wrapping_mul(MULTIPLE);
-        key.wrapping_add(INCREMENT)
+    fn large_update(&mut self, new_data: u128) {
+        let block: [u64; 2] = new_data.convert();
+        let combined = (block[0] ^ self.extra_keys[0]).folded_multiply(block[1] ^ self.extra_keys[1]);
+        self.buffer = (combined.wrapping_add(self.buffer) ^ self.pad).rotate_left(ROT);
     }
 }
 
 impl HasherExt for AHasher {
     #[inline]
     fn short_finish(&self) -> u64 {
-        self.buffer
+        self.buffer.wrapping_add(self.pad)
     }
 }
 
@@ -171,18 +152,22 @@ impl Hasher for AHasher {
         self.buffer = self.buffer.wrapping_add(length).wrapping_mul(MULTIPLE);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
-            if data.len() > 16 {
-                let tail = data.read_last_u64();
-                let mut key: u64 = self.buffer;
-                while data.len() > 8 {
-                    let (val, rest) = data.read_u64();
-                    key = self.ordered_update(val, key);
+            if data.len() > 32 {
+                let tail = data.read_last_u128();
+                self.large_update(tail);
+                while data.len() > 16 {
+                    let (block, rest) = data.read_u128();
+                    self.large_update( block);
                     data = rest;
                 }
-                self.update(tail);
             } else {
-                self.update(data.read_u64().0);
-                self.update(data.read_last_u64());
+                if data.len() > 16 {
+                    self.large_update(data.read_u128().0);
+                    self.large_update(data.read_last_u128());
+                } else {
+                    self.update(data.read_u64().0);
+                    self.update(data.read_last_u64());
+                }
             }
         } else {
             if data.len() >= 2 {
@@ -206,7 +191,7 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
-        self.buffer.folded_multiply(self.pad).rotate_left(rot)
+        (self.buffer ^ self.pad).folded_multiply(MULTIPLE).rotate_left(rot)
     }
 }
 
