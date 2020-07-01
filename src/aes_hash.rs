@@ -77,22 +77,22 @@ impl AHasher {
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
         self.enc = aesenc(self.enc, new_value);
-        self.sum = shuffle_and_add(self.sum, self.enc);
+        self.sum = shuffle_and_add(self.sum, new_value);
     }
 
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
         self.enc = aesenc(self.enc, v1);
-        self.sum = shuffle_and_add(self.sum, self.enc);
+        self.sum = shuffle_and_add(self.sum, v1);
         self.enc = aesenc(self.enc, v2);
-        self.sum = shuffle_and_add(self.sum, self.enc);
+        self.sum = shuffle_and_add(self.sum, v2);
     }
 }
 
 impl HasherExt for AHasher {
     #[inline]
     fn short_finish(&self) -> u64 {
-        let buffer: [u64; 2] = self.sum.convert();
+        let buffer: [u64; 2] = self.enc.convert();
         buffer[0].folded_multiply(buffer[1])
     }
 }
