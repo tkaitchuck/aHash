@@ -211,13 +211,11 @@ impl Hasher for AHasher {
 
 #[cfg(test)]
 mod tests {
-    use crate::aes_hash::*;
+    use super::*;
     use crate::folded_multiply::aesenc;
     use crate::convert::Convert;
-    use std::collections::HashMap;
-    use std::hash::{BuildHasherDefault, BuildHasher, Hasher};
+    use std::hash::{BuildHasher, Hasher};
     use crate::RandomState;
-
     #[test]
     fn test_sanity() {
         let mut hasher = RandomState::with_seeds(192837465, 1234567890).build_hasher();
@@ -231,6 +229,9 @@ mod tests {
     #[cfg(feature = "compile-time-rng")]
     #[test]
     fn test_builder() {
+        use std::collections::HashMap;
+        use std::hash::BuildHasherDefault;
+
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
@@ -279,4 +280,5 @@ mod tests {
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
     }
+
 }

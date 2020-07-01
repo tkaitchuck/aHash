@@ -114,12 +114,13 @@ pub trait HasherExt: Hasher {
 mod test {
     use crate::convert::Convert;
     use crate::*;
-    use core::hash::BuildHasherDefault;
     use std::collections::HashMap;
 
     #[cfg(feature = "std")]
     #[test]
     fn test_default_builder() {
+        use core::hash::BuildHasherDefault;
+
         let mut map = HashMap::<u32, u64, BuildHasherDefault<AHasher>>::default();
         map.insert(1, 3);
     }
