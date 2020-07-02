@@ -86,17 +86,17 @@ AHash is designed to [prevent an adversary that does not know the key from being
 This achieved by ensuring that:
 
 * aHash is designed to resist differential crypto analysis. Meaning it should not be possible to devise a scheme to "cancel" out a modification of the internal state from a block of input via some corresponding change in a subsequent block of input.
-** This is achieved by not performing any "premixing" - This reversible mixing gave previous hashes such as murmurhash confidence in their quality, but could be undone by a deliberate attack.
-** Before it is used each chunk of input is "masked" such as by xoring it with an unpredictable value.
+  * This is achieved by not performing any "premixing" - This reversible mixing gave previous hashes such as murmurhash confidence in their quality, but could be undone by a deliberate attack.
+  * Before it is used each chunk of input is "masked" such as by xoring it with an unpredictable value.
 * aHash obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)':
 Each bit of input has the potential to flip every bit of the output.
 * Similarly each bit in the key can affect every bit in the output.
 * Input bits never affect just one or a very few bits in intermediate state. This is specifically designed to prevent [differential attacks aimed to cancel previous input](https://emboss.github.io/blog/2012/12/14/breaking-murmur-hash-flooding-dos-reloaded/)
 * The `finish` call at the end of the hash is designed to not expose individual bits of the internal state. 
-** For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. Reversing this is more than non-trivial as most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
+  * For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. Reversing this is more than non-trivial as most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
 * In both aHash and the fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input. - This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
 * It is deliberately difficult to 'chain' collisions.
-** To attack  Previous attacks on hash functions have relied on the the ability
+  * To attack  Previous attacks on hash functions have relied on the the ability
 
 
 ### aHash is not cryptographically secure
@@ -142,9 +142,9 @@ For a HashMap the requirements are different.
 the bucket that it should be hashed to needs to be computed in just a few CPu cycles.
 * A hashmap does not need to provide a hard and fast guarantee that no two inputs will ever collide. Hence hashCodes are not 256bits 
 but are just 64 or 32 bits in length. Often the first thing done with the hashcode is to truncate it further to compute which among a small number of buckets should be used for a key. 
-** Here collisions are expected and a cheap to deal with provided there is no systematic way to generated huge numbers of values that all
+  * Here collisions are expected and a cheap to deal with provided there is no systematic way to generated huge numbers of values that all
 go to the same bucket.
-** This also means that unlike a cryptographic hash partial collisions matter. It doesn't do a hashmap any good to produce a unique 256bit hash if
+  * This also means that unlike a cryptographic hash partial collisions matter. It doesn't do a hashmap any good to produce a unique 256bit hash if
 the lower 12 bits are all the same. This means that even a provably irreversible hash would not offer protection from a DOS attack in a hashmap
 because an attacker can easily just brute force the bottom N bits.
 
