@@ -100,6 +100,9 @@ impl Default for AHasher {
 /// Used for specialization
 pub trait HasherExt: Hasher {
     #[doc(hidden)]
+    fn hash_u64(&self, value: u64) -> u64;
+
+    #[doc(hidden)]
     fn short_finish(&self) -> u64;
 }
 

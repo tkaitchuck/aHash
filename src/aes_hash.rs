@@ -91,6 +91,13 @@ impl AHasher {
 
 impl HasherExt for AHasher {
     #[inline]
+    fn hash_u64(&self, value: u64) -> u64 {
+        let mask = self.sum as u64;
+        let rot = (self.enc & 64) as u32;
+        (value ^ mask).folded_multiply(crate::random_state::MULTIPLE).rotate_left(rot)
+    }
+
+    #[inline]
     fn short_finish(&self) -> u64 {
         let buffer: [u64; 2] = self.enc.convert();
         buffer[0].folded_multiply(buffer[1])

@@ -103,6 +103,13 @@ impl AHasher {
 }
 
 impl HasherExt for AHasher {
+
+    #[inline]
+    fn hash_u64(&self, value: u64) -> u64 {
+        let rot = (self.pad & 64) as u32;
+        (value ^ self.buffer).folded_multiply(MULTIPLE).rotate_left(rot)
+    }
+
     #[inline]
     fn short_finish(&self) -> u64 {
         self.buffer.wrapping_add(self.pad)
