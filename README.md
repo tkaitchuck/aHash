@@ -41,15 +41,15 @@ On an intel i7-6700 this is as fast as a 64 bit multiplication, but it has the a
 permutation and handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing,
 and does a better job of scrambling data than most non-secure hashes.
 
-On an intel i7-6700 compiled with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
+On an intel i7-6700 compiled on nightly Rust with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
 
 | Input   | SipHash 1-3 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
-| u8             | 9.3271 ns | 0.808 ns  | **0.594 ns**  | 1.0458 ns | 0.783 ns |
-| u16            | 9.5139 ns | 0.803 ns  | **0.594 ns**  | 1.0438 ns | 0.787 ns |
-| u32            | 9.1196 ns | 1.4424 ns | **0.594 ns**  | 0.9993 ns | 0.784 ns |
-| u64            | 10.854 ns | 3.0484 ns | **0.628 ns**  | 0.9996 ns | 0.802 ns |
-| u128           | 12.465 ns | 7.0728 ns | 0.799 ns  | **0.6334 ns** | 0.6337 ns |
+| u8             | 9.3271 ns | 0.808 ns  | **0.594 ns**  | 0.7704 ns | 0.781 ns |
+| u16            | 9.5139 ns | 0.803 ns  | **0.594 ns**  | 0.7653 ns | 0.784 ns |
+| u32            | 9.1196 ns | 1.4424 ns | **0.594 ns**  | 0.7637 ns | 0.784 ns |
+| u64            | 10.854 ns | 3.0484 ns | **0.628 ns**  | 0.7788 ns | 0.800 ns |
+| u128           | 12.465 ns | 7.0728 ns | 0.799 ns  | **0.6174 ns** | 0.6337 ns |
 | 1 byte string  | 11.745 ns | 2.4743 ns | 2.4000 ns | **1.4904 ns** | 2.7111 ns |
 | 3 byte string  | 12.066 ns | 3.5221 ns | 2.9253 ns | **1.4819 ns** | 2.4416 ns |
 | 4 byte string  | 11.634 ns | 4.0770 ns | 1.8818 ns | **1.5244 ns** | 2.1690 ns |
