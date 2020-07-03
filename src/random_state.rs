@@ -1,5 +1,5 @@
 use crate::convert::Convert;
-use crate::folded_multiply::*;
+use crate::operations::*;
 use crate::AHasher;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;

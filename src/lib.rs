@@ -24,7 +24,7 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
-mod folded_multiply;
+mod operations;
 #[cfg(feature = "std")]
 mod hash_map;
 #[cfg(feature = "std")]

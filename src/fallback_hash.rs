@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::folded_multiply::*;
+use crate::operations::*;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;

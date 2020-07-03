@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::folded_multiply::*;
+use crate::operations::*;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;
@@ -223,7 +223,7 @@ impl Hasher for AHasher {
 mod tests {
     use super::*;
     use crate::convert::Convert;
-    use crate::folded_multiply::aesenc;
+    use crate::operations::aesenc;
     use crate::RandomState;
     use std::hash::{BuildHasher, Hasher};
     #[test]
