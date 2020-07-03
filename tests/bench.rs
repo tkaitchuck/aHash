@@ -48,7 +48,7 @@ fn seahash<H: Hash>(b: &H) -> u64 {
     hasher.finish()
 }
 
-const STRING_LENGTHS: [u32; 11] = [1, 3, 4, 7, 8, 15, 16, 24, 68, 132, 1024];
+const STRING_LENGTHS: [u32; 12] = [1, 3, 4, 7, 8, 15, 16, 24, 33, 68, 132, 1024];
 
 fn gen_strings() -> Vec<String> {
     STRING_LENGTHS
@@ -64,11 +64,11 @@ fn gen_strings() -> Vec<String> {
         .collect()
 }
 
-const U8_VALUES: [u8; 1] = [8];
-const U16_VALUES: [u16; 1] = [16];
-const U32_VALUES: [u32; 1] = [32];
-const U64_VALUES: [u64; 1] = [64];
-const U128_VALUES: [u128; 1] = [128];
+const U8_VALUES: [u8; 1] = [123];
+const U16_VALUES: [u16; 1] = [1234];
+const U32_VALUES: [u32; 1] = [12345678];
+const U64_VALUES: [u64; 1] = [1234567890123456];
+const U128_VALUES: [u128; 1] = [12345678901234567890123456789012];
 
 fn bench_ahash(c: &mut Criterion) {
     c.bench(
