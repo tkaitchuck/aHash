@@ -124,9 +124,9 @@ impl Default for AHasher {
     #[inline]
     #[cfg(not(feature = "compile-time-rng"))]
     fn default() -> AHasher {
-        let k1 = (random_state::INIT_SEED[0] as u128).wrapping_mul(random_state::MULTIPLE as u128);
-        let k2 = (random_state::INIT_SEED[1] as u128).wrapping_mul(random_state::MULTIPLE as u128);
-        AHasher::new_with_keys(k1, k2)
+        const K1: u128 = (random_state::INIT_SEED[0] as u128).wrapping_mul(random_state::MULTIPLE as u128);
+        const K2: u128 = (random_state::INIT_SEED[1] as u128).wrapping_mul(random_state::MULTIPLE as u128);
+        AHasher::new_with_keys(K1, K2)
     }
 }
 
