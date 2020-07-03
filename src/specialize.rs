@@ -26,6 +26,7 @@ impl<T> CallHasher for T
 where
     T: Hash,
 {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()
@@ -37,6 +38,7 @@ impl<T> CallHasher for T
 where
     T: Hash,
 {
+    #[inline]
     default fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()
@@ -47,6 +49,7 @@ macro_rules! call_hasher_impl {
     ($typ:ty) => {
         #[cfg(feature = "specialize")]
         impl CallHasher for $typ {
+            #[inline]
             fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
                 hasher.hash_u64(*self as u64)
             }
@@ -64,6 +67,7 @@ call_hasher_impl!(i64);
 
 #[cfg(feature = "specialize")]
 impl CallHasher for u128 {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write_u128(*self);
         hasher.short_finish()
@@ -72,6 +76,7 @@ impl CallHasher for u128 {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for i128 {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write_u128(*self as u128);
         hasher.short_finish()
@@ -80,6 +85,7 @@ impl CallHasher for i128 {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for [u8] {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self);
         hasher.finish()
@@ -88,6 +94,7 @@ impl CallHasher for [u8] {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for Vec<u8> {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self);
         hasher.finish()
@@ -96,6 +103,7 @@ impl CallHasher for Vec<u8> {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for str {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self.as_bytes());
         hasher.finish()
@@ -104,6 +112,7 @@ impl CallHasher for str {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for String {
+    #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self.as_bytes());
         hasher.finish()

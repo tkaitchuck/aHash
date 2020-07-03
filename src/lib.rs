@@ -107,19 +107,22 @@ pub(crate) trait HasherExt: Hasher {
 }
 
 impl<T: Hasher> HasherExt for T {
+    #[inline]
     #[cfg(feature = "specialize")]
     default fn hash_u64(self, value: u64) -> u64 {
         value.get_hash(self)
     }
+    #[inline]
     #[cfg(not(feature = "specialize"))]
     fn hash_u64(self, value: u64) -> u64 {
         value.get_hash(self)
     }
-
+    #[inline]
     #[cfg(feature = "specialize")]
     default fn short_finish(&self) -> u64 {
         self.finish()
     }
+    #[inline]
     #[cfg(not(feature = "specialize"))]
     fn short_finish(&self) -> u64 {
         self.finish()
