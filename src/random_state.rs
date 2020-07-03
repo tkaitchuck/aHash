@@ -14,10 +14,10 @@ pub(crate) const INCREMENT: u64 = 1442695040888963407;
 
 // Const random provides randomized starting key with no runtime cost.
 #[cfg(all(feature = "compile-time-rng", not(test)))]
-const INIT_SEED: [u64; 2] = [const_random!(u64), const_random!(u64)];
+pub(crate) const INIT_SEED: [u64; 2] = [const_random!(u64), const_random!(u64)];
 
 #[cfg(any(not(feature = "compile-time-rng"), test))]
-const INIT_SEED: [u64; 2] = [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]; //From PCG-64
+pub(crate) const INIT_SEED: [u64; 2] = [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]; //From PCG-64
 
 #[cfg(all(feature = "compile-time-rng", not(test)))]
 static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64) as usize);

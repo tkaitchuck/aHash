@@ -53,6 +53,10 @@ use core::hash::Hasher;
 /// Provides a default [Hasher] compile time generated constants for keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
 /// [AHasher]s in order to hash the keys of the map.
+/// 
+/// Generally it is preferable to use [RandomState] instead, so that different
+/// hashmaps will have different keys. However if fixed keys are desireable this 
+/// may be used instead.
 ///
 /// # Example
 /// ```
@@ -60,22 +64,21 @@ use core::hash::Hasher;
 /// use ahash::{AHasher, RandomState};
 /// use std::collections::HashMap;
 ///
-/// let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
+/// let mut map: HashMap<i32, i32, BuildHasherDefault<AHasher>> = HashMap::default();
 /// map.insert(12, 34);
 /// ```
 ///
 /// [BuildHasherDefault]: std::hash::BuildHasherDefault
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
-#[cfg(feature = "compile-time-rng")]
 impl Default for AHasher {
-    /// Constructs a new [AHasher] with compile time generated constants for keys.
+
+    /// Constructs a new [AHasher] with compile time generated constants for keys if the 
+    /// `compile-time-rng`feature is enabled. Otherwise the keys will be fixed constants.
     /// This means the keys will be the same from one instance to another,
     /// but different from build to the next. So if it is possible for a potential
     /// attacker to have access to the compiled binary it would be better
     /// to specify keys generated at runtime.
-    ///
-    /// This is defined only if the `compile-time-rng` feature is enabled.
     ///
     /// # Examples
     ///
@@ -92,8 +95,38 @@ impl Default for AHasher {
     /// assert_eq!(hasher_1.finish(), hasher_2.finish());
     /// ```
     #[inline]
+    #[cfg(feature = "compile-time-rng")]
     fn default() -> AHasher {
         AHasher::new_with_keys(const_random!(u128), const_random!(u128))
+    }
+    
+    /// Constructs a new [AHasher] with compile time generated constants for keys if the 
+    /// `compile-time-rng`feature is enabled. Otherwise the keys will be fixed constants.
+    /// This means the keys will be the same from one instance to another,
+    /// but different from build to the next. So if it is possible for a potential
+    /// attacker to have access to the compiled binary it would be better
+    /// to specify keys generated at runtime.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ahash::AHasher;
+    /// use std::hash::Hasher;
+    ///
+    /// let mut hasher_1 = AHasher::default();
+    /// let mut hasher_2 = AHasher::default();
+    ///
+    /// hasher_1.write_u32(1234);
+    /// hasher_2.write_u32(1234);
+    ///
+    /// assert_eq!(hasher_1.finish(), hasher_2.finish());
+    /// ```
+    #[inline]
+    #[cfg(not(feature = "compile-time-rng"))]
+    fn default() -> AHasher {
+        let k1 = (random_state::INIT_SEED[0] as u128).wrapping_mul(random_state::MULTIPLE as u128);
+        let k2 = (random_state::INIT_SEED[1] as u128).wrapping_mul(random_state::MULTIPLE as u128);
+        AHasher::new_with_keys(k1, k2)
     }
 }
 
