@@ -173,20 +173,21 @@ impl Hasher for AHasher {
                     current[1] = aesenc(current[1], tail[1]);
                     current[2] = aesenc(current[2], tail[2]);
                     current[3] = aesenc(current[3], tail[3]);
-                    let mut sum: [u128; 2] = [
-                        add_by_64s(current[2].convert(), current[3].convert()).convert(),
-                        add_by_64s(current[0].convert(), current[1].convert()).convert(),
-                    ];
+                    let mut sum: [u128; 2] = [self.key, self.key];
+                    sum[0] = add_by_64s(sum[0].convert(), tail[0].convert()).convert();
+                    sum[1] = add_by_64s(sum[1].convert(), tail[1].convert()).convert();
+                    sum[0] = shuffle_and_add(sum[0], tail[2]);
+                    sum[1] = shuffle_and_add(sum[1], tail[3]);
                     while data.len() > 64 {
                         let (blocks, rest) = data.read_u128x4();
                         current[0] = aesenc(current[0], blocks[0]);
                         current[1] = aesenc(current[1], blocks[1]);
                         current[2] = aesenc(current[2], blocks[2]);
                         current[3] = aesenc(current[3], blocks[3]);
-                        sum[0] = shuffle_and_add(sum[0], current[0]);
-                        sum[1] = shuffle_and_add(sum[1], current[1]);
-                        sum[0] = shuffle_and_add(sum[0], current[2]);
-                        sum[1] = shuffle_and_add(sum[1], current[3]);
+                        sum[0] = shuffle_and_add(sum[0], blocks[0]);
+                        sum[1] = shuffle_and_add(sum[1], blocks[1]);
+                        sum[0] = shuffle_and_add(sum[0], blocks[2]);
+                        sum[1] = shuffle_and_add(sum[1], blocks[3]);
                         data = rest;
                     }
                     self.hash_in_2(current[0], current[1]);
