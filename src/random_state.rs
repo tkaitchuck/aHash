@@ -25,7 +25,7 @@ static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64) as usize);
 #[cfg(any(not(feature = "compile-time-rng"), test))]
 static SEED: AtomicUsize = AtomicUsize::new(INCREMENT as usize);
 
-/// Provides a [Hasher] factory. This is typically used (e.g. by [`HashMap`]) to create
+/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
 ///
 /// [build_hasher]: ahash::

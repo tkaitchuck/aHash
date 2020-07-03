@@ -36,10 +36,10 @@ At ~50GB/s aHash is the fastest algorithm to pass the full test suite by nearly 
 
 ## Speed
 
-When it is available aHash uses two rounds of AES encryption using the AES-NI instruction per 16 bytes of input.
-On an intel i7-6700 this is as fast as a 64 bit multiplication, but it has the advantages of being a much stronger
-permutation and handles 16 bytes at a time. This is obviously much faster than most standard approaches to hashing,
-and does a better job of scrambling data than most non-secure hashes.
+When it is available aHash uses AES rounds using the AES-NI instruction. AES-NI is very fast (on an intel i7-6700 it 
+is as fast as a 64 bit multiplication.) and handles 16 bytes of input at a time, while being a very strong permutation.
+
+This is obviously much faster than most standard approaches to hashing, and does a better job of scrambling data than most non-secure hashes.
 
 On an intel i7-6700 compiled on nightly Rust with flags `-C opt-level=3 -C target-cpu=native -C codegen-units=1`:
 
@@ -69,7 +69,7 @@ possible time.
 As you can see above aHash like `FxHash` provides a large speedup over `SipHash-1-3` which is already nearly twice as fast as `SipHash-2-4`.
 
 Rust's HashMap by default uses `SipHash-1-3` because faster hash functions such as `FxHash` are predictable and vulnerable to denial of
-service attacks. While `aHash` has both very strong scrambling as well as very high performance.
+service attacks. While `aHash` has both very strong scrambling and very high performance.
 
 AHash performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. (depending on availability of AES-NI)
 
@@ -90,13 +90,13 @@ This achieved by ensuring that:
   * Before it is used each chunk of input is "masked" such as by xoring it with an unpredictable value.
 * aHash obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)':
 Each bit of input has the potential to flip every bit of the output.
-* Similarly each bit in the key can affect every bit in the output.
+* Similarly, each bit in the key can affect every bit in the output.
 * Input bits never affect just one or a very few bits in intermediate state. This is specifically designed to prevent [differential attacks aimed to cancel previous input](https://emboss.github.io/blog/2012/12/14/breaking-murmur-hash-flooding-dos-reloaded/)
 * The `finish` call at the end of the hash is designed to not expose individual bits of the internal state. 
   * For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. Reversing this is more than non-trivial as most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
 * In both aHash and the fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input. - This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
 * It is deliberately difficult to 'chain' collisions.
-  * To attack  Previous attacks on hash functions have relied on the the ability
+  * To attack  Previous attacks on hash functions have relied on the ability
 
 
 ### aHash is not cryptographically secure
@@ -114,7 +114,7 @@ There are several efforts to build a secure hash function that uses AES-NI for a
 ## Compatibility
 
 New versions of aHash may change the algorithm slightly resulting in the new version producing different hashes than
-the old version even with the same keys. Additionally aHash does not guarantee that it won't produce different
+the old version even with the same keys. Additionally, aHash does not guarantee that it won't produce different
 hash values for the same data on different machines, or even on the same machine when recompiled.
 
 For this reason aHash is not recommended for cases where hashes need to be persisted.
@@ -177,8 +177,9 @@ So it might seem like using Fxhash for hashmaps when the key is a primitive is a
 
 When FX hash is operating on a 4 or 8 bite input such as a u32 or a u64, it reduces to multiplying the input by a fixed
 constant. This is a bad hashing algorithm because it means that lower bits can never be influenced by any higher bit. In
-the context of a hashmap where the low order bits are being used to determine which bucket to put an item in, this isn't
-any better than the identity function. Any keys that happen to end in the same bit pattern will all collide. Some examples of where this is likely to occur are:
+the context of a hashmap where the low order bits are used to determine which bucket to put an item in, this isn't
+any better than the identity function. Any keys that happen to end in the same bit pattern will all collide. 
+Some examples of where this is likely to occur are:
 
 * Strings encoded in base64
 * Null terminated strings (when working with C code)
@@ -188,7 +189,7 @@ have a multiple of 1024, if these were used as keys in a map they will collide a
 
 Like any non-keyed hash FxHash can be attacked. But FxHash is so prone to this that you may find yourself doing it accidentally.
 
-For example it is possible to [accidentally introduce quadratic behavior by reading from one map in iteration order and writing to another.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
+For example, it is possible to [accidentally introduce quadratic behavior by reading from one map in iteration order and writing to another.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
 
 Fxhash flaws make sense when you understand it for what it is. It is a quick and dirty hash, nothing more.
 it was not published and promoted by its creator, it was **found**!
