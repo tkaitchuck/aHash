@@ -1,5 +1,5 @@
-use core::hash::{Hash, Hasher};
 use crate::{CallHasher, HasherExt};
+use core::hash::{Hash, Hasher};
 use std::collections::HashMap;
 
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
@@ -51,7 +51,7 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     (same_byte_count, same_nibble_count)
 }
 
-fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>)  {
+fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>) {
     if depth == 0 {
         return;
     }
@@ -64,7 +64,9 @@ fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinatio
 }
 
 fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
-    let options: [u32; 8] = [0x00000000, 0x20000000, 0x40000000, 0x60000000, 0x80000000, 0xA0000000, 0xC0000000, 0xE0000000];
+    let options: [u32; 8] = [
+        0x00000000, 0x20000000, 0x40000000, 0x60000000, 0x80000000, 0xA0000000, 0xC0000000, 0xE0000000,
+    ];
     let mut combinations = Vec::new();
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
     let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
@@ -79,7 +81,11 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
         hasher.write(&array);
         let hash = hasher.finish();
         if let Some(value) = map.get(&hash) {
-            assert_eq!(value, &array, "Found a collision between {:x?} and {:x?}", value, &array);
+            assert_eq!(
+                value, &array,
+                "Found a collision between {:x?} and {:x?}",
+                value, &array
+            );
         } else {
             map.insert(hash, array);
         }

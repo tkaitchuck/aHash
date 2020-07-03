@@ -1,6 +1,6 @@
+use crate::convert::Convert;
 use crate::folded_multiply::*;
 use crate::AHasher;
-use crate::convert::Convert;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
@@ -76,7 +76,12 @@ pub(crate) fn scramble_keys(a: u64, b: u64) -> (u64, u64, u64, u64) {
     let rot2 = ((combined >> 16) & 63) as u32;
     let rot3 = ((combined >> 32) & 63) as u32;
     let rot4 = ((combined >> 48) & 63) as u32;
-    (k1.rotate_left(rot1), k2.rotate_left(rot2), k3.rotate_left(rot3), k4.rotate_left(rot4))
+    (
+        k1.rotate_left(rot1),
+        k2.rotate_left(rot2),
+        k3.rotate_left(rot3),
+        k4.rotate_left(rot4),
+    )
 }
 
 impl Default for RandomState {

@@ -1,7 +1,7 @@
-use core::hash::Hash;
-use core::hash::Hasher;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
+use core::hash::Hash;
+use core::hash::Hasher;
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
@@ -22,7 +22,10 @@ pub trait CallHasher: Hash {
 }
 
 #[cfg(not(feature = "specialize"))]
-impl<T> CallHasher for T where T: Hash {
+impl<T> CallHasher for T
+where
+    T: Hash,
+{
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()
@@ -30,7 +33,10 @@ impl<T> CallHasher for T where T: Hash {
 }
 
 #[cfg(feature = "specialize")]
-impl<T> CallHasher for T where T: Hash {
+impl<T> CallHasher for T
+where
+    T: Hash,
+{
     default fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()

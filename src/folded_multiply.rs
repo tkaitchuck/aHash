@@ -4,7 +4,7 @@ use core::ops::Mul;
 
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
-const SHUFFLE_MASK: u128 =   0x020a0700_0c01030e_050f0d08_06090b04_u128;
+const SHUFFLE_MASK: u128 = 0x020a0700_0c01030e_050f0d08_06090b04_u128;
 //const SHUFFLE_MASK: u128 = 0x000d0702_0a040301_05080f0c_0e0b0609_u128;
 //const SHUFFLE_MASK: u128 = 0x040A0700_030E0106_0D050F08_020B0C09_u128;
 
@@ -30,7 +30,7 @@ pub(crate) fn shuffle(a: u128) -> u128 {
         use core::arch::x86_64::*;
 
         if cfg!(all(target_feature = "ssse3", not(miri))) {
-            transmute( _mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
+            transmute(_mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
         } else {
             a.swap_bytes()
         }
@@ -101,8 +101,8 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
 
 #[cfg(test)]
 mod test {
-    use crate::convert::Convert;
     use super::*;
+    use crate::convert::Convert;
 
     // This is code to search for the shuffle constant
     //
@@ -169,7 +169,12 @@ mod test {
     //     count
     // }
 
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3", target_feature = "aes", not(miri)))]
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "ssse3",
+        target_feature = "aes",
+        not(miri)
+    ))]
     #[test]
     fn test_shuffle_does_not_collide_with_aes() {
         let mut value: [u8; 16] = [0; 16];
@@ -182,8 +187,16 @@ mod test {
             let actual_location: [u8; 16] = shuffle(value.convert()).convert();
             for pos in 0..16 {
                 if actual_location[pos] != 0 {
-                    assert_eq!(0, excluded_positions_enc[pos], "Forward Overlap between {:?} and {:?} at {}", excluded_positions_enc, actual_location, index);
-                    assert_eq!(0, excluded_positions_dec[pos], "Reverse Overlap between {:?} and {:?} at {}", excluded_positions_dec, actual_location, index);
+                    assert_eq!(
+                        0, excluded_positions_enc[pos],
+                        "Forward Overlap between {:?} and {:?} at {}",
+                        excluded_positions_enc, actual_location, index
+                    );
+                    assert_eq!(
+                        0, excluded_positions_dec[pos],
+                        "Reverse Overlap between {:?} and {:?} at {}",
+                        excluded_positions_dec, actual_location, index
+                    );
                 }
             }
             value[index] = 0;
@@ -212,23 +225,57 @@ mod test {
 
     #[test]
     fn test_shuffle_moves_high_bits() {
-        assert!(shuffle(1) > (1_u128 << 80), "Low bits must be moved to other half {:?} -> {:?}", 0, shuffle(1));
+        assert!(
+            shuffle(1) > (1_u128 << 80),
+            "Low bits must be moved to other half {:?} -> {:?}",
+            0,
+            shuffle(1)
+        );
 
-        assert!(shuffle(1_u128 << 58) >= (1_u128 << 64), "High bits must be moved to other half {:?} -> {:?}", 7, shuffle(1_u128 << 58));
-        assert!(shuffle(1_u128 << 58) < (1_u128 << 112), "High bits must not remain high {:?} -> {:?}", 7, shuffle(1_u128 << 58));
-        assert!(shuffle(1_u128 << 64) < (1_u128 << 64), "Low bits must be moved to other half {:?} -> {:?}", 8, shuffle(1_u128 << 64));
-        assert!(shuffle(1_u128 << 64) >= (1_u128 << 16), "Low bits must not remain low {:?} -> {:?}", 8, shuffle(1_u128 << 64));
+        assert!(
+            shuffle(1_u128 << 58) >= (1_u128 << 64),
+            "High bits must be moved to other half {:?} -> {:?}",
+            7,
+            shuffle(1_u128 << 58)
+        );
+        assert!(
+            shuffle(1_u128 << 58) < (1_u128 << 112),
+            "High bits must not remain high {:?} -> {:?}",
+            7,
+            shuffle(1_u128 << 58)
+        );
+        assert!(
+            shuffle(1_u128 << 64) < (1_u128 << 64),
+            "Low bits must be moved to other half {:?} -> {:?}",
+            8,
+            shuffle(1_u128 << 64)
+        );
+        assert!(
+            shuffle(1_u128 << 64) >= (1_u128 << 16),
+            "Low bits must not remain low {:?} -> {:?}",
+            8,
+            shuffle(1_u128 << 64)
+        );
 
-        assert!(shuffle(1_u128 << 120) < (1_u128 << 50), "High bits must be moved to low half {:?} -> {:?}", 15, shuffle(1_u128 << 120));
+        assert!(
+            shuffle(1_u128 << 120) < (1_u128 << 50),
+            "High bits must be moved to low half {:?} -> {:?}",
+            15,
+            shuffle(1_u128 << 120)
+        );
     }
 
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3", not(miri)))]
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "ssse3",
+        not(miri)
+    ))]
     #[test]
     fn test_shuffle_does_not_loop() {
         let numbered = 0x00112233_44556677_8899AABB_CCDDEEFF;
         let mut shuffled = shuffle(numbered);
         for count in 0..100 {
-           // println!("{:>16x}", shuffled);
+            // println!("{:>16x}", shuffled);
             assert_ne!(numbered, shuffled, "Equal after {} vs {:x}", count, shuffled);
             shuffled = shuffle(shuffled);
         }

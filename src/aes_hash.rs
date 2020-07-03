@@ -1,8 +1,8 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
-use core::hash::Hasher;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
+use core::hash::Hasher;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -96,7 +96,9 @@ impl HasherExt for AHasher {
     fn hash_u64(self, value: u64) -> u64 {
         let mask = self.sum as u64;
         let rot = (self.enc & 64) as u32;
-        (value ^ mask).folded_multiply(crate::random_state::MULTIPLE).rotate_left(rot)
+        (value ^ mask)
+            .folded_multiply(crate::random_state::MULTIPLE)
+            .rotate_left(rot)
     }
 
     #[inline]
@@ -214,23 +216,22 @@ impl Hasher for AHasher {
         let combined = aesdec(self.sum, self.enc);
         let result: [u64; 2] = aesenc(aesenc(combined, self.key), combined).convert();
         result[0]
-
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::folded_multiply::aesenc;
     use crate::convert::Convert;
-    use std::hash::{BuildHasher, Hasher};
+    use crate::folded_multiply::aesenc;
     use crate::RandomState;
+    use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
         let mut hasher = RandomState::with_seeds(192837465, 1234567890).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
-        hasher.write(&[1,0,0,0,0,0,0,0]);
+        hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);
         let h2 = hasher.finish();
         assert_ne!(h1, h2);
     }
@@ -289,5 +290,4 @@ mod tests {
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
     }
-
 }

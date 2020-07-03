@@ -1,8 +1,8 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
-use core::hash::Hasher;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
+use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 const MULTIPLE: u64 = crate::random_state::MULTIPLE;
@@ -23,7 +23,7 @@ const ROT: u32 = 23; //17
 pub struct AHasher {
     buffer: u64,
     pad: u64,
-    extra_keys: [u64; 2]
+    extra_keys: [u64; 2],
 }
 
 impl AHasher {
@@ -46,7 +46,7 @@ impl AHasher {
         AHasher {
             buffer: k1,
             pad: k2,
-            extra_keys: [k3, k4]
+            extra_keys: [k3, k4],
         }
     }
 
@@ -105,7 +105,6 @@ impl AHasher {
 
 #[cfg(feature = "specialize")]
 impl HasherExt for AHasher {
-
     #[inline]
     fn hash_u64(self, value: u64) -> u64 {
         let rot = (self.pad & 64) as u32;
@@ -166,7 +165,7 @@ impl Hasher for AHasher {
                 self.large_update(tail);
                 while data.len() > 16 {
                     let (block, rest) = data.read_u128();
-                    self.large_update( block);
+                    self.large_update(block);
                     data = rest;
                 }
             } else {

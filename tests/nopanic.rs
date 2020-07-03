@@ -32,7 +32,6 @@ fn hash_test_specialize_wrapper(num: i32, string: &str) {
     hash_test_specialize(num, string);
 }
 
-
 #[test]
 fn test_no_panic() {
     hash_test_final_wrapper(2, "");
