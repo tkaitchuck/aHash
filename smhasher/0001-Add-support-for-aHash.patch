@@ -1,0 +1,117 @@
+From 3ee3ec917ac394ecaae572955894700380895b19 Mon Sep 17 00:00:00 2001
+From: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
+Date: Thu, 2 Jul 2020 22:12:52 -0700
+Subject: [PATCH] Add support for aHash
+
+---
+ CMakeLists.txt |  2 ++
+ Hashes.h       |  4 ++++
+ ahash.h        | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ main.cpp       |  1 +
+ 4 files changed, 57 insertions(+)
+ create mode 100644 ahash.h
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 501f006..07999d7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -243,4 +243,6 @@ target_link_libraries(
+   SMHasherSupport
+   ${HIGHWAY_LIB}
+   ${CMAKE_THREAD_LIBS_INIT}
++  libahash_c.a
++  ${CMAKE_DL_LIBS}
+ )
+diff --git a/Hashes.h b/Hashes.h
+index 5926909..10a0090 100644
+--- a/Hashes.h
++++ b/Hashes.h
+@@ -12,6 +12,7 @@
+ #include "cmetrohash.h"
+ #include "opt_cmetrohash.h"
+ 
++#include "ahash.h"
+ #include "fasthash.h"
+ #include "jody_hash32.h"
+ #include "jody_hash64.h"
+@@ -219,6 +220,9 @@ inline void fasthash32_test ( const void * key, int len, uint32_t seed, void * o
+ inline void fasthash64_test ( const void * key, int len, uint32_t seed, void * out ) {
+   *(uint64_t*)out = fasthash64(key, (size_t) len, (uint64_t)seed);
+ }
++inline void ahash64_test ( const void * key, int len, uint32_t seed, void * out ) {
++  *(uint64_t*)out = ahash64(key, (size_t) len, (uint64_t)seed);
++}
+ 
+ 
+ void mum_hash_test(const void * key, int len, uint32_t seed, void * out);
+diff --git a/ahash.h b/ahash.h
+new file mode 100644
+index 0000000..7bccf12
+--- /dev/null
++++ b/ahash.h
+@@ -0,0 +1,50 @@
++/* The MIT License
++
++   Copyright (C) 2012 Zilong Tan (eric.zltan@gmail.com)
++
++   Permission is hereby granted, free of charge, to any person
++   obtaining a copy of this software and associated documentation
++   files (the "Software"), to deal in the Software without
++   restriction, including without limitation the rights to use, copy,
++   modify, merge, publish, distribute, sublicense, and/or sell copies
++   of the Software, and to permit persons to whom the Software is
++   furnished to do so, subject to the following conditions:
++
++   The above copyright notice and this permission notice shall be
++   included in all copies or substantial portions of the Software.
++
++   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
++   BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
++   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++   SOFTWARE.
++*/
++
++#ifndef _AHASH_H
++#define _AHASH_H
++
++#include <stdint.h>
++#include <stdio.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++void ahash5();
++
++/**
++ * Ahash - 64-bit implementation of aHash
++ * @buf:  data buffer
++ * @len:  data size
++ * @seed: the seed
++ */
++	uint64_t ahash64(const void *buf, size_t len, uint64_t seed);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/main.cpp b/main.cpp
+index a86250a..9b92b06 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -189,6 +189,7 @@ HashInfo g_hashes[] =
+ #endif
+   { fasthash32_test,      32, 0xE9481AFC, "fasthash32",  "fast-hash 32bit", GOOD },
+   { fasthash64_test,      64, 0xA16231A7, "fasthash64",  "fast-hash 64bit", GOOD },
++  { ahash64_test,         64, 0x00000000, "ahash64",  "ahash 64bit", GOOD }, //Expected value set to zero because aHash does not adhere to a fixed output.
+ #if defined(__GNUC__) && UINT_MAX != ULONG_MAX
+  #define MUM_VERIF            0x3EEAE2D4
+  #define MUMLOW_VERIF         0x520263F5
+-- 
+2.25.1
+

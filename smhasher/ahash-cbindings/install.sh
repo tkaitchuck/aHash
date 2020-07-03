@@ -1,0 +1,1 @@
+cargo build --release && sudo cp target/release/libahash_c.a /usr/local/lib/
