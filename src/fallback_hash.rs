@@ -1,6 +1,7 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
 use core::hash::Hasher;
+#[cfg(feature = "specialize")]
 use crate::HasherExt;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
@@ -102,10 +103,11 @@ impl AHasher {
     }
 }
 
+#[cfg(feature = "specialize")]
 impl HasherExt for AHasher {
 
     #[inline]
-    fn hash_u64(&self, value: u64) -> u64 {
+    fn hash_u64(self, value: u64) -> u64 {
         let rot = (self.pad & 64) as u32;
         (value ^ self.buffer).folded_multiply(MULTIPLE).rotate_left(rot)
     }

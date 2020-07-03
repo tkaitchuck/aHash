@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use criterion::*;
 use fxhash::FxHasher;
 
-use ahash::{AHasher, CallHasher, HasherExt};
+use ahash::{AHasher, CallHasher};
 
 fn gen_word_pairs() -> Vec<String> {
     let words: Vec<_> = r#"
@@ -119,13 +119,13 @@ yet, you, young, your, yourself"#
 }
 
 #[allow(unused)] // False positive
-fn test_hash_common_words<T: HasherExt>(hasher: impl Fn() -> T) {
+fn test_hash_common_words<T: Hasher>(hasher: impl Fn() -> T) {
     let word_pairs: Vec<_> = gen_word_pairs();
     check_for_collisions(&hasher, &word_pairs, 32);
 }
 
 #[allow(unused)] // False positive
-fn check_for_collisions<T: HasherExt, H: Hash>(hasher: &impl Fn() -> T, items: &[H], bucket_count: usize) {
+fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &[H], bucket_count: usize) {
     let mut buckets = vec![0; bucket_count];
     for item in items {
         let value = hash(item, &hasher) as usize;
@@ -151,7 +151,7 @@ fn check_for_collisions<T: HasherExt, H: Hash>(hasher: &impl Fn() -> T, items: &
 }
 
 #[allow(unused)] // False positive
-fn hash<T: HasherExt>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
+fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
     let hasher = hasher();
     b.get_hash(hasher)
 }

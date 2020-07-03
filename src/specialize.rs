@@ -1,5 +1,7 @@
-use crate::HasherExt;
 use core::hash::Hash;
+use core::hash::Hasher;
+#[cfg(feature = "specialize")]
+use crate::HasherExt;
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
@@ -16,12 +18,12 @@ use core::hash::Hash;
 /// let hash = value.get_hash(hash_builder.build_hasher());
 /// ```
 pub trait CallHasher: Hash {
-    fn get_hash<H: HasherExt>(&self, hasher: H) -> u64;
+    fn get_hash<H: Hasher>(&self, hasher: H) -> u64;
 }
 
 #[cfg(not(feature = "specialize"))]
 impl<T> CallHasher for T where T: Hash {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()
     }
@@ -29,7 +31,7 @@ impl<T> CallHasher for T where T: Hash {
 
 #[cfg(feature = "specialize")]
 impl<T> CallHasher for T where T: Hash {
-    default fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    default fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         self.hash(&mut hasher);
         hasher.finish()
     }
@@ -39,7 +41,7 @@ macro_rules! call_hasher_impl {
     ($typ:ty) => {
         #[cfg(feature = "specialize")]
         impl CallHasher for $typ {
-            fn get_hash<H: HasherExt>(&self, hasher: H) -> u64 {
+            fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
                 hasher.hash_u64(*self as u64)
             }
         }
@@ -56,7 +58,7 @@ call_hasher_impl!(i64);
 
 #[cfg(feature = "specialize")]
 impl CallHasher for u128 {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write_u128(*self);
         hasher.short_finish()
     }
@@ -64,7 +66,7 @@ impl CallHasher for u128 {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for i128 {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write_u128(*self as u128);
         hasher.short_finish()
     }
@@ -72,7 +74,7 @@ impl CallHasher for i128 {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for [u8] {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self);
         hasher.finish()
     }
@@ -80,7 +82,7 @@ impl CallHasher for [u8] {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for Vec<u8> {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self);
         hasher.finish()
     }
@@ -88,7 +90,7 @@ impl CallHasher for Vec<u8> {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for str {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self.as_bytes());
         hasher.finish()
     }
@@ -96,7 +98,7 @@ impl CallHasher for str {
 
 #[cfg(feature = "specialize")]
 impl CallHasher for String {
-    fn get_hash<H: HasherExt>(&self, mut hasher: H) -> u64 {
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self.as_bytes());
         hasher.finish()
     }

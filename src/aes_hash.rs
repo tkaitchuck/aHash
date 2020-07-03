@@ -1,6 +1,7 @@
 use crate::convert::*;
 use crate::folded_multiply::*;
 use core::hash::Hasher;
+#[cfg(feature = "specialize")]
 use crate::HasherExt;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
@@ -89,9 +90,10 @@ impl AHasher {
     }
 }
 
+#[cfg(feature = "specialize")]
 impl HasherExt for AHasher {
     #[inline]
-    fn hash_u64(&self, value: u64) -> u64 {
+    fn hash_u64(self, value: u64) -> u64 {
         let mask = self.sum as u64;
         let rot = (self.enc & 64) as u32;
         (value ^ mask).folded_multiply(crate::random_state::MULTIPLE).rotate_left(rot)

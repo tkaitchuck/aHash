@@ -9,7 +9,7 @@
 //! # How aHash works
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
-//! It uses two rounds of AES per hash. So it should not be considered cryptographically secure.
+//! aHash is not a cryptographically secure hash.
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
@@ -51,7 +51,7 @@ pub use crate::hash_set::AHashSet;
 use core::hash::Hasher;
 
 /// Provides a default [Hasher] compile time generated constants for keys.
-/// This is typically used in conjunction with [`BuildHasherDefault`] to create
+/// This is typically used in conjunction with [BuildHasherDefault] to create
 /// [AHasher]s in order to hash the keys of the map.
 ///
 /// # Example
@@ -97,13 +97,33 @@ impl Default for AHasher {
     }
 }
 
-/// Used for specialization
-pub trait HasherExt: Hasher {
+/// Used for specialization. (Sealed)
+pub(crate) trait HasherExt: Hasher {
     #[doc(hidden)]
-    fn hash_u64(&self, value: u64) -> u64;
+    fn hash_u64(self, value: u64) -> u64;
 
     #[doc(hidden)]
     fn short_finish(&self) -> u64;
+}
+
+impl<T: Hasher> HasherExt for T {
+    #[cfg(feature = "specialize")]
+    default fn hash_u64(self, value: u64) -> u64 {
+        value.get_hash(self)
+    }
+    #[cfg(not(feature = "specialize"))]
+    fn hash_u64(self, value: u64) -> u64 {
+        value.get_hash(self)
+    }
+
+    #[cfg(feature = "specialize")]
+    default fn short_finish(&self) -> u64 {
+        self.finish()
+    }
+    #[cfg(not(feature = "specialize"))]
+    fn short_finish(&self) -> u64 {
+        self.finish()
+    }
 }
 
 // #[inline(never)]
