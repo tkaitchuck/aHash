@@ -23,7 +23,7 @@ AHash is not:
 * Intended to be a MAC
 * Intended for network or persisted use
 
-It is not intended that different computers using aHash will arrive at the same hashe for the same input.
+It is not intended that different computers using aHash will arrive at the same hash for the same input.
 Similarly the same computer running different versions of aHash may hash the same input to different values. 
 By not requiring consistency aHash is able to tailor the algorithm and take advantage of specialized hardware 
 instructions for higher performance.
@@ -175,7 +175,7 @@ and any attack against the accelerated form would likely involve a weakness in A
 In terms of performance, aHash is faster than the FXhash for strings and byte arrays but not primitives.
 So it might seem like using Fxhash for hashmaps when the key is a primitive is a good idea. This is *not* the case.
 
-When FX hash is operating on a 4 or 8 bite input such as a u32 or a u64, it reduces to multiplying the input by a fixed
+When FX hash is operating on a 4 or 8 byte input such as a u32 or a u64, it reduces to multiplying the input by a fixed
 constant. This is a bad hashing algorithm because it means that lower bits can never be influenced by any higher bit. In
 the context of a hashmap where the low order bits are used to determine which bucket to put an item in, this isn't
 any better than the identity function. Any keys that happen to end in the same bit pattern will all collide. 
