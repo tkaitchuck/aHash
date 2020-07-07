@@ -22,19 +22,21 @@ impl FoldedMultiply for u64 {
 
 #[inline(always)]
 pub(crate) fn shuffle(a: u128) -> u128 {
-    use core::mem::transmute;
-    unsafe {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-
-        if cfg!(all(target_feature = "ssse3", not(miri))) {
-            transmute(_mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
-        } else {
+    #[cfg(all(target_feature = "ssse3", not(miri)))]
+        {
+            use core::mem::transmute;
+            #[cfg(target_arch = "x86")]
+            use core::arch::x86::*;
+            #[cfg(target_arch = "x86_64")]
+            use core::arch::x86_64::*;
+            unsafe {
+                transmute(_mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
+            }
+        }
+    #[cfg(not(all(target_feature = "ssse3", not(miri))))]
+        {
             a.swap_bytes()
         }
-    }
 }
 
 #[allow(unused)] //not used by fallback
