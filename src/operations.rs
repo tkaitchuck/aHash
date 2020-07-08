@@ -4,6 +4,7 @@ use core::ops::Mul;
 
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
+#[cfg(all(target_feature = "ssse3", not(miri)))]
 const SHUFFLE_MASK: u128 = 0x020a0700_0c01030e_050f0d08_06090b04_u128;
 //const SHUFFLE_MASK: u128 = 0x000d0702_0a040301_05080f0c_0e0b0609_u128;
 //const SHUFFLE_MASK: u128 = 0x040A0700_030E0106_0D050F08_020B0C09_u128;
