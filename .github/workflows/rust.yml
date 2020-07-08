@@ -29,6 +29,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
             toolchain: nightly
+            override: true
             components: clippy
       - name: check specialize
         uses: actions-rs/cargo@v1
