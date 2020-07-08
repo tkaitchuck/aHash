@@ -21,7 +21,42 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+      - name: check specialize
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features specialize
       - name: test
         uses: actions-rs/cargo@v1
         with:
           command: test
+  linux_arm7:
+    name: Linux ARMv7
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv7-unknown-linux-gnueabihf
+  i686-unknown-linux-gnu:
+    name: Linux i686
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-unknown-linux-gnu
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target i686-unknown-linux-gnu
