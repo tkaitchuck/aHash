@@ -21,15 +21,20 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+      - name: test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            components: clippy
       - name: check specialize
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --features specialize
-      - name: test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
   linux_arm7:
     name: Linux ARMv7
     runs-on: ubuntu-latest
