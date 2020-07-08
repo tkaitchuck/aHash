@@ -8,8 +8,8 @@ on X86 processors. If it is not available it falls back on a somewhat slower (bu
 multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm).
 
 AHash is a keyed hash, so two instances initialized with different keys will produce completely different hashes and the 
-resulting hashes cannot be predicted without knowing the keys. This prevents DOS attacks where an attacker sends a large
-number of items whose hashes collide that get used as keys in a hashmap.
+resulting hashes cannot be predicted without knowing the keys. [This prevents DOS attacks where an attacker sends a large
+number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
 
 # Goals
 
@@ -81,7 +81,7 @@ For more a more representative performance comparison which includes the overhea
 
 ## Security
 
-AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/Attacking-aHash-or-why-it's-good-enough-for-a-hashmap)
+AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
 
 This achieved by ensuring that:
 
