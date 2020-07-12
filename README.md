@@ -225,7 +225,7 @@ does poorly with for example a single `i32` as input. It's only implementation a
 
 ## t1ha
 
-T1ha is fast at large sizes and the output is of high quality, but it is not clear what usecase it aims for.
+T1ha is fast at large sizes, and the output is of high quality, but it is not clear what usecase it aims for.
 It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for
 hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
 input sizes are larger than 128 bytes. So uses are likely niche.
