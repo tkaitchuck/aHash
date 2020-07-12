@@ -34,7 +34,7 @@ impl AHasher {
         AHasher {
             buffer: key1 as u64,
             pad: key2 as u64,
-            extra_keys: key2.convert(),
+            extra_keys: (key1 ^ key2).convert(),
         }
     }
 
@@ -99,7 +99,7 @@ impl AHasher {
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
         let combined = (block[0] ^ self.extra_keys[0]).folded_multiply(block[1] ^ self.extra_keys[1]);
-        self.buffer = (combined.wrapping_add(self.buffer) ^ self.pad).rotate_left(ROT);
+        self.buffer = (self.pad.wrapping_add(combined) ^ self.buffer).rotate_left(ROT);
     }
 }
 
@@ -160,7 +160,7 @@ impl Hasher for AHasher {
         self.buffer = self.buffer.wrapping_add(length).wrapping_mul(MULTIPLE);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() > 8 {
-            if data.len() > 32 {
+            if data.len() > 16 {
                 let tail = data.read_last_u128();
                 self.large_update(tail);
                 while data.len() > 16 {
@@ -169,30 +169,21 @@ impl Hasher for AHasher {
                     data = rest;
                 }
             } else {
-                if data.len() > 16 {
-                    self.large_update(data.read_u128().0);
-                    self.large_update(data.read_last_u128());
-                } else {
-                    self.update(data.read_u64().0);
-                    self.update(data.read_last_u64());
-                }
+                self.large_update([data.read_u64().0, data.read_last_u64()].convert());
             }
         } else {
             if data.len() >= 2 {
                 if data.len() >= 4 {
-                    let block: [u32; 2] = [data.read_u32().0, data.read_last_u32()];
-                    self.update(block.convert());
+                    let block = [data.read_u32().0 as u64, data.read_last_u32() as u64];
+                    self.large_update(block.convert());
                 } else {
                     let value = [data.read_u16().0 as u32, data[data.len() - 1] as u32];
                     self.update(value.convert());
                 }
             } else {
-                let value = if data.len() > 0 {
-                    data[0] //len 1
-                } else {
-                    0
-                };
-                self.update(value as u64);
+                if data.len() > 0 {
+                    self.update(data[0] as u64);
+                }
             }
         }
     }
