@@ -56,8 +56,8 @@ impl AHasher {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
+    #[doc(hidden)]
+    pub fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
         let (k1, k2, k3, k4) = scramble_keys(key1, key2);
         AHasher {
@@ -190,9 +190,10 @@ impl Hasher for AHasher {
                         sum[1] = shuffle_and_add(sum[1], blocks[3]);
                         data = rest;
                     }
-                    self.hash_in_2(current[0], current[1]);
-                    self.hash_in_2(current[2], current[3]);
-                    self.hash_in_2(sum[0], sum[1]);
+                    current[0] = aesenc(current[0], current[1]);
+                    current[2] = aesenc(current[2], current[3]);
+                    self.hash_in_2(current[0], current[2]);
+                    self.hash_in(add_by_64s(sum[0].convert(), sum[1].convert()).convert());
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();

@@ -4,6 +4,7 @@ use core::ops::Mul;
 
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
+#[cfg(all(target_feature = "ssse3", not(miri)))]
 const SHUFFLE_MASK: u128 = 0x020a0700_0c01030e_050f0d08_06090b04_u128;
 //const SHUFFLE_MASK: u128 = 0x000d0702_0a040301_05080f0c_0e0b0609_u128;
 //const SHUFFLE_MASK: u128 = 0x040A0700_030E0106_0D050F08_020B0C09_u128;
@@ -22,19 +23,21 @@ impl FoldedMultiply for u64 {
 
 #[inline(always)]
 pub(crate) fn shuffle(a: u128) -> u128 {
-    use core::mem::transmute;
-    unsafe {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-
-        if cfg!(all(target_feature = "ssse3", not(miri))) {
-            transmute(_mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
-        } else {
+    #[cfg(all(target_feature = "ssse3", not(miri)))]
+        {
+            use core::mem::transmute;
+            #[cfg(target_arch = "x86")]
+            use core::arch::x86::*;
+            #[cfg(target_arch = "x86_64")]
+            use core::arch::x86_64::*;
+            unsafe {
+                transmute(_mm_shuffle_epi8(transmute(a), transmute(SHUFFLE_MASK)))
+            }
+        }
+    #[cfg(not(all(target_feature = "ssse3", not(miri))))]
+        {
             a.swap_bytes()
         }
-    }
 }
 
 #[allow(unused)] //not used by fallback

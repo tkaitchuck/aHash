@@ -1,55 +1,69 @@
-From 3ee3ec917ac394ecaae572955894700380895b19 Mon Sep 17 00:00:00 2001
+From 426384ce34cf410d892eeeeeb7f6046d52bff8e7 Mon Sep 17 00:00:00 2001
 From: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
-Date: Thu, 2 Jul 2020 22:12:52 -0700
-Subject: [PATCH] Add support for aHash
+Date: Sat, 11 Jul 2020 17:15:56 -0700
+Subject: [PATCH] Add support for ahash
 
 ---
- CMakeLists.txt |  2 ++
- Hashes.h       |  4 ++++
- ahash.h        | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- main.cpp       |  1 +
- 4 files changed, 57 insertions(+)
+ CMakeLists.txt |  1 +
+ Hashes.h       |  5 +++++
+ ahash.h        | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ main.cpp       |  2 +-
+ 4 files changed, 55 insertions(+), 1 deletion(-)
  create mode 100644 ahash.h
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 501f006..07999d7 100644
+index 6ebab1a..9d79e98 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -243,4 +243,6 @@ target_link_libraries(
+@@ -470,10 +470,11 @@ add_executable(
+ target_link_libraries(
+   SMHasher
    SMHasherSupport
    ${HIGHWAY_LIB}
-   ${CMAKE_THREAD_LIBS_INIT}
+   ${BLAKE3_LIB}
 +  libahash_c.a
-+  ${CMAKE_DL_LIBS}
- )
+   ${CMAKE_THREAD_LIBS_INIT}
+   )
+ 
+ #add_executable(
+ #  bittest
 diff --git a/Hashes.h b/Hashes.h
-index 5926909..10a0090 100644
+index 4e111c1..fcd3e38 100644
 --- a/Hashes.h
 +++ b/Hashes.h
-@@ -12,6 +12,7 @@
- #include "cmetrohash.h"
- #include "opt_cmetrohash.h"
+@@ -19,10 +19,11 @@
+ #if defined(__SSE4_2__) && defined(__x86_64__)
+ #include "metrohash/metrohash64crc.h"
+ #include "metrohash/metrohash128crc.h"
+ #endif
  
 +#include "ahash.h"
  #include "fasthash.h"
  #include "jody_hash32.h"
  #include "jody_hash64.h"
-@@ -219,6 +220,9 @@ inline void fasthash32_test ( const void * key, int len, uint32_t seed, void * o
+ 
+ // objsize: 0-0x113 = 276
+@@ -356,10 +357,14 @@ inline void fasthash32_test ( const void * key, int len, uint32_t seed, void * o
+ }
+ #ifdef HAVE_INT64
  inline void fasthash64_test ( const void * key, int len, uint32_t seed, void * out ) {
    *(uint64_t*)out = fasthash64(key, (size_t) len, (uint64_t)seed);
  }
 +inline void ahash64_test ( const void * key, int len, uint32_t seed, void * out ) {
 +  *(uint64_t*)out = ahash64(key, (size_t) len, (uint64_t)seed);
 +}
++
+ #endif
  
- 
+ // objsize 0-778: 1912
  void mum_hash_test(const void * key, int len, uint32_t seed, void * out);
+ 
 diff --git a/ahash.h b/ahash.h
 new file mode 100644
-index 0000000..7bccf12
+index 0000000..6c59caf
 --- /dev/null
 +++ b/ahash.h
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,48 @@
 +/* The MIT License
 +
 +   Copyright (C) 2012 Zilong Tan (eric.zltan@gmail.com)
@@ -85,33 +99,37 @@ index 0000000..7bccf12
 +extern "C" {
 +#endif
 +
-+void ahash5();
-+
 +/**
 + * Ahash - 64-bit implementation of aHash
 + * @buf:  data buffer
 + * @len:  data size
 + * @seed: the seed
 + */
-+	uint64_t ahash64(const void *buf, size_t len, uint64_t seed);
++       uint64_t ahash64(const void *buf, size_t len, uint64_t seed);
 +
 +#ifdef __cplusplus
 +}
 +#endif
 +
 +#endif
+\ No newline at end of file
 diff --git a/main.cpp b/main.cpp
-index a86250a..9b92b06 100644
+index 04060f2..7489aaf 100644
 --- a/main.cpp
 +++ b/main.cpp
-@@ -189,6 +189,7 @@ HashInfo g_hashes[] =
- #endif
-   { fasthash32_test,      32, 0xE9481AFC, "fasthash32",  "fast-hash 32bit", GOOD },
-   { fasthash64_test,      64, 0xA16231A7, "fasthash64",  "fast-hash 64bit", GOOD },
+@@ -263,11 +263,11 @@ HashInfo g_hashes[] =
+ 
+   { xxh3_test,            64, 0x39CD9E4A, "xxh3",        "xxHash v3, 64-bit", GOOD },
+   { xxh3low_test,         32, 0xFAE8467B, "xxh3low",     "xxHash v3, 64-bit, low 32-bits part", GOOD },
+   { xxh128_test,         128, 0xEB61B3A0, "xxh128",      "xxHash v3, 128-bit", GOOD },
+   { xxh128low_test,       64, 0x54D1CC70, "xxh128low",   "xxHash v3, 128-bit, low 64-bits part", GOOD },
+-
 +  { ahash64_test,         64, 0x00000000, "ahash64",  "ahash 64bit", GOOD }, //Expected value set to zero because aHash does not adhere to a fixed output.
- #if defined(__GNUC__) && UINT_MAX != ULONG_MAX
-  #define MUM_VERIF            0x3EEAE2D4
-  #define MUMLOW_VERIF         0x520263F5
+ #if __WORDSIZE >= 64
+ # define TIFU_VERIF       0x644236D4
+ #else
+   // broken on certain travis
+ # define TIFU_VERIF       0x0
 -- 
 2.25.1
 

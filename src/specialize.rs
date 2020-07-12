@@ -92,7 +92,7 @@ impl CallHasher for [u8] {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(all(feature = "specialize", feature = "std"))]
 impl CallHasher for Vec<u8> {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -110,7 +110,7 @@ impl CallHasher for str {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(all(feature = "specialize", feature = "std"))]
 impl CallHasher for String {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {

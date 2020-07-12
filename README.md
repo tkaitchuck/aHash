@@ -8,8 +8,8 @@ on X86 processors. If it is not available it falls back on a somewhat slower (bu
 multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm).
 
 AHash is a keyed hash, so two instances initialized with different keys will produce completely different hashes and the 
-resulting hashes cannot be predicted without knowing the keys. This prevents DOS attacks where an attacker sends a large
-number of items whose hashes collide that get used as keys in a hashmap.
+resulting hashes cannot be predicted without knowing the keys. [This prevents DOS attacks where an attacker sends a large
+number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
 
 # Goals
 
@@ -23,7 +23,7 @@ AHash is not:
 * Intended to be a MAC
 * Intended for network or persisted use
 
-It is not intended that different computers using aHash will arrive at the same hashe for the same input.
+It is not intended that different computers using aHash will arrive at the same hash for the same input.
 Similarly the same computer running different versions of aHash may hash the same input to different values. 
 By not requiring consistency aHash is able to tailor the algorithm and take advantage of specialized hardware 
 instructions for higher performance.
@@ -81,7 +81,7 @@ For more a more representative performance comparison which includes the overhea
 
 ## Security
 
-AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/Attacking-aHash-or-why-it's-good-enough-for-a-hashmap)
+AHash is designed to [prevent an adversary that does not know the key from being able to create hash collisions or partial collisions.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
 
 This achieved by ensuring that:
 
@@ -175,7 +175,7 @@ and any attack against the accelerated form would likely involve a weakness in A
 In terms of performance, aHash is faster than the FXhash for strings and byte arrays but not primitives.
 So it might seem like using Fxhash for hashmaps when the key is a primitive is a good idea. This is *not* the case.
 
-When FX hash is operating on a 4 or 8 bite input such as a u32 or a u64, it reduces to multiplying the input by a fixed
+When FX hash is operating on a 4 or 8 byte input such as a u32 or a u64, it reduces to multiplying the input by a fixed
 constant. This is a bad hashing algorithm because it means that lower bits can never be influenced by any higher bit. In
 the context of a hashmap where the low order bits are used to determine which bucket to put an item in, this isn't
 any better than the identity function. Any keys that happen to end in the same bit pattern will all collide. 
@@ -225,7 +225,7 @@ does poorly with for example a single `i32` as input. It's only implementation a
 
 ## t1ha
 
-T1ha is fast at large sizes and the output is of high quality, but it is not clear what usecase it aims for.
+T1ha is fast at large sizes, and the output is of high quality, but it is not clear what usecase it aims for.
 It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for
 hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
 input sizes are larger than 128 bytes. So uses are likely niche.
