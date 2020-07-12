@@ -97,8 +97,7 @@ Each bit of input has the potential to flip every bit of the output.
 * The `finish` call at the end of the hash is designed to not expose individual bits of the internal state. 
   * For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. 
 Reversing this is more than non-trivial. Most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
-* In both aHash and its fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input.
-- This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
+* In both aHash and its fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input. - This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
 * It is deliberately difficult to 'chain' collisions.
   * To attack  Previous attacks on hash functions have relied on the ability
 
@@ -213,7 +212,7 @@ computer to the next, efficiently hashing large volumes of data.
 This is quite different from the needs of a Hasher used in a hashmap. In a map the typical value is under 10 bytes. None
 of these algorithms scale down to handle that small of data at a competitive time. What's more the restriction that they
 provide consistent output prevents them from taking advantage of different hardware capabilities on different CPUs. It makes
-since for a hashmap to work differently on a phone than on a server, or in wasm.
+sense for a hashmap to work differently on a phone than on a server, or in wasm.
 
 If you need to persist or transmit a hash of a file, then using one of these is probably a good idea. HighwayHash seems to be the preferred solution du jour. But inside a simple Hashmap, stick with aHash.
 
@@ -224,10 +223,10 @@ does poorly with for example a single `i32` as input. It's only implementation a
 
 ## t1ha
 
-T1ha is fast at large sizes, and the output is of high quality, but it is not clear what usecase it aims for.
+T1ha is fairly fast at large sizes, and the output is of fairly high quality, but it is not clear what usecase it aims for.
 It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for
 hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
-input sizes are larger than 128 bytes. So uses are likely niche.
+input sizes are larger than 128 bytes and is not designed to be DOS resistant. So uses are likely niche.
 
 # License
 
@@ -243,5 +242,4 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
-
 
