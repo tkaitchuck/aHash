@@ -56,8 +56,8 @@ impl AHasher {
         }
     }
 
-    #[doc(hidden)]
-    pub fn test_with_keys(key1: u64, key2: u64) -> AHasher {
+    #[cfg(test)]
+    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
         use crate::random_state::scramble_keys;
         let (k1, k2, k3, k4) = scramble_keys(key1, key2);
         AHasher {
