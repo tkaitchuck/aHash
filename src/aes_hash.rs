@@ -190,9 +190,7 @@ impl Hasher for AHasher {
                         sum[1] = shuffle_and_add(sum[1], blocks[3]);
                         data = rest;
                     }
-                    current[0] = aesenc(current[0], current[1]);
-                    current[2] = aesenc(current[2], current[3]);
-                    self.hash_in_2(current[0], current[2]);
+                    self.hash_in_2(aesenc(current[0], current[1]), aesenc(current[2], current[3]));
                     self.hash_in(add_by_64s(sum[0].convert(), sum[1].convert()).convert());
                 } else {
                     //len 33-64
