@@ -1,36 +1,36 @@
 # aHash
 
-AHash is a high speed keyed hashing algorithm intended for use in in-memory hashmaps. It provides a high quality 64 bit hash.
-AHash is designed for performance and is *not cryptographically secure*.
+AHash is a high speed keyed hashing algorithm intended for use in in-memory hashmaps. It provides a high quality
+64bit hash. AHash is designed for performance and is not cryptographically secure.
 
-When it is available aHash takes advantage of the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
-on X86 processors. If it is not available it falls back on a somewhat slower (but still DOS resistant) [algorithm based on
-multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm).
-
-AHash is a keyed hash, so two instances initialized with different keys will produce completely different hashes and the 
-resulting hashes cannot be predicted without knowing the keys. [This prevents DOS attacks where an attacker sends a large
-number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
-
-# Goals
+## Goals
 
 AHash is the fastest DOS resistant hash for use in HashMaps available in the Rust language.
 Failing in any of these criteria will be treated as a bug.
 
-# Non-Goals
-AHash is not:
+## Design
 
-* A cryptographically secure hash
-* Intended to be a MAC
-* Intended for network or persisted use
+AHash is a keyed hash, so two instances initialized with different keys will produce completely different hashes, and the 
+resulting hashes cannot be predicted without knowing the keys. [This prevents DOS attacks where an attacker sends a large
+number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
 
-It is not intended that different computers using aHash will arrive at the same hash for the same input.
-Similarly the same computer running different versions of aHash may hash the same input to different values. 
-By not requiring consistency aHash is able to tailor the algorithm and take advantage of specialized hardware 
-instructions for higher performance.
+AHash takes advantage of specialized hardware instructions whenever possible including the [hardware AES instruction](https://en.wikipedia.org/wiki/AES_instruction_set)
+on X86 processors when it is available. If it is not available it falls back on a somewhat slower (but still DOS resistant)
+[algorithm based on multiplication](https://github.com/tkaitchuck/aHash/wiki/AHash-fallback-algorithm).
+
+As such aHash does not have a fixed standard for its output. This is not a problem for Hashmaps, and allows aHash to achieve high performance and improve over time.
+
+## Non-Goals
+
+Because different computers or computers on versions of the code will observe different outputs Hash is not recommended 
+for use other than in-memory maps. Specifically aHash does not intend to be:
+
+* Used as a MACs or other application requiring a cryptographically secure hash
+* Used for distributed applications or ones requiring persisting hashed values
 
 ## Hash quality
 
-**Both aHash's aes variant and the fallback pass the full [SMHasher test suite](https://github.com/rurban/smhasher)** (the output of the tests is checked into the smhasher subdirectory. 
+**Both aHash's aes variant and the fallback pass the full [SMHasher test suite](https://github.com/rurban/smhasher)** (the output of the tests is checked into the smhasher subdirectory.) 
 
 At **over 50GB/s** aHash is the fastest algorithm to pass the full test suite by more than a factor of 2. Even the fallback algorithm is in the top 5 in terms of throughput.
 
@@ -77,7 +77,8 @@ Because of this, and it's optimized logic, `aHash` is able to outperform `FxHash
 It also provides especially good performance dealing with unaligned input.
 (Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in `FxHash` above)
 
-For more a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown#performance) as HashBrown now uses aHash as it's hasher by default.
+For more a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown#performance)
+as HashBrown now uses aHash as its hasher by default.
 
 ## Security
 
@@ -85,45 +86,43 @@ AHash is designed to [prevent an adversary that does not know the key from being
 
 This achieved by ensuring that:
 
-* aHash is designed to resist differential crypto analysis. Meaning it should not be possible to devise a scheme to "cancel" out a modification of the internal state from a block of input via some corresponding change in a subsequent block of input.
+* aHash is designed to [resist differential crypto analysis](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks#differential-analysis). Meaning it should not be possible to devise a scheme to "cancel" out a modification of the internal state from a block of input via some corresponding change in a subsequent block of input.
   * This is achieved by not performing any "premixing" - This reversible mixing gave previous hashes such as murmurhash confidence in their quality, but could be undone by a deliberate attack.
   * Before it is used each chunk of input is "masked" such as by xoring it with an unpredictable value.
 * aHash obeys the '[strict avalanche criterion](https://en.wikipedia.org/wiki/Avalanche_effect#Strict_avalanche_criterion)':
 Each bit of input has the potential to flip every bit of the output.
 * Similarly, each bit in the key can affect every bit in the output.
-* Input bits never affect just one or a very few bits in intermediate state. This is specifically designed to prevent [differential attacks aimed to cancel previous input](https://emboss.github.io/blog/2012/12/14/breaking-murmur-hash-flooding-dos-reloaded/)
+* Input bits never affect just one, or a very few, bits in intermediate state. This is specifically designed to prevent the sort of 
+[differential attacks launched by the sipHash authors](https://emboss.github.io/blog/2012/12/14/breaking-murmur-hash-flooding-dos-reloaded/) which cancel previous inputs.
 * The `finish` call at the end of the hash is designed to not expose individual bits of the internal state. 
-  * For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. Reversing this is more than non-trivial as most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
-* In both aHash and the fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input. - This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
+  * For example in the main algorithm 256bits of state and 256bits of keys are reduced to 64 total bits using 3 rounds of AES encryption. 
+Reversing this is more than non-trivial. Most of the information is by definition gone, and any given bit of the internal state is fully diffused across the output.
+* In both aHash and its fallback the internal state is divided into two halves which are updated by two unrelated techniques using the same input.
+- This means that if there is a way to attack one of them it likely won't be able to attack both of them at the same time.
 * It is deliberately difficult to 'chain' collisions.
   * To attack  Previous attacks on hash functions have relied on the ability
 
+More details are available on [the wiki](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks).
 
 ### aHash is not cryptographically secure
 
 AHash should not be used for situations where cryptographic security is needed.
 It is not intended for this and will likely fail to hold up for several reasons.
 
-1. It has not yet been analyzed by any third party.
-2. The input keys, and output results, are assumed to be largely non-observable. (Unlike cryptographic hashes where EVERYTHING is under the attacker's control)
-3. It uses reduced rounds of AES as opposed to the standard of 10. This means that things like the SQUARE attack apply. (These are mitigated by other means to prevent producing collections, but would be a problem in other contexts).
+1. aHash relies on random keys which are assumed to not be observable by an attacker. For a cryptographic hash all inputs can be seen and controlled by the attacker.
+2. aHash has not yet gone through peer review.
+3. Because aHash uses reduced rounds of AES as opposed to the standard of 10. Things like the SQUARE attack apply to part of the internal state.
+(These are mitigated by other means to prevent producing collections, but would be a problem in other contexts).
 4. Like any cypher based hash, it will show certain statistical deviations from truly random output when comparing a (VERY) large number of hashes. 
+(By definition cyphers have fewer collisions than truly random data.)
 
 There are several efforts to build a secure hash function that uses AES-NI for acceleration, but aHash is not one of them.
-
-## Compatibility
-
-New versions of aHash may change the algorithm slightly resulting in the new version producing different hashes than
-the old version even with the same keys. Additionally, aHash does not guarantee that it won't produce different
-hash values for the same data on different machines, or even on the same machine when recompiled.
-
-For this reason aHash is not recommended for cases where hashes need to be persisted.
 
 ## Accelerated CPUs
 
 Hardware AES instructions are built into Intel processors built after 2010 and AMD processors after 2012.
 It is also available on [many other CPUs](https://en.wikipedia.org/wiki/AES_instruction_set) should in eventually
-be able to get aHash to work. However only X86 and X86-64 are the only supported architectures at the moment, as currently
+be able to get aHash to work. However, only X86 and X86-64 are the only supported architectures at the moment, as currently
 they are the only architectures for which Rust provides an intrinsic.
 
 aHash also uses `sse2` and `sse3` instructions. X86 processors that have `aesni` also have these instruction sets.
@@ -133,16 +132,16 @@ aHash also uses `sse2` and `sse3` instructions. X86 processors that have `aesni`
 Cryptographic hashes are designed to make is nearly impossible to find two items that collide when the attacker has full control
 over the input. This has several implications:
 
-* They are very difficult to construct, and have to go to a lot of effort to ensure that collisions are not possible. 
-* They have no notion of a 'key' rather they are fully deterministic and provide exactly one hash for a given input.
+* They are very difficult to construct, and have to go to a lot of effort to ensure that collisions are not possible.
+* They have no notion of a 'key'. Rather, they are fully deterministic and provide exactly one hash for a given input.
 
 For a HashMap the requirements are different.
 
 * Speed is very important, especially for short inputs. Often the key for a HashMap is a single `u32` or similar, and to be effective
-the bucket that it should be hashed to needs to be computed in just a few CPu cycles.
-* A hashmap does not need to provide a hard and fast guarantee that no two inputs will ever collide. Hence hashCodes are not 256bits 
-but are just 64 or 32 bits in length. Often the first thing done with the hashcode is to truncate it further to compute which among a small number of buckets should be used for a key. 
-  * Here collisions are expected and a cheap to deal with provided there is no systematic way to generated huge numbers of values that all
+the bucket that it should be hashed to needs to be computed in just a few CPU cycles.
+* A hashmap does not need to provide a hard and fast guarantee that no two inputs will ever collide. Hence, hashCodes are not 256bits 
+but are just 64 or 32 bits in length. Often the first thing done with the hashcode is to truncate it further to compute which among a few buckets should be used for a key. 
+  * Here collisions are expected, and a cheap to deal with provided there is no systematic way to generated huge numbers of values that all
 go to the same bucket.
   * This also means that unlike a cryptographic hash partial collisions matter. It doesn't do a hashmap any good to produce a unique 256bit hash if
 the lower 12 bits are all the same. This means that even a provably irreversible hash would not offer protection from a DOS attack in a hashmap
