@@ -32,7 +32,7 @@ instructions for higher performance.
 
 **Both aHash's aes variant and the fallback pass the full [SMHasher test suite](https://github.com/rurban/smhasher)** (the output of the tests is checked into the smhasher subdirectory. 
 
-At ~50GB/s aHash is the fastest algorithm to pass the full test suite by nearly a factor of 2. Even the fallback algorithm is in the top 5 in terms of throughput.
+At **over 50GB/s** aHash is the fastest algorithm to pass the full test suite by more than a factor of 2. Even the fallback algorithm is in the top 5 in terms of throughput.
 
 ## Speed
 
@@ -59,7 +59,7 @@ On an intel i7-6700 compiled on nightly Rust with flags `-C opt-level=3 -C targe
 | 16 byte string | 15.155 ns | 7.5796 ns | 3.2619 ns | **1.6262 ns** | 2.4328 ns |
 | 24 byte string | 16.521 ns | 12.492 ns | 3.5424 ns | **1.6266 ns** | 2.2391 ns |
 | 68 byte string | 24.598 ns | 50.715 ns | 5.8312 ns | 4.8282 ns | **4.2626 ns** |
-| 132 byte string| 39.224 ns | 119.96 ns | 11.777 ns | 6.5087 ns | **6.9280 ns** |
+| 132 byte string| 39.224 ns | 119.96 ns | 11.777 ns | **6.5087 ns** | 6.9280 ns |
 |1024 byte string| 254.00 ns | 1087.3 ns | 156.41 ns | **25.402 ns** | 41.738 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instructions are unavailable.
@@ -155,7 +155,7 @@ Where the input can be quickly mixed in a way that cannot be reversed without kn
 
 ## SipHash
 
-For a hashmap: Because aHash is faster.
+For a hashmap: Because aHash nearly **10x** faster.
 
 SipHash is however useful in other contexts, such as for a HMAC, where aHash would be completely inappropriate.
 
