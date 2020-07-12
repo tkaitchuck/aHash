@@ -10,5 +10,11 @@ description = "C bindings for aHash so that it can be invoked by SMHasher to ver
 name = "ahash_c"
 crate-type = ["staticlib"] # Creates static lib
 
+[profile.release]
+opt-level = 3
+debug = false
+lto = 'fat'
+debug-assertions = false
+
 [dependencies]
-ahash = { path = "../../" }
+ahash = { path = "../../", default-features = false, features = ["specialize"] }
