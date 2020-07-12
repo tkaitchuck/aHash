@@ -31,14 +31,13 @@ impl AHasher {
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub fn new_with_keys(key1: u128, key2: u128) -> AHasher {
-        let keys: [u64; 2] = key1.convert();
         AHasher {
-            buffer: keys[0],
-            pad: keys[1],
+            buffer: key1 as u64,
+            pad: key2 as u64,
             extra_keys: key2.convert(),
         }
     }
-    
+
     #[cfg(test)]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
@@ -200,7 +199,7 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
-        (self.buffer ^ self.pad).folded_multiply(MULTIPLE).rotate_left(rot)
+        (self.buffer).folded_multiply(self.pad).rotate_left(rot)
     }
 }
 
