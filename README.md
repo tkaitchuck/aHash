@@ -126,7 +126,7 @@ they are the only architectures for which Rust provides an intrinsic.
 
 aHash also uses `sse2` and `sse3` instructions. X86 processors that have `aesni` also have these instruction sets.
 
-## Why not cryptographic hash in a hashmap.
+## Why not use a cryptographic hash in a hashmap.
 
 Cryptographic hashes are designed to make is nearly impossible to find two items that collide when the attacker has full control
 over the input. This has several implications:
