@@ -32,7 +32,7 @@ static SEED: AtomicUsize = AtomicUsize::new(INCREMENT as usize);
 /// [Hasher]: std::hash::Hasher
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RandomState {
     pub(crate) k0: u64,
     pub(crate) k1: u64,
