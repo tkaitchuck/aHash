@@ -1,6 +1,7 @@
 use crate::convert::Convert;
 use crate::operations::*;
 use crate::AHasher;
+use core::fmt;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
@@ -32,12 +33,18 @@ static SEED: AtomicUsize = AtomicUsize::new(INCREMENT as usize);
 /// [Hasher]: std::hash::Hasher
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RandomState {
     pub(crate) k0: u64,
     pub(crate) k1: u64,
     pub(crate) k2: u64,
     pub(crate) k3: u64,
+}
+
+impl fmt::Debug for RandomState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.pad("RandomState { .. }")
+    }
 }
 
 impl RandomState {
