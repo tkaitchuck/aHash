@@ -73,7 +73,7 @@ service attacks. While `aHash` has both very strong scrambling and very high per
 
 AHash performs well when dealing with large inputs because aHash reads 8 or 16 bytes at a time. (depending on availability of AES-NI)
 
-Because of this, and it's optimized logic, `aHash` is able to outperform `FxHash` with strings.
+Because of this, and its optimized logic, `aHash` is able to outperform `FxHash` with strings.
 It also provides especially good performance dealing with unaligned input.
 (Notice the big performance gaps between 3 vs 4, 7 vs 8 and 15 vs 16 in `FxHash` above)
 
@@ -197,7 +197,7 @@ it makes sense, but given that aHash is faster on almost any object, it's probab
 
 ## FnvHash
 
-FnvHash is also a poor default. It only handles one byte at a time, so it's performance really suffers with large inputs.
+FnvHash is also a poor default. It only handles one byte at a time, so its performance really suffers with large inputs.
 It is also non-keyed so it is still subject to DOS attacks and [accidentally quadratic behavior.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
 
 ## MurmurHash, CityHash, MetroHash, FarmHash, HighwayHash, XXHash, SeaHash
@@ -219,7 +219,7 @@ If you need to persist or transmit a hash of a file, then using one of these is 
 ## AquaHash
 
 AquaHash is structured similarly to aHash. (Though the two were designed completely independently). AquaHash does not scale down nearly as well and
-does poorly with for example a single `i32` as input. It's only implementation at this point is in C++.
+does poorly with for example a single `i32` as input. Its only implementation at this point is in C++.
 
 ## t1ha
 
