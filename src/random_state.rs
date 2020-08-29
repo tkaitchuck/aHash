@@ -1,11 +1,11 @@
 use crate::convert::Convert;
-use crate::operations::*;
 use crate::AHasher;
 use core::fmt;
 use core::hash::BuildHasher;
 use core::sync::atomic::AtomicUsize;
 use core::sync::atomic::Ordering;
 
+use crate::operations::folded_multiply;
 #[cfg(all(feature = "compile-time-rng", not(test)))]
 use const_random::const_random;
 
@@ -65,7 +65,7 @@ impl RandomState {
     }
 
     /// Allows for explicitly setting the seeds to used.
-    pub fn with_seeds(k0: u64, k1: u64) -> RandomState {
+    pub const fn with_seeds(k0: u64, k1: u64) -> RandomState {
         let (k0, k1, k2, k3) = scramble_keys(k0, k1);
         RandomState { k0, k1, k2, k3 }
     }
@@ -73,12 +73,12 @@ impl RandomState {
 
 /// This is based on the fallback hasher
 #[inline]
-pub(crate) fn scramble_keys(a: u64, b: u64) -> (u64, u64, u64, u64) {
-    let k1 = (INIT_SEED[0] ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
-    let k2 = (INIT_SEED[0] ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
-    let k3 = (INIT_SEED[1] ^ a).folded_multiply(MULTIPLE).wrapping_add(b);
-    let k4 = (INIT_SEED[1] ^ b).folded_multiply(MULTIPLE).wrapping_add(a);
-    let combined = (a ^ b).folded_multiply(MULTIPLE).wrapping_add(INCREMENT);
+pub(crate) const fn scramble_keys(a: u64, b: u64) -> (u64, u64, u64, u64) {
+    let k1 = folded_multiply(INIT_SEED[0] ^ a, MULTIPLE).wrapping_add(b);
+    let k2 = folded_multiply(INIT_SEED[0] ^ b, MULTIPLE).wrapping_add(a);
+    let k3 = folded_multiply(INIT_SEED[1] ^ a, MULTIPLE).wrapping_add(b);
+    let k4 = folded_multiply(INIT_SEED[1] ^ b, MULTIPLE).wrapping_add(a);
+    let combined = folded_multiply(a ^ b, MULTIPLE).wrapping_add(INCREMENT);
     let rot1 = (combined & 63) as u32;
     let rot2 = ((combined >> 16) & 63) as u32;
     let rot3 = ((combined >> 32) & 63) as u32;
@@ -144,5 +144,10 @@ mod test {
     #[test]
     fn test_const_rand_disabled() {
         assert_eq!(INIT_SEED, [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]);
+    }
+
+    #[test]
+    fn test_with_seeds_const() {
+        const _CONST_RANDOM_STATE: RandomState = RandomState::with_seeds(17, 19);
     }
 }
