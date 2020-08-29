@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::operations::*;
+use crate::operations::folded_multiply;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;
@@ -81,7 +81,7 @@ impl AHasher {
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
-        self.buffer = (new_data ^ self.buffer).folded_multiply(MULTIPLE);
+        self.buffer = folded_multiply(new_data ^ self.buffer, MULTIPLE);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
@@ -98,7 +98,7 @@ impl AHasher {
     #[inline(always)]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
-        let combined = (block[0] ^ self.extra_keys[0]).folded_multiply(block[1] ^ self.extra_keys[1]);
+        let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
         self.buffer = (self.pad.wrapping_add(combined) ^ self.buffer).rotate_left(ROT);
     }
 }
@@ -108,7 +108,7 @@ impl HasherExt for AHasher {
     #[inline]
     fn hash_u64(self, value: u64) -> u64 {
         let rot = (self.pad & 64) as u32;
-        (value ^ self.buffer).folded_multiply(MULTIPLE).rotate_left(rot)
+        folded_multiply(value ^ self.buffer, MULTIPLE).rotate_left(rot)
     }
 
     #[inline]
@@ -190,7 +190,7 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
-        (self.buffer).folded_multiply(self.pad).rotate_left(rot)
+        folded_multiply(self.buffer, self.pad).rotate_left(rot)
     }
 }
 
