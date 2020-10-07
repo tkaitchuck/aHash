@@ -3,6 +3,7 @@ use crate::operations::*;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;
+use crate::RandomState;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -56,14 +57,14 @@ impl AHasher {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
-        use crate::random_state::scramble_keys;
-        let (k1, k2, k3, k4) = scramble_keys(key1, key2);
-        AHasher {
-            enc: [k1, k2].convert(),
-            sum: [k3, k4].convert(),
-            key: add_by_64s([k1, k2], [k3, k4]).convert(),
+    #[inline]
+    pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
+        let key1 = [rand_state.k0, rand_state.k1].convert();
+        let key2 = [rand_state.k2, rand_state.k3].convert();
+        Self {
+            enc: key1,
+            sum: key2,
+            key: key1 ^ key2,
         }
     }
 
@@ -108,7 +109,9 @@ impl HasherExt for AHasher {
     }
 }
 
-/// Provides methods to hash all of the primitive types.
+/// Provides [Hasher] methods to hash all of the primitive types.
+///
+/// [Hasher]: core::hash::Hasher
 impl Hasher for AHasher {
     #[inline]
     fn write_u8(&mut self, i: u8) {
@@ -228,7 +231,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(192837465, 1234567890).build_hasher();
+        let mut hasher = RandomState::with_seeds(1, 2, 3,4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);

@@ -1,30 +1,23 @@
 use crate::convert::Convert;
-use crate::AHasher;
+use crate::{AHasher};
 use core::fmt;
 use core::hash::BuildHasher;
-use core::sync::atomic::AtomicUsize;
-use core::sync::atomic::Ordering;
+use core::hash::Hasher;
+#[cfg(feature = "std")]
+use lazy_static::*;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::operations::folded_multiply;
-#[cfg(all(feature = "compile-time-rng", not(test)))]
-use const_random::const_random;
+#[cfg(feature = "std")]
+lazy_static! {
+    static ref SEEDS: [u64; 8] = {
+        let mut result: [u8; 64] = [0; 64];
+        getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
+        result.convert()
+    };
+}
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-///This constant come from Kunth's prng
-pub(crate) const MULTIPLE: u64 = 6364136223846793005;
-pub(crate) const INCREMENT: u64 = 1442695040888963407;
-
-// Const random provides randomized starting key with no runtime cost.
-#[cfg(all(feature = "compile-time-rng", not(test)))]
-pub(crate) const INIT_SEED: [u64; 2] = [const_random!(u64), const_random!(u64)];
-
-#[cfg(any(not(feature = "compile-time-rng"), test))]
-pub(crate) const INIT_SEED: [u64; 2] = [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]; //From PCG-64
-
-#[cfg(all(feature = "compile-time-rng", not(test)))]
-static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64) as usize);
-
-#[cfg(any(not(feature = "compile-time-rng"), test))]
-static SEED: AtomicUsize = AtomicUsize::new(INCREMENT as usize);
+pub(crate) const PI: [u64;4] = [0x243f_6a88_85a3_08d3, 0x1319_8a2e_0370_7344, 0xA409_3822_299F_31D0, 0x082E_FA98_EC4E_6C89];
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
@@ -49,48 +42,58 @@ impl fmt::Debug for RandomState {
 
 impl RandomState {
     #[inline]
+    #[cfg(feature = "std")]
     pub fn new() -> RandomState {
-        //Using a self pointer. When running with ASLR this is a random value.
-        let previous = SEED.load(Ordering::Relaxed) as u64;
-        let stack_mem_loc = &previous as *const _ as u64;
-        //This is similar to the update function in the fallback.
-        //only one multiply is needed because memory locations are not under an attackers control.
-        let current_seed = previous
-            .wrapping_add(stack_mem_loc)
-            .wrapping_mul(MULTIPLE)
-            .rotate_right(31);
-        SEED.store(current_seed as usize, Ordering::Relaxed);
-        let (k0, k1, k2, k3) = scramble_keys(&SEED as *const _ as u64, current_seed);
-        RandomState { k0, k1, k2, k3 }
+        let seeds = *SEEDS;
+        let mut hasher = AHasher::from_random_state(&RandomState{k0: seeds[0], k1: seeds[1], k2: seeds[2], k3: seeds[3]});
+        let stack_mem_loc = &hasher as *const _ as usize;
+        hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        let mix = |k: u64| {
+            let mut h = hasher.clone();
+            h.write_u64(k);
+            h.finish()
+        };
+        RandomState { k0: mix(seeds[4]), k1: mix(seeds[5]), k2: mix(seeds[6]), k3: mix(seeds[7]) }
+    }
+
+    #[inline]
+    #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+    pub fn new() -> RandomState {
+        let mut hasher = AHasher::from_random_state(&RandomState::with_fixed_keys());
+        let stack_mem_loc = &hasher as *const _ as usize;
+        hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        let mix = |k: u64| {
+            let mut h = hasher.clone();
+            h.write_u64(k);
+            h.finish()
+        };
+        RandomState { k0: mix(const_random!(u64)), k1: mix(const_random!(u64)), k2: mix(const_random!(u64)), k3: mix(const_random!(u64)) }
+    }
+
+    #[inline]
+    pub(crate) fn with_fixed_keys() -> RandomState {
+        #[cfg(feature = "std")]
+        {
+            let seeds = *SEEDS;
+            RandomState { k0: seeds[4], k1: seeds[5], k2: seeds[6], k3: seeds[7] }
+        }
+        #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+        {
+            RandomState { k0: const_random!(u64), k1: const_random!(u64), k2: const_random!(u64), k3: const_random!(u64) }
+        }
+        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+        {
+            RandomState { k0: PI[3], k1: PI[2], k2: PI[1], k3: PI[0] }
+        }        
     }
 
     /// Allows for explicitly setting the seeds to used.
-    pub const fn with_seeds(k0: u64, k1: u64) -> RandomState {
-        let (k0, k1, k2, k3) = scramble_keys(k0, k1);
+    pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState { k0, k1, k2, k3 }
     }
 }
 
-/// This is based on the fallback hasher
-#[inline]
-pub(crate) const fn scramble_keys(a: u64, b: u64) -> (u64, u64, u64, u64) {
-    let k1 = folded_multiply(INIT_SEED[0] ^ a, MULTIPLE).wrapping_add(b);
-    let k2 = folded_multiply(INIT_SEED[0] ^ b, MULTIPLE).wrapping_add(a);
-    let k3 = folded_multiply(INIT_SEED[1] ^ a, MULTIPLE).wrapping_add(b);
-    let k4 = folded_multiply(INIT_SEED[1] ^ b, MULTIPLE).wrapping_add(a);
-    let combined = folded_multiply(a ^ b, MULTIPLE).wrapping_add(INCREMENT);
-    let rot1 = (combined & 63) as u32;
-    let rot2 = ((combined >> 16) & 63) as u32;
-    let rot3 = ((combined >> 32) & 63) as u32;
-    let rot4 = ((combined >> 48) & 63) as u32;
-    (
-        k1.rotate_left(rot1),
-        k2.rotate_left(rot2),
-        k3.rotate_left(rot3),
-        k4.rotate_left(rot4),
-    )
-}
-
+#[cfg(any(feature = "std", feature = "compile-time-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
@@ -101,12 +104,10 @@ impl Default for RandomState {
 impl BuildHasher for RandomState {
     type Hasher = AHasher;
 
-    /// Constructs a new [AHasher] with keys based on compile time generated constants** and the location
-    /// this object was constructed at in memory. This means that two different [BuildHasher]s will will generate
+    /// Constructs a new [AHasher] with keys based on this [RandomState] object.
+    /// This means that two different [RandomState]s will will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
-    ///
-    /// ** - only if the `compile-time-rng` feature is enabled.
     ///
     /// # Examples
     ///
@@ -133,7 +134,7 @@ impl BuildHasher for RandomState {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        AHasher::new_with_keys([self.k0, self.k1].convert(), [self.k2, self.k3].convert())
+        AHasher::from_random_state(self)
     }
 }
 
@@ -141,13 +142,16 @@ impl BuildHasher for RandomState {
 mod test {
     use super::*;
 
+    #[cfg(feature = "std")]
     #[test]
-    fn test_const_rand_disabled() {
-        assert_eq!(INIT_SEED, [0x2360_ED05_1FC6_5DA4, 0x4385_DF64_9FCC_F645]);
+    fn test_unique() {
+        let a = RandomState::new();
+        let b = RandomState::new();
+        assert_ne!(a.build_hasher().finish(), b.build_hasher().finish());
     }
 
     #[test]
     fn test_with_seeds_const() {
-        const _CONST_RANDOM_STATE: RandomState = RandomState::with_seeds(17, 19);
+        const _CONST_RANDOM_STATE: RandomState = RandomState::with_seeds(17, 19, 21, 23);
     }
 }

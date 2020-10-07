@@ -93,7 +93,7 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     assert_eq!(2396744, map.len());
 }
 
-fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
+fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) {
     let mut a = constructor(1, 1);
     let mut b = constructor(1, 2);
     let mut c = constructor(2, 1);
@@ -110,7 +110,7 @@ fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
     assert_sufficiently_different(c.finish(), d.finish(), 1);
 }
 
-fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u64, u64) -> T) {
+fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) {
     let base = 0.get_hash(constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives = vec![];
@@ -124,13 +124,13 @@ fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u64, u64) -> 
 }
 
 ///Ensures that for every bit in the output there is some value for each byte in the key that flips it.
-fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl Fn(u64, u64) -> T) {
+fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl Fn(u128, u128) -> T) {
     let base = item.get_hash(constructor(0, 0));
-    for shift in 0..8 {
+    for shift in 0..16 {
         let mut alternitives1 = vec![];
         let mut alternitives2 = vec![];
         for v in 0..256 {
-            let input = (v as u64) << (shift * 8);
+            let input = (v as u128) << (shift * 8);
             let hasher1 = constructor(input, 0);
             let hasher2 = constructor(0, input);
             let h1 = item.get_hash(hasher1);
@@ -151,7 +151,7 @@ fn assert_each_byte_differs(base: u64, alternitives: Vec<u64>) {
     assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x}", changed_bits);
 }
 
-fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
+fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
     let mut hasher = constructor(1, 2);
     "Foo".hash(&mut hasher);
     let a = hasher.finish();
@@ -159,8 +159,8 @@ fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
     assert_eq!(a, b);
 }
 
-fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u64, u64) -> T) {
-    for bit in 0..64 {
+fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
+    for bit in 0..128 {
         let mut a = constructor(0, 0);
         let mut b = constructor(0, 1 << bit);
         let mut c = constructor(1 << bit, 0);
@@ -320,57 +320,58 @@ mod fallback_tests {
 
     #[test]
     fn fallback_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::test_with_keys(0, 0))
+        test_single_bit_flip(|| AHasher::new_with_keys(0, 0))
     }
 
     #[test]
     fn fallback_single_key_bit_flip() {
-        test_single_key_bit_flip(AHasher::test_with_keys)
+        test_single_key_bit_flip(AHasher::new_with_keys)
     }
 
     #[test]
     fn fallback_all_bytes_matter() {
-        test_all_bytes_matter(|| AHasher::test_with_keys(0, 0));
+        test_all_bytes_matter(|| AHasher::new_with_keys(0, 0));
     }
 
     #[test]
     fn fallback_test_no_pair_collisions() {
-        test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
+        test_no_pair_collisions(|| AHasher::new_with_keys(0, 0));
     }
 
     #[test]
     fn fallback_test_no_full_collisions() {
-        test_no_full_collisions(|| AHasher::test_with_keys(12345, 67890));
+        test_no_full_collisions(|| AHasher::new_with_keys(12345, 67890));
     }
 
     #[test]
     fn fallback_keys_change_output() {
-        test_keys_change_output(AHasher::test_with_keys);
+        test_keys_change_output(AHasher::new_with_keys);
     }
 
     #[test]
     fn fallback_input_affect_every_byte() {
-        test_input_affect_every_byte(AHasher::test_with_keys);
+        test_input_affect_every_byte(AHasher::new_with_keys);
     }
 
     #[test]
     fn fallback_keys_affect_every_byte() {
-        test_keys_affect_every_byte(0, AHasher::test_with_keys);
-        test_keys_affect_every_byte("", AHasher::test_with_keys);
-        test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
+        //For fallback second key is not used in every hash.
+        test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
+        test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
+        test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
     }
 
     #[test]
     fn fallback_finish_is_consistant() {
-        test_finish_is_consistent(AHasher::test_with_keys)
+        test_finish_is_consistent(AHasher::new_with_keys)
     }
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 0));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 1));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(1, 0));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(1, 1));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 0));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 1));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(1, 0));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(1, 1));
     }
 }
 
@@ -382,8 +383,8 @@ mod aes_tests {
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
 
-    const BAD_KEY: u64 = 0x5252_5252_5252_5252; //This encrypts to 0.
-    const BAD_KEY2: u64 = 0x6363_6363_6363_6363; //This decrypts to 0.
+    const BAD_KEY: u128 = 0x5252_5252_5252_5252_5252_5252_5252_5252; //This encrypts to 0.
+    const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363; //This decrypts to 0.
 
     #[test]
     fn test_single_bit_in_byte() {
@@ -396,56 +397,56 @@ mod aes_tests {
 
     #[test]
     fn aes_single_bit_flip() {
-        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
-        test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        test_single_bit_flip(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
+        test_single_bit_flip(|| AHasher::new_with_keys(BAD_KEY2, BAD_KEY2));
     }
 
     #[test]
     fn aes_single_key_bit_flip() {
-        test_single_key_bit_flip(|k1, k2| AHasher::test_with_keys(k1, k2))
+        test_single_key_bit_flip(AHasher::new_with_keys)
     }
 
     #[test]
     fn aes_all_bytes_matter() {
-        test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
-        test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        test_all_bytes_matter(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
+        test_all_bytes_matter(|| AHasher::new_with_keys(BAD_KEY2, BAD_KEY2));
     }
 
     #[test]
     fn aes_test_no_pair_collisions() {
-        test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
-        test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        test_no_pair_collisions(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
+        test_no_pair_collisions(|| AHasher::new_with_keys(BAD_KEY2, BAD_KEY2));
     }
 
     #[test]
     fn ase_test_no_full_collisions() {
-        test_no_full_collisions(|| AHasher::test_with_keys(12345, 67890));
+        test_no_full_collisions(|| AHasher::new_with_keys(12345, 67890));
     }
 
     #[test]
     fn aes_keys_change_output() {
-        test_keys_change_output(AHasher::test_with_keys);
+        test_keys_change_output(AHasher::new_with_keys);
     }
 
     #[test]
     fn aes_input_affect_every_byte() {
-        test_input_affect_every_byte(AHasher::test_with_keys);
+        test_input_affect_every_byte(AHasher::new_with_keys);
     }
 
     #[test]
     fn aes_keys_affect_every_byte() {
-        test_keys_affect_every_byte(0, AHasher::test_with_keys);
-        test_keys_affect_every_byte("", AHasher::test_with_keys);
-        test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
+        test_keys_affect_every_byte(0, AHasher::new_with_keys);
+        test_keys_affect_every_byte("", AHasher::new_with_keys);
+        test_keys_affect_every_byte((0, 0), AHasher::new_with_keys);
     }
     #[test]
     fn aes_finish_is_consistant() {
-        test_finish_is_consistent(AHasher::test_with_keys)
+        test_finish_is_consistent(AHasher::new_with_keys)
     }
 
     #[test]
     fn aes_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(BAD_KEY, BAD_KEY));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(BAD_KEY2, BAD_KEY2));
     }
 }

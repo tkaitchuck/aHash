@@ -3,9 +3,11 @@ use crate::operations::folded_multiply;
 #[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;
+use crate::RandomState;
+use crate::random_state::PI;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-const MULTIPLE: u64 = crate::random_state::MULTIPLE;
+const MULTIPLE: u64 = 6364136223846793005;
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
@@ -31,22 +33,23 @@ impl AHasher {
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub fn new_with_keys(key1: u128, key2: u128) -> AHasher {
+        let pi: [u128; 2] = PI.convert();
+        let key1: [u64; 2] = (key1 ^ pi[0]).convert();
+        let key2: [u64; 2] = (key2 ^ pi[1]).convert();
         AHasher {
-            buffer: key1 as u64,
-            pad: key2 as u64,
-            extra_keys: (key1 ^ key2).convert(),
+            buffer: key1[0],
+            pad: key1[1],
+            extra_keys: key2,
         }
     }
-
-    #[cfg(test)]
+ 
+    #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
-    pub(crate) fn test_with_keys(key1: u64, key2: u64) -> AHasher {
-        use crate::random_state::scramble_keys;
-        let (k1, k2, k3, k4) = scramble_keys(key1, key2);
+    pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher  {
         AHasher {
-            buffer: k1,
-            pad: k2,
-            extra_keys: [k3, k4],
+            buffer: rand_state.k0,
+            pad: rand_state.k1,
+            extra_keys: [rand_state.k2, rand_state.k3],
         }
     }
 
@@ -117,7 +120,9 @@ impl HasherExt for AHasher {
     }
 }
 
-/// Provides methods to hash all of the primitive types.
+/// Provides [Hasher] methods to hash all of the primitive types.
+///
+/// [Hasher]: core::hash::Hasher
 impl Hasher for AHasher {
     #[inline]
     fn write_u8(&mut self, i: u8) {
@@ -141,9 +146,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        let data: [u64; 2] = i.convert();
-        self.update(data[0]);
-        self.update(data[1]);
+        self.large_update(i);
     }
 
     #[inline]

@@ -36,8 +36,8 @@ fn hash_test_random_wrapper(num: i32, string: &str) {
 #[inline(never)]
 #[no_panic]
 fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
-    let hasher1 = RandomState::with_seeds(1, 2).build_hasher();
-    let hasher2 = RandomState::with_seeds(1, 2).build_hasher();
+    let hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+    let hasher2 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
     (num.get_hash(hasher1), string.as_bytes().get_hash(hasher2))
 }
 
