@@ -6,7 +6,7 @@ use core::hash::Hasher;
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
 /// for a specific type. So this may be faster for primitive types. It does however consume the hasher in the process.
-/// #Example
+/// # Example
 /// ```
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;

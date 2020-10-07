@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
-/// Requires the `std` feature to be enabled.
+/// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
 pub struct AHashMap<K, V, S = crate::RandomState>(HashMap<K, V, S>);
 
