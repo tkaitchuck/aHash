@@ -52,7 +52,7 @@ const MULTIPLE: u64 = 6364136223846793005;
 
 // Const random provides randomized starting key with no runtime cost.
 #[cfg(feature = "compile-time-rng")]
-static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64));
+static SEED: AtomicUsize = AtomicUsize::new(const_random!(u64) as usize);
 
 #[cfg(not(feature = "compile-time-rng"))]
 static SEED: AtomicUsize = AtomicUsize::new(MULTIPLE as usize);
