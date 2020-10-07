@@ -9,6 +9,18 @@ use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 #[derive(Clone)]
 pub struct AHashSet<T, S = crate::RandomState>(HashSet<T, S>);
 
+impl<T> From<HashSet<T,crate::RandomState>> for AHashSet<T> {
+    fn from(item: HashSet<T,crate::RandomState>) -> Self {
+        AHashSet(item)
+    }
+}
+
+impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
+    fn into(self) -> HashSet<T,crate::RandomState> {
+        self.0
+    }
+}
+
 impl<T, S> AHashSet<T, S>
 where
     T: Hash + Eq,

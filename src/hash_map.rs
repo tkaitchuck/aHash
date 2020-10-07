@@ -11,6 +11,18 @@ use std::panic::UnwindSafe;
 #[derive(Clone)]
 pub struct AHashMap<K, V, S = crate::RandomState>(HashMap<K, V, S>);
 
+impl<K, V> From<HashMap<K,V,crate::RandomState>> for AHashMap<K, V> {
+    fn from(item: HashMap<K,V,crate::RandomState>) -> Self {
+        AHashMap(item)
+    }
+}
+
+impl<K, V> Into<HashMap<K,V,crate::RandomState>> for AHashMap<K, V> {
+    fn into(self) -> HashMap<K,V,crate::RandomState> {
+        self.0
+    }
+}
+
 impl<K, V, S> AHashMap<K, V, S>
 where
     K: Hash + Eq,
