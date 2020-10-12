@@ -76,7 +76,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-unknown-linux-gnuu
+          target: x86_64-unknown-linux-gnu
           override: true
       - uses: actions-rs/cargo@v1
         with:
