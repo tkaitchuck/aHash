@@ -7,7 +7,7 @@ use crate::RandomState;
 use crate::random_state::PI;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-const MULTIPLE: u64 = 6364136223846793005;
+pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
