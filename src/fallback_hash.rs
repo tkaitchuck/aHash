@@ -5,7 +5,7 @@ use crate::HasherExt;
 use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-const MULTIPLE: u64 = crate::random_state::MULTIPLE;
+pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
