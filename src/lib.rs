@@ -30,9 +30,6 @@ mod hash_set;
 mod random_state;
 mod specialize;
 
-#[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
-use const_random::const_random;
-
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 pub use crate::aes_hash::AHasher;
 
