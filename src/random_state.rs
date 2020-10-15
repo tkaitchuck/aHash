@@ -1,5 +1,7 @@
 use crate::convert::Convert;
 use crate::{AHasher};
+#[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+use const_random::const_random;
 use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
