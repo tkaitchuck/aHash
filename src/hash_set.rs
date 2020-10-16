@@ -23,7 +23,6 @@ impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
 
 impl<T, S> AHashSet<T, S>
 where
-    T: Hash,
     S: BuildHasher + Default,
 {
     pub fn new() -> Self {
@@ -37,7 +36,6 @@ where
 
 impl<T, S> AHashSet<T, S>
 where
-    T: Hash,
     S: BuildHasher,
 {
     pub fn with_hasher(hash_builder: S) -> Self {
@@ -209,7 +207,7 @@ where
 
 impl<T, S> Debug for AHashSet<T, S>
 where
-    T: Eq + Hash + Debug,
+    T: Debug,
     S: BuildHasher,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -268,7 +266,6 @@ where
 
 impl<T, S> Default for AHashSet<T, S>
 where
-    T: Eq + Hash,
     S: BuildHasher + Default,
 {
     /// Creates an empty `AHashSet<T, S>` with the `Default` value for the hasher.
