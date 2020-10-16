@@ -6,6 +6,8 @@ use std::iter::FromIterator;
 use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
+use crate::RandomState;
+
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
@@ -23,28 +25,22 @@ impl<K, V> Into<HashMap<K,V,crate::RandomState>> for AHashMap<K, V> {
     }
 }
 
-impl<K, V, S> AHashMap<K, V, S>
+impl<K, V> AHashMap<K, V, RandomState>
 where
-    S: BuildHasher + Default,
 {
     pub fn new() -> Self {
-        AHashMap(HashMap::with_hasher(S::default()))
+        AHashMap(HashMap::with_hasher(RandomState::default()))
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashMap(HashMap::with_capacity_and_hasher(capacity, S::default()))
+        AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::default()))
     }
-}
 
-impl<K, V, S> AHashMap<K, V, S>
-where
-    S: BuildHasher,
-{
-    pub fn with_hasher(hash_builder: S) -> Self {
+    pub fn with_hasher(hash_builder: RandomState) -> Self {
         AHashMap(HashMap::with_hasher(hash_builder))
     }
 
-    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Self {
+    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: RandomState) -> Self {
         AHashMap(HashMap::with_capacity_and_hasher(capacity, hash_builder))
     }
 }
@@ -175,12 +171,9 @@ where
     }
 }
 
-impl<K, V, S> Default for AHashMap<K, V, S>
-where
-    S: BuildHasher + Default,
-{
+impl<K, V> Default for AHashMap<K, V, RandomState> {
     #[inline]
-    fn default() -> AHashMap<K, V, S> {
-        AHashMap::with_hasher(Default::default())
+    fn default() -> AHashMap<K, V, RandomState> {
+        AHashMap::new()
     }
 }

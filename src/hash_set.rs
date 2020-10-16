@@ -3,6 +3,7 @@ use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
+use crate::RandomState;
 
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
@@ -21,28 +22,20 @@ impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
     }
 }
 
-impl<T, S> AHashSet<T, S>
-where
-    S: BuildHasher + Default,
-{
+impl<T> AHashSet<T, RandomState> {
     pub fn new() -> Self {
-        AHashSet(HashSet::with_hasher(S::default()))
+        AHashSet(HashSet::with_hasher(RandomState::default()))
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashSet(HashSet::with_capacity_and_hasher(capacity, S::default()))
+        AHashSet(HashSet::with_capacity_and_hasher(capacity, RandomState::default()))
     }
-}
 
-impl<T, S> AHashSet<T, S>
-where
-    S: BuildHasher,
-{
-    pub fn with_hasher(hash_builder: S) -> Self {
+    pub fn with_hasher(hash_builder: RandomState) -> Self {
         AHashSet(HashSet::with_hasher(hash_builder))
     }
 
-    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: S) -> Self {
+    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: RandomState) -> Self {
         AHashSet(HashSet::with_capacity_and_hasher(capacity, hash_builder))
     }
 }
@@ -264,13 +257,10 @@ where
     }
 }
 
-impl<T, S> Default for AHashSet<T, S>
-where
-    S: BuildHasher + Default,
-{
+impl<T> Default for AHashSet<T, RandomState> {
     /// Creates an empty `AHashSet<T, S>` with the `Default` value for the hasher.
     #[inline]
-    fn default() -> AHashSet<T, S> {
+    fn default() -> AHashSet<T, RandomState> {
         AHashSet(HashSet::default())
     }
 }
