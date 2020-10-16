@@ -16,7 +16,12 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --no-default-features
+          args: --no-default-features 
+      - name: check constrandom
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --no-default-features --features compile-time-rng
       - name: check
         uses: actions-rs/cargo@v1
         with:
