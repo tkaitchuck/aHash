@@ -23,7 +23,7 @@ impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
 
 impl<T, S> AHashSet<T, S>
 where
-    T: Hash + Eq,
+    T: Hash,
     S: BuildHasher + Default,
 {
     pub fn new() -> Self {
@@ -37,7 +37,7 @@ where
 
 impl<T, S> AHashSet<T, S>
 where
-    T: Hash + Eq,
+    T: Hash,
     S: BuildHasher,
 {
     pub fn with_hasher(hash_builder: S) -> Self {

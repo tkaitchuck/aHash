@@ -25,7 +25,7 @@ impl<K, V> Into<HashMap<K,V,crate::RandomState>> for AHashMap<K, V> {
 
 impl<K, V, S> AHashMap<K, V, S>
 where
-    K: Hash + Eq,
+    K: Hash,
     S: BuildHasher + Default,
 {
     pub fn new() -> Self {
@@ -39,7 +39,7 @@ where
 
 impl<K, V, S> AHashMap<K, V, S>
 where
-    K: Hash + Eq,
+    K: Hash,
     S: BuildHasher,
 {
     pub fn with_hasher(hash_builder: S) -> Self {
