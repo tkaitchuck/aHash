@@ -8,13 +8,7 @@ macro_rules! convert {
             #[inline(always)]
             fn convert(self) -> $b {
                 unsafe {
-                    let mut result: $b = core::mem::zeroed();
-                    core::ptr::copy_nonoverlapping(
-                        &self as *const $a as *const u8,
-                        &mut result as *mut $b as *mut u8,
-                        core::mem::size_of::<$b>(),
-                    );
-                    return result;
+                    core::mem::transmute::<$a, $b>(self)
                 }
             }
         }
@@ -22,13 +16,7 @@ macro_rules! convert {
             #[inline(always)]
             fn convert(self) -> $a {
                 unsafe {
-                    let mut result: $a = core::mem::zeroed();
-                    core::ptr::copy_nonoverlapping(
-                        &self as *const $b as *const u8,
-                        &mut result as *mut $a as *mut u8,
-                        core::mem::size_of::<$a>(),
-                    );
-                    return result;
+                    core::mem::transmute::<$b, $a>(self)
                 }
             }
         }
