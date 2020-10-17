@@ -44,23 +44,7 @@ impl fmt::Debug for RandomState {
 
 impl RandomState {
     #[inline]
-    #[cfg(feature = "std")]
-    pub fn new() -> RandomState {
-        let seeds = *SEEDS;
-        let mut hasher = AHasher::from_random_state(&RandomState{k0: seeds[0], k1: seeds[1], k2: seeds[2], k3: seeds[3]});
-        let stack_mem_loc = &hasher as *const _ as usize;
-        hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
-        let mix = |k: u64| {
-            let mut h = hasher.clone();
-            h.write_u64(k);
-            h.finish()
-        };
-        RandomState { k0: mix(seeds[4]), k1: mix(seeds[5]), k2: mix(seeds[6]), k3: mix(seeds[7]) }
-    }
-
-    #[inline]
-    #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
-    pub fn new() -> RandomState {
+    fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         let mut hasher = AHasher::from_random_state(&RandomState::with_fixed_keys());
         let stack_mem_loc = &hasher as *const _ as usize;
         hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
@@ -69,15 +53,33 @@ impl RandomState {
             h.write_u64(k);
             h.finish()
         };
-        RandomState { k0: mix(const_random!(u64)), k1: mix(const_random!(u64)), k2: mix(const_random!(u64)), k3: mix(const_random!(u64)) }
+
+        RandomState { k0: mix(k0), k1: mix(k1), k2: mix(k2), k3: mix(k3) }
+    }
+
+    #[inline]
+    pub fn new() -> RandomState {
+        #[cfg(feature = "std")]
+        {
+            RandomState::generate_with(SEEDS[0], SEEDS[1], SEEDS[2], SEEDS[3])
+        }
+
+        #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+        {
+            RandomState::generate_with(const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64))
+        }
+
+        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+        {
+            RandomState::generate_with(PI[0], PI[1], PI[2], PI[3])
+        }
     }
 
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState {
         #[cfg(feature = "std")]
         {
-            let seeds = *SEEDS;
-            RandomState { k0: seeds[4], k1: seeds[5], k2: seeds[6], k3: seeds[7] }
+            RandomState { k0: SEEDS[4], k1: SEEDS[5], k2: SEEDS[6], k3: SEEDS[7] }
         }
         #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
         {
@@ -144,7 +146,6 @@ impl BuildHasher for RandomState {
 mod test {
     use super::*;
 
-    #[cfg(feature = "std")]
     #[test]
     fn test_unique() {
         let a = RandomState::new();
