@@ -1,3 +1,4 @@
+#[cfg(feature = "std")]
 use crate::convert::Convert;
 use crate::{AHasher};
 #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
@@ -11,7 +12,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 #[cfg(feature = "std")]
 lazy_static! {
-    static ref SEEDS: [u64; 8] = {
+    static ref SEEDS: [[u64; 4]; 2] = {
         let mut result: [u8; 64] = [0; 64];
         getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
         result.convert()
@@ -19,7 +20,33 @@ lazy_static! {
 }
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-pub(crate) const PI: [u64;4] = [0x243f_6a88_85a3_08d3, 0x1319_8a2e_0370_7344, 0xA409_3822_299F_31D0, 0x082E_FA98_EC4E_6C89];
+pub(crate) const PI: [u64; 4] = [
+    0x243f_6a88_85a3_08d3,
+    0x1319_8a2e_0370_7344,
+    0xa409_3822_299f_31d0,
+    0x082e_fa98_ec4e_6c89,
+];
+
+#[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+const PI2: [u64; 4] = [
+    0x4528_21e6_38d0_1377,
+    0xbe54_66cf_34e9_0c6c,
+    0xc0ac_29b7_c97c_50dd,
+    0x3f84_d5b5_b547_0917,
+];
+
+#[inline]
+pub(crate) fn seeds() -> [u64; 4] {
+    #[cfg(feature = "std")]
+    { SEEDS[1] }
+
+    #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+    { [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)] }
+
+    #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+    { PI }
+}
+
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
@@ -43,9 +70,39 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
+    /// Use randomly generated keys
     #[inline]
-    fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        let mut hasher = AHasher::from_random_state(&RandomState::with_fixed_keys());
+    pub fn new() -> RandomState {
+        #[cfg(feature = "std")]
+        {
+            RandomState::from_keys(SEEDS[0], SEEDS[1])
+        }
+
+        #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
+        {
+            RandomState::from_keys(
+                [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)],
+                [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)],
+            )
+        }
+
+        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+        {
+            RandomState::from_keys(PI, PI2)
+        }
+    }
+
+    /// Allows for supplying seeds, but each time it is called the resulting state will be different.
+    /// This is done using a static counter, so it can safely be used with a fixed keys.
+    #[inline]
+    pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
+        RandomState::from_keys(seeds(), [k0, k1, k2, k3])
+    }
+
+    fn from_keys(a: [u64; 4], b: [u64; 4]) -> RandomState {
+        let [k0, k1, k2, k3] = a;
+        let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
+
         let stack_mem_loc = &hasher as *const _ as usize;
         hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
         let mix = |k: u64| {
@@ -54,50 +111,23 @@ impl RandomState {
             h.finish()
         };
 
-        RandomState { k0: mix(k0), k1: mix(k1), k2: mix(k2), k3: mix(k3) }
+        RandomState { k0: mix(b[0]), k1: mix(b[1]), k2: mix(b[2]), k3: mix(b[3]) }
     }
 
-    #[inline]
-    pub fn new() -> RandomState {
-        #[cfg(feature = "std")]
-        {
-            RandomState::generate_with(SEEDS[0], SEEDS[1], SEEDS[2], SEEDS[3])
-        }
-
-        #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
-        {
-            RandomState::generate_with(const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64))
-        }
-
-        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
-        {
-            RandomState::generate_with(PI[0], PI[1], PI[2], PI[3])
-        }
-    }
-
+    /// Internal. Used by Default.
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState {
-        #[cfg(feature = "std")]
-        {
-            RandomState { k0: SEEDS[4], k1: SEEDS[5], k2: SEEDS[6], k3: SEEDS[7] }
-        }
-        #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
-        {
-            RandomState { k0: const_random!(u64), k1: const_random!(u64), k2: const_random!(u64), k3: const_random!(u64) }
-        }
-        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
-        {
-            RandomState { k0: PI[3], k1: PI[2], k2: PI[1], k3: PI[0] }
-        }        
+        let [k0, k1, k2, k3] = seeds();
+        RandomState { k0, k1, k2, k3 }
     }
 
     /// Allows for explicitly setting the seeds to used.
+    #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState { k0, k1, k2, k3 }
     }
 }
 
-#[cfg(any(feature = "std", feature = "compile-time-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {

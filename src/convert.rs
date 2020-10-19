@@ -68,6 +68,7 @@ convert!(u32, [u16; 2]);
 convert!(u32, [u8; 4]);
 convert!([u16; 2], [u8; 4]);
 convert!(u16, [u8; 2]);
+convert!([[u64; 4]; 2], [u8; 64]);
 
 convert!([f64; 2], [u8; 16]);
 convert!([f32; 4], [u8; 16]);
