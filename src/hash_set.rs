@@ -1,23 +1,23 @@
+use crate::RandomState;
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
-use crate::RandomState;
 
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
 pub struct AHashSet<T, S = crate::RandomState>(HashSet<T, S>);
 
-impl<T> From<HashSet<T,crate::RandomState>> for AHashSet<T> {
-    fn from(item: HashSet<T,crate::RandomState>) -> Self {
+impl<T> From<HashSet<T, crate::RandomState>> for AHashSet<T> {
+    fn from(item: HashSet<T, crate::RandomState>) -> Self {
         AHashSet(item)
     }
 }
 
-impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
-    fn into(self) -> HashSet<T,crate::RandomState> {
+impl<T> Into<HashSet<T, crate::RandomState>> for AHashSet<T> {
+    fn into(self) -> HashSet<T, crate::RandomState> {
         self.0
     }
 }

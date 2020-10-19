@@ -43,9 +43,10 @@ impl<K, V> AHashMap<K, V, RandomState> {
     }
 }
 
-impl<K, V> AHashMap<K, V, RandomState>
+impl<K, V, S> AHashMap<K, V, S>
 where
     K: Hash + Eq,
+    S: BuildHasher
 {
     /// Returns a reference to the value corresponding to the key.
     ///
