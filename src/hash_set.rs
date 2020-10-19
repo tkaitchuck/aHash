@@ -1,7 +1,7 @@
-use crate::RandomState;
+use crate::{RandomState, AHasher};
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
-use std::hash::{BuildHasher, Hash};
+use std::hash::{BuildHasher, Hash, BuildHasherDefault};
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 
@@ -36,6 +36,17 @@ impl<T> AHashSet<T, RandomState> {
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: RandomState) -> Self {
+        AHashSet(HashSet::with_capacity_and_hasher(capacity, hash_builder))
+    }
+}
+
+impl<T> AHashSet<T, BuildHasherDefault<AHasher>> {
+
+    pub fn with_hasher(hash_builder: BuildHasherDefault<AHasher>) -> Self {
+        AHashSet(HashSet::with_hasher(hash_builder))
+    }
+
+    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: BuildHasherDefault<AHasher>) -> Self {
         AHashSet(HashSet::with_capacity_and_hasher(capacity, hash_builder))
     }
 }

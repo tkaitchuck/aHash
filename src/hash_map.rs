@@ -1,12 +1,12 @@
 use std::borrow::Borrow;
 use std::collections::{hash_map, HashMap};
 use std::fmt::{self, Debug};
-use std::hash::{BuildHasher, Hash};
+use std::hash::{BuildHasher, Hash, BuildHasherDefault};
 use std::iter::FromIterator;
 use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
-use crate::RandomState;
+use crate::{RandomState, AHasher};
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
@@ -39,6 +39,17 @@ impl<K, V> AHashMap<K, V, RandomState> {
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hash_builder: RandomState) -> Self {
+        AHashMap(HashMap::with_capacity_and_hasher(capacity, hash_builder))
+    }
+}
+
+impl<K, V> AHashMap<K, V, BuildHasherDefault<AHasher>> {
+
+    pub fn with_hasher(hash_builder: BuildHasherDefault<AHasher>) -> Self {
+        AHashMap(HashMap::with_hasher(hash_builder))
+    }
+
+    pub fn with_capacity_and_hasher(capacity: usize, hash_builder: BuildHasherDefault<AHasher>) -> Self {
         AHashMap(HashMap::with_capacity_and_hasher(capacity, hash_builder))
     }
 }
