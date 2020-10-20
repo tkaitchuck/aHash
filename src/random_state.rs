@@ -102,6 +102,8 @@ impl RandomState {
 
         let stack_mem_loc = &hasher as *const _ as usize;
         hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
+        hasher.write_usize(&PI as *const _ as usize);
         let mix = |k: u64| {
             let mut h = hasher.clone();
             h.write_u64(k);

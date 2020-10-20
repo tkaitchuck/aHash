@@ -153,10 +153,12 @@ Where the input can be quickly mixed in a way that cannot be reversed without kn
 
 The aHash package has three flags:
 * `std`: This enables features which require the standard library. (On by default) This includes generating random keys and providing the utility classes `AHashMap` and `AHashSet`.
-* `compile-time-rng`: As an alternitive to `std` when it is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
+* `compile-time-rng`: As an alternative to `std` when it is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
 * `specialize`: This uses the specialization feature to provide optimized algorithms for primitive types. (This requires nightly)
 
-**NOTE: If neither `std` or `compile-time-rng` is available the keys used may be very weak**
+**NOTE:** If neither `std` or `compile-time-rng` aHash will fall back on using the numeric value of memory addresses as a source of randomness.
+This is somewhat strong if ALSR is turned on (it is by default) but for some embedded platforms where this is not available,
+this will result in weak keys. It is recommended to use `std` when it is available and `compile-time-rng` when developing for an embedded platform where `std` is not available.
 
 # Why use aHash over X
 
