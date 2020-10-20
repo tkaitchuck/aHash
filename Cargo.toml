@@ -21,8 +21,11 @@ doc = true
 [features]
 default = ["std"]
 
-# Enabling this will enable `AHashMap` and `AHashSet`
+# Enabling this will enable `AHashMap` and `AHashSet`, and runtime key generation.
 std = ["getrandom", "lazy_static"]
+
+# This is an alternitive to std which does compile time key generation so that the standard library is not required.
+# This implies the produced binary will not be identical. If both this and `std` are disabled constant keys are used.
 compile-time-rng = ["const-random"]
 
 # Enables specilization (requires nightly)

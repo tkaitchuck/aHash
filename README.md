@@ -149,6 +149,15 @@ because an attacker can easily just brute force the bottom N bits.
 From a cryptography point of view, a hashmap needs something closer to a block cypher.
 Where the input can be quickly mixed in a way that cannot be reversed without knowing a key.
 
+# Flags
+
+The aHash package has three flags:
+* `std`: This enables features which require the standard library. (On by default) This includes generating random keys and providing the utility classes `AHashMap` and `AHashSet`.
+* `compile-time-rng`: As an alternitive to `std` when it is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
+* `specialize`: This uses the specialization feature to provide optimized algorithms for primitive types. (This requires nightly)
+
+**NOTE: If neither `std` or `compile-time-rng` is available the keys used may be very weak**
+
 # Why use aHash over X
 
 ## SipHash
@@ -216,17 +225,13 @@ sense for a hashmap to work differently on a phone than on a server, or in wasm.
 
 If you need to persist or transmit a hash of a file, then using one of these is probably a good idea. HighwayHash seems to be the preferred solution du jour. But inside a simple Hashmap, stick with aHash.
 
-## AquaHash
-
-AquaHash is structured similarly to aHash. (Though the two were designed completely independently). AquaHash does not scale down nearly as well and
-does poorly with for example a single `i32` as input. Its only implementation at this point is in C++.
-
 ## t1ha
+Like aHash, t1ha is targeted at hashmaps and uses hardware instructions including AES for different platforms rather than having a single standard.
+T1ha is fast, but AHash is faster than t1ha both with and without AES. This is particularly true of smaller inputs such as integers.
+T1ha's hashes do not pass the full of the SMHasher test suite.
 
-T1ha is fairly fast at large sizes, and the output is of fairly high quality, but it is not clear what usecase it aims for.
-It has many different versions and is very complex, and uses hardware tricks, so one might infer it is meant for
-hashmaps like aHash. But any hash using it take at least **20ns**, and it doesn't outperform even SipHash until the
-input sizes are larger than 128 bytes and is not designed to be DOS resistant. So uses are likely niche.
+T1ha does not explicitly claim DOS resistance, but it is a keyed hash, and does not have any obvious way to force collisions.
+As of this writing there doesn't appear to be a maintained crate implementing the latest version of t1ha.
 
 # License
 
