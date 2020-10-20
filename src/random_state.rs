@@ -18,6 +18,7 @@ lazy_static! {
         result.convert()
     };
 }
+#[cfg(target_has_atomic = "ptr")]
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub(crate) const PI: [u64; 4] = [
@@ -101,7 +102,10 @@ impl RandomState {
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
 
         let stack_mem_loc = &hasher as *const _ as usize;
+        #[cfg(target_has_atomic = "ptr")]
         hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        #[cfg(not(target_has_atomic = "ptr"))]
+        hasher.write_usize(stack_mem_loc);
         #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
         hasher.write_usize(&PI as *const _ as usize);
         let mix = |k: u64| {
