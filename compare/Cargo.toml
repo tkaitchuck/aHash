@@ -1,0 +1,44 @@
+[package]
+name = "ahash-compare"
+version = "0.0.1"
+authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "A hash algorithm benchmark"
+documentation = "https://docs.rs/ahash"
+repository = "https://github.com/tkaitchuck/ahash"
+keywords = ["hash", "hashmap", "aes", "aes-ni", "no-std"]
+edition = "2018"
+readme = "README.md"
+
+[features]
+default = ["std"]
+std = ["ahash/std"]
+nightly = ["ahash/specialize"]
+compile-time-rng = ["ahash/compile-time-rng"]
+
+[[bench]]
+name = "compare"
+path = "tests/compare.rs"
+harness = false
+
+[profile.bench]
+opt-level = 3
+debug = false
+lto = 'fat'
+debug-assertions = false
+codegen-units = 1
+
+[dependencies]
+ahash = { path = "../", default-features = false }
+
+[dev-dependencies]
+criterion = "0.3.3"
+fnv = "1.0.7"
+fxhash = "0.2.1"
+farmhash = "1.1.5"
+highway = "0.5.0"
+metrohash = "1.0.6"
+siphasher = "0.3.3"
+t1ha = "0.1.0"
+wyhash = "0.4.1"
+twox-hash = "1.6.0"
