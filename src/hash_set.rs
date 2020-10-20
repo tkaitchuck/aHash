@@ -1,3 +1,4 @@
+use crate::{RandomState};
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
@@ -9,35 +10,30 @@ use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 #[derive(Clone)]
 pub struct AHashSet<T, S = crate::RandomState>(HashSet<T, S>);
 
-impl<T> From<HashSet<T,crate::RandomState>> for AHashSet<T> {
-    fn from(item: HashSet<T,crate::RandomState>) -> Self {
+impl<T> From<HashSet<T, crate::RandomState>> for AHashSet<T> {
+    fn from(item: HashSet<T, crate::RandomState>) -> Self {
         AHashSet(item)
     }
 }
 
-impl<T> Into<HashSet<T,crate::RandomState>> for AHashSet<T> {
-    fn into(self) -> HashSet<T,crate::RandomState> {
+impl<T> Into<HashSet<T, crate::RandomState>> for AHashSet<T> {
+    fn into(self) -> HashSet<T, crate::RandomState> {
         self.0
     }
 }
 
-impl<T, S> AHashSet<T, S>
-where
-    S: BuildHasher + Default,
-{
+impl<T> AHashSet<T, RandomState> {
     pub fn new() -> Self {
-        AHashSet(HashSet::with_hasher(S::default()))
+        AHashSet(HashSet::with_hasher(RandomState::default()))
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashSet(HashSet::with_capacity_and_hasher(capacity, S::default()))
+        AHashSet(HashSet::with_capacity_and_hasher(capacity, RandomState::default()))
     }
 }
 
-impl<T, S> AHashSet<T, S>
-where
-    S: BuildHasher,
-{
+impl<T, S> AHashSet<T, S> where S: BuildHasher {
+
     pub fn with_hasher(hash_builder: S) -> Self {
         AHashSet(HashSet::with_hasher(hash_builder))
     }
@@ -264,13 +260,10 @@ where
     }
 }
 
-impl<T, S> Default for AHashSet<T, S>
-where
-    S: BuildHasher + Default,
-{
+impl<T> Default for AHashSet<T, RandomState> {
     /// Creates an empty `AHashSet<T, S>` with the `Default` value for the hasher.
     #[inline]
-    fn default() -> AHashSet<T, S> {
+    fn default() -> AHashSet<T, RandomState> {
         AHashSet(HashSet::default())
     }
 }
