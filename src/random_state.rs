@@ -39,10 +39,8 @@ const PI2: [u64; 4] = [
 pub(crate) fn seeds() -> [u64; 4] {
     #[cfg(feature = "std")]
     { SEEDS[1] }
-
     #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
     { [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)] }
-
     #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
     { PI }
 }
@@ -75,9 +73,9 @@ impl RandomState {
     pub fn new() -> RandomState {
         #[cfg(feature = "std")]
         {
-            RandomState::from_keys(SEEDS[0], SEEDS[1])
+            let seeds = *SEEDS;
+            RandomState::from_keys(seeds[0], seeds[1])
         }
-
         #[cfg(all(not(feature = "std"), feature = "compile-time-rng"))]
         {
             RandomState::from_keys(
@@ -85,7 +83,6 @@ impl RandomState {
                 [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)],
             )
         }
-
         #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
         {
             RandomState::from_keys(PI, PI2)
