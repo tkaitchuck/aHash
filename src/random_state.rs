@@ -102,9 +102,11 @@ impl RandomState {
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
 
         let stack_mem_loc = &hasher as *const _ as usize;
-        #[cfg(not(all(target_arch="arm", target_feature="thumb-mode")))]
-        hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
-        #[cfg(all(target_arch="arm", target_feature="thumb-mode"))]
+        #[cfg(not(all(target_arch="arm", target_os="none")))]
+        {
+            hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        }
+        #[cfg(all(target_arch="arm", target_os="none"))]
         {
             let previous = COUNTER.load(Ordering::Relaxed);
             let new = previous.wrapping_add(stack_mem_loc);
