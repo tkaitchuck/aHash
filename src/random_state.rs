@@ -103,7 +103,9 @@ impl RandomState {
 
         let stack_mem_loc = &hasher as *const _ as usize;
         #[cfg(not(all(target_arch="arm", target_feature="thumb-mode")))]
-        hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        {
+            hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
+        }
         #[cfg(all(target_arch="arm", target_feature="thumb-mode"))]
         {
             let previous = COUNTER.load(Ordering::Relaxed);
