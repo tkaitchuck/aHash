@@ -18,7 +18,7 @@ lazy_static! {
         result.convert()
     };
 }
-#[cfg(all(not(target_arch = "armv5te"), not(target_arch = "thumbv6m")))]
+
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub(crate) const PI: [u64; 4] = [
@@ -102,10 +102,15 @@ impl RandomState {
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
 
         let stack_mem_loc = &hasher as *const _ as usize;
-        #[cfg(all(not(target_arch = "armv5te"), not(target_arch = "thumbv6m")))]
+        #[cfg(not(all(target_arch="arm", target_feature="thumb-mode")))]
         hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
-        #[cfg(any(target_arch = "anyarmv5te", target_arch = "thumbv6m"))]
-        hasher.write_usize(stack_mem_loc);
+        #[cfg(all(target_arch="arm", target_feature="thumb-mode"))]
+        {
+            let previous = COUNTER.load(Ordering::Relaxed);
+            let new = previous.wrapping_add(stack_mem_loc);
+            COUNTER.store(new, Ordering::Relaxed);
+            hasher.write_usize(new);
+        }
         #[cfg(all(not(feature = "std"), not(feature = "compile-time-rng")))]
         hasher.write_usize(&PI as *const _ as usize);
         let mix = |k: u64| {
