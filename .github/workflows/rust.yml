@@ -36,10 +36,10 @@ jobs:
             toolchain: nightly
             override: true
             components: clippy
-      - name: check specialize
+      - name: test specialize
         uses: actions-rs/cargo@v1
         with:
-          command: check
+          command: test
           args: --features specialize
   linux_arm7:
     name: Linux ARMv7

@@ -102,8 +102,9 @@ impl HasherExt for AHasher {
 
     #[inline]
     fn short_finish(&self) -> u64 {
-        let buffer: [u64; 2] = self.enc.convert();
-        folded_multiply(buffer[0], buffer[1])
+        let combined = aesdec(self.sum, self.enc);
+        let result: [u64; 2] = aesenc(combined, combined).convert();
+        result[0]
     }
 }
 
