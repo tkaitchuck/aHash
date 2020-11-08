@@ -54,6 +54,13 @@ macro_rules! call_hasher_impl {
                 hasher.hash_u64(*self as u64)
             }
         }
+        #[cfg(feature = "specialize")]
+        impl CallHasher for &$typ {
+            #[inline]
+            fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
+                hasher.hash_u64(**self as u64)
+            }
+        }
     };
 }
 call_hasher_impl!(u8);
@@ -92,8 +99,26 @@ impl CallHasher for [u8] {
     }
 }
 
+#[cfg(feature = "specialize")]
+impl CallHasher for &[u8] {
+    #[inline]
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
+        hasher.write(self);
+        hasher.finish()
+    }
+}
+
 #[cfg(all(feature = "specialize", feature = "std"))]
 impl CallHasher for Vec<u8> {
+    #[inline]
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
+        hasher.write(self);
+        hasher.finish()
+    }
+}
+
+#[cfg(all(feature = "specialize", feature = "std"))]
+impl CallHasher for &Vec<u8> {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self);
@@ -110,8 +135,26 @@ impl CallHasher for str {
     }
 }
 
+#[cfg(feature = "specialize")]
+impl CallHasher for &str {
+    #[inline]
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
+        hasher.write(self.as_bytes());
+        hasher.finish()
+    }
+}
+
 #[cfg(all(feature = "specialize", feature = "std"))]
 impl CallHasher for String {
+    #[inline]
+    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
+        hasher.write(self.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(all(feature = "specialize", feature = "std"))]
+impl CallHasher for &String {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
         hasher.write(self.as_bytes());
