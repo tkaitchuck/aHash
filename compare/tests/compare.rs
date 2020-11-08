@@ -26,179 +26,99 @@ fn create_string(len: usize) -> String {
 }
 
 fn compare_ahash(c: &mut Criterion) {
-    let int: u64 = 1234;
-    let string = create_string(1024);
     let builder = RandomState::new();
-    c.bench_with_input(BenchmarkId::new("compare_ahash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(ahash(&s, &builder))
+    let test = "compare_ahash";
+    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+        let name = "string".to_owned() + &num.to_string();
+        let string = create_string(*num);
+        c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
+            bencher.iter(|| {
+                black_box(ahash(s, &builder))
+            });
         });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_ahash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(ahash(&i, &builder));
+    }
+}
+
+fn compare_other<B: BuildHasher>(c: &mut Criterion, test: &str, builder: B) {
+    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+        let name = "string".to_owned() + &num.to_string();
+        let string = create_string(*num);
+        c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
+            bencher.iter(|| {
+                black_box(generic_hash(&s, &builder))
+            });
         });
-    });
+    }
 }
 
 fn compare_farmhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = BuildHasherDefault::<FarmHasher>::default();
-    c.bench_with_input(BenchmarkId::new("compare_farmhash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_farmhash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_farmhash", builder)
 }
 
 fn compare_fnvhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = FnvBuildHasher::default();
-    c.bench_with_input(BenchmarkId::new("compare_fnvhash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_fnvhash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_fnvhash", builder)
 }
 
 fn compare_fxhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = FxBuildHasher::default();
-    c.bench_with_input(BenchmarkId::new("compare_fxhash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_fxhash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_fxhash", builder)
 }
 
 fn compare_highway(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = highway::HighwayBuildHasher::default();
-    c.bench_with_input(BenchmarkId::new("compare_highway", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_highway", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_highway", builder)
 }
 
 fn compare_metro(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = metrohash::MetroBuildHasher::default();
-    c.bench_with_input(BenchmarkId::new("compare_metro", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_metro", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_metro", builder)
 }
 
 fn compare_t1ha(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = t1ha::T1haBuildHasher::default();
-    c.bench_with_input(BenchmarkId::new("compare_t1ha", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_t1ha", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_t1ha", builder)
 }
 
 fn compare_sip13(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = BuildHasherDefault::<siphasher::sip::SipHasher13>::default();
-    c.bench_with_input(BenchmarkId::new("compare_sip13", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_sip13", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_sip13", builder)
 }
 
 fn compare_sip24(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = BuildHasherDefault::<siphasher::sip::SipHasher24>::default();
-    c.bench_with_input(BenchmarkId::new("compare_sip24", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_sip24", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_sip24", builder)
 }
 
 fn compare_wyhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = BuildHasherDefault::<wyhash::WyHash>::default();
-    c.bench_with_input(BenchmarkId::new("compare_wyhash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_wyhash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_wyhash", builder)
 }
 
 fn compare_xxhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
     let builder = twox_hash::RandomXxHashBuilder64::default();
-    c.bench_with_input(BenchmarkId::new("compare_xxhash", "string"), &string, |bencher, s| {
-        bencher.iter(|| {
-            black_box(generic_hash(&s, &builder))
-        });
-    });
-    c.bench_with_input(BenchmarkId::new("compare_xxhash", "int"), &int, |bencher, i| {
-        bencher.iter(|| {
-            black_box(generic_hash(&i, &builder))
-        });
-    });
+    compare_other(c, "compare_xxhash", builder)
 }
 
 criterion_main!(compare);
