@@ -248,6 +248,7 @@ fn test_single_bit_flip<T: HasherExt>(hasher: impl Fn() -> T) {
     let compare_value = hash(&0u128, &hasher);
     for pos in 0..size {
         let test_value = hash(&(1u128 << pos), &hasher);
+        dbg!(compare_value, test_value);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
 }
@@ -356,6 +357,7 @@ mod fallback_tests {
     #[test]
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
+        #[cfg(not(feature = "specialize"))]
         test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
@@ -435,6 +437,7 @@ mod aes_tests {
 
     #[test]
     fn aes_keys_affect_every_byte() {
+        #[cfg(not(feature = "specialize"))]
         test_keys_affect_every_byte(0, AHasher::new_with_keys);
         test_keys_affect_every_byte("", AHasher::new_with_keys);
         test_keys_affect_every_byte((0, 0), AHasher::new_with_keys);
