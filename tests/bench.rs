@@ -1,4 +1,4 @@
-use ahash::{AHasher, CallHasher, RandomState};
+use ahash::{CallHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;
 use std::collections::hash_map::DefaultHasher;
