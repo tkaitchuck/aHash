@@ -7,6 +7,7 @@ description = "A non-cryptographic hash function using AES-NI for high performan
 documentation = "https://docs.rs/ahash"
 repository = "https://github.com/tkaitchuck/ahash"
 keywords = ["hash", "hasher", "hashmap", "aes", "no-std"]
+categories = ["algorithms", "data-structures", "no-std"]
 edition = "2018"
 readme = "README.md"
 

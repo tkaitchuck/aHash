@@ -8,6 +8,24 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! aHash is not a cryptographically secure hash.
+//!
+//! # Example
+//! ```
+//! use ahash::{AHasher, RandomState};
+//! use std::collections::HashMap;
+//!
+//! let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
+//! map.insert(12, 34);
+//! ```
+//! For convinence wrappers called `AHashMap` and `AHashSet` are also provided.
+//! These to the same thing with slightly less typing.
+//! ```
+//! use ahash::AHashMap;
+//!
+//! let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
+//! map.insert(12, 34);
+//! map.insert(56, 78);
+//! ```
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
