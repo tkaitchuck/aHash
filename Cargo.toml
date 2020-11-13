@@ -33,7 +33,7 @@ compile-time-rng = ["const-random"]
 specialize = []
 
 # Enable serialization and deserialization with serde.
-serde = ["serde"]
+use-serde = ["serde"]
 
 [[bench]]
 name = "ahash"
@@ -77,6 +77,7 @@ fnv = "1.0.5"
 fxhash = "0.2.1"
 hex = "0.4.2"
 rand = "0.7.3"
+serde_json = "1.0.59"
 
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+aes"]
