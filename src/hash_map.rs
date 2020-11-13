@@ -6,8 +6,8 @@ use std::iter::FromIterator;
 use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
-#[cfg(feature = "use-serde")]
-use serde::{
+#[cfg(feature = "serde")]
+use serde_crate::{
     ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
 };
@@ -323,7 +323,7 @@ impl<K, V> Default for AHashMap<K, V, RandomState> {
     }
 }
 
-#[cfg(feature = "use-serde")]
+#[cfg(feature = "serde")]
 impl<K, V> Serialize for AHashMap<K, V> 
 where K: Serialize + Eq + Hash,
       V: Serialize
@@ -333,7 +333,7 @@ where K: Serialize + Eq + Hash,
     }
 }
 
-#[cfg(feature = "use-serde")]
+#[cfg(feature = "serde")]
 impl<'de, K, V> Deserialize<'de> for AHashMap<K, V> 
 where K: Deserialize<'de> + Eq + Hash,
       V: Deserialize<'de>
@@ -354,7 +354,7 @@ mod test {
         map.insert("Bar".to_string(), map.get("foo").unwrap().to_owned());
     }
 
-    #[cfg(feature = "use-serde")]
+    #[cfg(feature = "serde")]
     #[test]
     fn test_serde() {
         let mut map = AHashMap::new();

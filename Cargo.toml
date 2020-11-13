@@ -33,7 +33,7 @@ compile-time-rng = ["const-random"]
 specialize = []
 
 # Enable serialization and deserialization with serde.
-use-serde = ["serde"]
+serde = ["serde_crate"]
 
 [[bench]]
 name = "ahash"
@@ -67,7 +67,12 @@ codegen-units = 1
 lazy_static = { version = "1.4.0", optional = true }
 getrandom = { version = "0.2.0", optional = true }
 const-random = { version = "0.1.6", optional = true }
-serde = { version = "1.0.117", optional = true }
+
+[dependencies.serde_crate]
+package = "serde"
+version = "1.0.117"
+optional = true
+
 
 [dev-dependencies]
 no-panic = "0.1.10"

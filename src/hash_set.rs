@@ -5,8 +5,8 @@ use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 
-#[cfg(feature = "use-serde")]
-use serde::{
+#[cfg(feature = "serde")]
+use serde_crate::{
     ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
 };
@@ -275,7 +275,7 @@ impl<T> Default for AHashSet<T, RandomState> {
     }
 }
 
-#[cfg(feature = "use-serde")]
+#[cfg(feature = "serde")]
 impl<T> Serialize for AHashSet<T> 
 where T: Serialize + Eq + Hash,
 {
@@ -284,7 +284,7 @@ where T: Serialize + Eq + Hash,
     }
 }
 
-#[cfg(feature = "use-serde")]
+#[cfg(feature = "serde")]
 impl<'de, T> Deserialize<'de> for AHashSet<T> 
 where T: Deserialize<'de> + Eq + Hash,
 {
@@ -294,7 +294,7 @@ where T: Deserialize<'de> + Eq + Hash,
     }
 }
 
-#[cfg(all(test, feature = "use-serde"))]
+#[cfg(all(test, feature = "serde"))]
 mod test {
     use super::*;
 
