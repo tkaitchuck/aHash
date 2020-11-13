@@ -5,6 +5,13 @@ use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 
+#[cfg(feature = "use-serde")]
+use serde::{
+    ser::{Serialize, Serializer},
+    de::{Deserialize, Deserializer},
+};
+
+
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
@@ -265,5 +272,39 @@ impl<T> Default for AHashSet<T, RandomState> {
     #[inline]
     fn default() -> AHashSet<T, RandomState> {
         AHashSet(HashSet::default())
+    }
+}
+
+#[cfg(feature = "use-serde")]
+impl<T> Serialize for AHashSet<T> 
+where T: Serialize + Eq + Hash,
+{
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.deref().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "use-serde")]
+impl<'de, T> Deserialize<'de> for AHashSet<T> 
+where T: Deserialize<'de> + Eq + Hash,
+{
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let hash_set =  HashSet::deserialize(deserializer);
+        hash_set.map(|hash_set| Self(hash_set))
+    }
+}
+
+#[cfg(all(test, feature = "use-serde"))]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_serde() {
+        let mut set = AHashSet::new();
+        set.insert("for".to_string());
+        set.insert("bar".to_string());
+        let serialization = serde_json::to_string(&set).unwrap();
+        let deserialization: AHashSet<String> = serde_json::from_str(&serialization).unwrap();
+        assert_eq!(deserialization, set);
     }
 }
