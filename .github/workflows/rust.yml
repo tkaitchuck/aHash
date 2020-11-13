@@ -56,6 +56,16 @@ jobs:
         with:
           command: test
           args: --features specialize
+      - name: check serde
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features serde
+      - name: test serde
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features serde
   linux_arm7:
     name: Linux ARMv7
     runs-on: ubuntu-latest
