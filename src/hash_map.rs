@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
 #[cfg(feature = "serde")]
-use serde_crate::{
+use serde::{
     ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
 };
