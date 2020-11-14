@@ -6,7 +6,7 @@ use std::iter::FromIterator;
 use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 
 #[cfg(feature = "serde")]
-use serde_crate::{
+use serde::{
     ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
 };
