@@ -6,6 +6,12 @@ use std::iter::FromIterator;
 use std::ops::{Deref, DerefMut, Index};
 use std::panic::UnwindSafe;
 
+#[cfg(feature = "serde")]
+use serde::{
+    ser::{Serialize, Serializer},
+    de::{Deserialize, Deserializer},
+};
+
 use crate::{RandomState};
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
@@ -317,6 +323,27 @@ impl<K, V> Default for AHashMap<K, V, RandomState> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<K, V> Serialize for AHashMap<K, V> 
+where K: Serialize + Eq + Hash,
+      V: Serialize
+{
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.deref().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, K, V> Deserialize<'de> for AHashMap<K, V> 
+where K: Deserialize<'de> + Eq + Hash,
+      V: Deserialize<'de>
+{
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let hash_map =  HashMap::deserialize(deserializer);
+        hash_map.map(|hash_map| Self(hash_map))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -325,5 +352,16 @@ mod test {
         let mut map: AHashMap<String, String> = AHashMap::new();
         map.insert("foo".to_string(), "Bar".to_string());
         map.insert("Bar".to_string(), map.get("foo").unwrap().to_owned());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde() {
+        let mut map = AHashMap::new();
+        map.insert("for".to_string(), 0);
+        map.insert("bar".to_string(), 1);
+        let serialization = serde_json::to_string(&map).unwrap();
+        let deserialization: AHashMap<String, u64> = serde_json::from_str(&serialization).unwrap();
+        assert_eq!(deserialization, map);
     }
 }
