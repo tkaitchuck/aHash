@@ -50,16 +50,17 @@ map.insert(56, 78);
 
 ## Flags
 
-The aHash package has three flags:
-* `std`: This enables features which require the standard library. (On by default) This includes generating random keys and providing the utility classes `AHashMap` and `AHashSet`.
-* `compile-time-rng`: As an alternative to `std` when it is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
+The aHash package has several flags:
+* `std`: This enables features which require the standard library. (On by default) This includes providing the utility classes `AHashMap` and `AHashSet`.
+* `runtime-rng`: This generates random keys for each hasher at runtime using the `getrandom` crate. (On by default)
+* `compile-time-rng`: As an alternative to `runtime-rng` when random is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
 Note that this has the effect of making the output of the build non-deterministic. 
 * `specialize`: This uses the specialization feature to provide optimized algorithms for primitive types. (This requires nightly)
 
-**NOTE:** If neither `std` or `compile-time-rng` aHash will fall back on using the numeric value of memory addresses as a source of randomness.
+**NOTE:** If neither `runtime-rng` or `compile-time-rng` aHash will fall back on using the numeric value of memory addresses as a source of randomness.
 This is somewhat strong if ALSR is turned on (it is by default) but for some embedded platforms where this is not available,
-this will result in weak keys. As a result, it is strongly recommended to use `std` when it is available and `compile-time-rng` when developing for an embedded platform where `std` is not available.
-(If both are enabled `std` will take precedence and `compile-time-rng` will have no effect.)
+this will result in weak keys. As a result, it is strongly recommended to use `runtime-rng` when `getrandom` is available for the target platform and `compile-time-rng` when developing for an embedded platform where it is not available.
+(If both are enabled `runtime-rng` will take precedence and `compile-time-rng` will have no effect.)
 
 
 ## Comparison with other hashers
