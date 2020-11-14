@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.5.8"
+version = "0.6.0"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -20,13 +20,16 @@ bench = true
 doc = true
 
 [features]
-default = ["std"]
+default = ["std", "runtime-rng"]
 
-# Enabling this will enable `AHashMap` and `AHashSet`, and runtime key generation.
-std = ["getrandom", "lazy_static"]
+# Enabling this will enable `AHashMap` and `AHashSet`.
+std = []
 
-# This is an alternitive to std which does compile time key generation so that the standard library is not required.
-# This implies the produced binary will not be identical. If both this and `std` are disabled constant keys are used.
+# This will enable runtime key generation.
+runtime-rng = ["getrandom", "lazy_static"]
+
+# This is an alternitive to runtime-rng which does compile time key generation so that gerrandom is not required.
+# This implies the produced binary will not be identical. If both this and `runtime-rng` are disabled constant keys are used.
 compile-time-rng = ["const-random"]
 
 # Enables specilization (requires nightly)
@@ -61,7 +64,7 @@ debug-assertions = false
 codegen-units = 1
 
 [dependencies]
-lazy_static = { version = "1.4.0", optional = true }
+lazy_static = { version = "1.4.0", features = ["spin_no_std"], optional = true }
 getrandom = { version = "0.2.0", optional = true }
 const-random = { version = "0.1.6", optional = true }
 serde = { version = "1.0.117", optional = true }
