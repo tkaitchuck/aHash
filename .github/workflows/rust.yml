@@ -126,3 +126,18 @@ jobs:
           use-cross: true
           command: check
           args: --target thumbv6m-none-eabi --no-default-features
+  wasm32-unknown-unknown:
+    name: wasm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: check
+          args: --target wasm32-unknown-unknown
