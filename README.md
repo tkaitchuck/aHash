@@ -50,16 +50,20 @@ map.insert(56, 78);
 
 ## Flags
 
-The aHash package has several flags:
+The aHash package has the following flags:
 * `std`: This enables features which require the standard library. (On by default) This includes providing the utility classes `AHashMap` and `AHashSet`.
-* `runtime-rng`: This generates random keys for each hasher at runtime using the `getrandom` crate. (On by default)
-* `compile-time-rng`: As an alternative to `runtime-rng` when random is not available, this generates Random numbers for keys at compile time. This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
-Note that this has the effect of making the output of the build non-deterministic. 
+* `compile-time-rng`: Whenever possible aHash will seed hashers with random numbers using the [getrandom](https://github.com/rust-random/getrandom) crate. 
+This is possible for OS targets which provide a source of randomness. (see the [full list](https://docs.rs/getrandom/0.2.0/getrandom/#supported-targets).)
+For OS targets without access to a random number generator, `compile-time-rng` provides an alternative.
+If `getrandom` is unavailable and `compile-time-rng` is enabled, aHash will generate random numbers at compile time and embed them in the binary.
+This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
+This makes the binary non-deterministic, unless `getrandom` is available for the target in which case the flag does nothing.
+(If non-determinism is a problem see [constrandom's documentation](https://github.com/tkaitchuck/constrandom#deterministic-builds))
 
-**NOTE:** If neither `runtime-rng` or `compile-time-rng` aHash will fall back on using the numeric value of memory addresses as a source of randomness.
-This is somewhat strong if ALSR is turned on (it is by default) but for some embedded platforms where this is not available,
-this will result in weak keys. As a result, it is strongly recommended to use `runtime-rng` when `getrandom` is available for the target platform and `compile-time-rng` when developing for an embedded platform where it is not available.
-(If both are enabled `runtime-rng` will take precedence and `compile-time-rng` will have no effect.)
+**NOTE:** If `getrandom` is unavailable and `compile-time-rng` is disabled aHash will fall back on using the numeric 
+value of memory addresses as a source of randomness. This is somewhat strong if ALSR is turned on (it is by default)
+but for embedded platforms this will result in weak keys. As a result, it is recommended to use `compile-time-rng` anytime
+random numbers will not be available at runtime.
 
 ## Comparison with other hashers
 
