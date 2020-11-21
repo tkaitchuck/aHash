@@ -202,4 +202,17 @@ mod test {
         assert_ne!(4, xored);
         assert_ne!(5, xored);
     }
+
+    #[test]
+    pub fn test_ref_independent() {
+        let hasher = || AHasher::new_with_keys(3, 2);
+        assert_eq!((&1_u8).get_hash(hasher()), 1_u8.get_hash(hasher()));
+        assert_eq!((&2_u16).get_hash(hasher()), 2_u16.get_hash(hasher()));
+        assert_eq!((&3_u32).get_hash(hasher()), 3_u32.get_hash(hasher()));
+        assert_eq!((&4_u64).get_hash(hasher()), 4_u64.get_hash(hasher()));
+        assert_eq!((&5_u128).get_hash(hasher()), 5_u128.get_hash(hasher()));
+        assert_eq!((&"test").get_hash(hasher()), "test".get_hash(hasher()));
+        assert_eq!((&"test").get_hash(hasher()), "test".to_string().get_hash(hasher()));
+        assert_eq!((&"test"[..]).get_hash(hasher()), "test".to_string().into_bytes().get_hash(hasher()));
+    }
 }
