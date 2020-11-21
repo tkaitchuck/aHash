@@ -61,6 +61,12 @@ There are efforts to build a secure hash function that uses AES-NI for accelerat
 
 ## How is aHash so fast
 
+AHash uses a number of tricks. 
+
+One trick is taking advantage of specialization. If aHash is compiled on nightly it will take
+advantage of specialized hash implementations for strings, slices, and primitives. 
+
+Another is taking advantage of hardware instructions.
 When it is available aHash uses AES rounds using the AES-NI instruction. AES-NI is very fast (on an intel i7-6700 it 
 is as fast as a 64 bit multiplication.) and handles 16 bytes of input at a time, while being a very strong permutation.
 
