@@ -357,7 +357,7 @@ mod fallback_tests {
     #[test]
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
-        #[cfg(not(feature = "specialize"))]
+        #[cfg(not(specialize))]
         test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
@@ -437,7 +437,7 @@ mod aes_tests {
 
     #[test]
     fn aes_keys_affect_every_byte() {
-        #[cfg(not(feature = "specialize"))]
+        #[cfg(not(specialize))]
         test_keys_affect_every_byte(0, AHasher::new_with_keys);
         test_keys_affect_every_byte("", AHasher::new_with_keys);
         test_keys_affect_every_byte((0, 0), AHasher::new_with_keys);
