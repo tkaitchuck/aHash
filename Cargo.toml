@@ -21,16 +21,13 @@ bench = true
 doc = true
 
 [features]
-default = ["std", "runtime-rng"]
+default = ["std"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
 
-# This will enable runtime key generation.
-runtime-rng = ["getrandom", "lazy_static"]
-
-# This is an alternitive to runtime-rng which does compile time key generation so that gerrandom is not required.
-# This implies the produced binary will not be identical. If both this and `runtime-rng` are disabled constant keys are used.
+# This is an alternitive to runtime key generation which does compile time key generation if gerrandom is not available.
+# This implies the produced binary will not be identical. If this is disabled and gerrandom is unavailable constant keys are used.
 compile-time-rng = ["const-random"]
 
 [[bench]]
@@ -64,9 +61,13 @@ codegen-units = 1
 [build-dependencies]
 version_check = "0.9"
 
-[dependencies]
-lazy_static = { version = "1.4.0", features = ["spin_no_std"], optional = true }
-getrandom = { version = "0.2.0", optional = true }
+[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
+lazy_static = { version = "1.4.0" }
+getrandom = { version = "0.2.0" }
+const-random = { version = "0.1.6", optional = true }
+serde = { version = "1.0.117", optional = true }
+
+[target.'cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi")))'.dependencies]
 const-random = { version = "0.1.6", optional = true }
 serde = { version = "1.0.117", optional = true }
 
