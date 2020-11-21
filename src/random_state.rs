@@ -193,6 +193,12 @@ mod test {
         assert_ne!(a.build_hasher().finish(), b.build_hasher().finish());
     }
 
+    #[cfg(feature = "runtime-rng")]
+    #[test]
+    fn test_not_pi() {
+        assert_ne!(PI, seeds());
+    }
+
     #[test]
     fn test_with_seeds_const() {
         const _CONST_RANDOM_STATE: RandomState = RandomState::with_seeds(17, 19, 21, 23);

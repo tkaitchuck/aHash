@@ -1,6 +1,6 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
-#[cfg(specialize)]
+#[cfg(feature = "specialize")]
 use crate::HasherExt;
 use core::hash::Hasher;
 use crate::RandomState;
@@ -106,7 +106,7 @@ impl AHasher {
     }
 }
 
-#[cfg(specialize)]
+#[cfg(feature = "specialize")]
 impl HasherExt for AHasher {
     #[inline]
     fn hash_u64(self, value: u64) -> u64 {
