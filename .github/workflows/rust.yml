@@ -50,12 +50,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --features specialize
       - name: test specialize
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features specialize
       - name: check serde
         uses: actions-rs/cargo@v1
         with:

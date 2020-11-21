@@ -1,4 +1,4 @@
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 use crate::HasherExt;
 use core::hash::Hash;
 use core::hash::Hasher;
@@ -21,7 +21,7 @@ pub trait CallHasher: Hash {
     fn get_hash<H: Hasher>(&self, hasher: H) -> u64;
 }
 
-#[cfg(not(feature = "specialize"))]
+#[cfg(not(specialize))]
 impl<T> CallHasher for T
 where
     T: Hash,
@@ -33,7 +33,7 @@ where
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl<T> CallHasher for T
 where
     T: Hash,
@@ -47,14 +47,14 @@ where
 
 macro_rules! call_hasher_impl {
     ($typ:ty) => {
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         impl CallHasher for $typ {
             #[inline]
             fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
                 hasher.hash_u64(*self as u64)
             }
         }
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         impl CallHasher for &$typ {
             #[inline]
             fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
@@ -72,7 +72,7 @@ call_hasher_impl!(i16);
 call_hasher_impl!(i32);
 call_hasher_impl!(i64);
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for u128 {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -81,7 +81,7 @@ impl CallHasher for u128 {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for i128 {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -90,7 +90,7 @@ impl CallHasher for i128 {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for [u8] {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -99,7 +99,7 @@ impl CallHasher for [u8] {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for &[u8] {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -108,7 +108,7 @@ impl CallHasher for &[u8] {
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(all(specialize, feature = "std"))]
 impl CallHasher for Vec<u8> {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -117,7 +117,7 @@ impl CallHasher for Vec<u8> {
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(all(specialize, feature = "std"))]
 impl CallHasher for &Vec<u8> {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -126,7 +126,7 @@ impl CallHasher for &Vec<u8> {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for str {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -135,7 +135,7 @@ impl CallHasher for str {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for &str {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -144,7 +144,7 @@ impl CallHasher for &str {
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(all(specialize, feature = "std"))]
 impl CallHasher for String {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -153,7 +153,7 @@ impl CallHasher for String {
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(all(specialize, feature = "std"))]
 impl CallHasher for &String {
     #[inline]
     fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
@@ -168,7 +168,7 @@ mod test {
     use crate::*;
 
     #[test]
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     pub fn test_specialized_invoked() {
         let shortened = 0_u64.get_hash(AHasher::new_with_keys(1, 2));
         let mut hasher = AHasher::new_with_keys(1, 2);

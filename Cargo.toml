@@ -10,6 +10,7 @@ keywords = ["hash", "hasher", "hashmap", "aes", "no-std"]
 categories = ["algorithms", "data-structures", "no-std"]
 edition = "2018"
 readme = "README.md"
+build = "./build.rs"
 
 [lib]
 name = "ahash"
@@ -31,9 +32,6 @@ runtime-rng = ["getrandom", "lazy_static"]
 # This is an alternitive to runtime-rng which does compile time key generation so that gerrandom is not required.
 # This implies the produced binary will not be identical. If both this and `runtime-rng` are disabled constant keys are used.
 compile-time-rng = ["const-random"]
-
-# Enables specilization (requires nightly)
-specialize = []
 
 [[bench]]
 name = "ahash"
@@ -62,6 +60,9 @@ debug = false
 lto = 'fat'
 debug-assertions = false
 codegen-units = 1
+
+[build-dependencies]
+version_check = "0.9"
 
 [dependencies]
 lazy_static = { version = "1.4.0", features = ["spin_no_std"], optional = true }
