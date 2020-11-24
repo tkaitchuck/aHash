@@ -3,6 +3,14 @@ use crate::HasherExt;
 use core::hash::Hash;
 use core::hash::Hasher;
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std as alloc;
+
+use alloc::string::String;
+use alloc::vec::Vec;
+
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
 /// for a specific type. So this may be faster for primitive types. It does however consume the hasher in the process.
@@ -15,20 +23,20 @@ use core::hash::Hasher;
 /// let hash_builder = RandomState::new();
 /// //...
 /// let value = 17;
-/// let hash = value.get_hash(hash_builder.build_hasher());
+/// let hash = u32::get_hash(&value, hash_builder.build_hasher());
 /// ```
-pub trait CallHasher: Hash {
-    fn get_hash<H: Hasher>(&self, hasher: H) -> u64;
+pub trait CallHasher {
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64;
 }
 
 #[cfg(not(feature = "specialize"))]
 impl<T> CallHasher for T
 where
-    T: Hash,
+    T: Hash + ?Sized,
 {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        self.hash(&mut hasher);
+    fn get_hash<H: Hasher>(value: &T, mut hasher: H) -> u64 {
+        value.hash(&mut hasher);
         hasher.finish()
     }
 }
@@ -36,11 +44,11 @@ where
 #[cfg(feature = "specialize")]
 impl<T> CallHasher for T
 where
-    T: Hash,
+    T: Hash + ?Sized,
 {
     #[inline]
-    default fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        self.hash(&mut hasher);
+    default fn get_hash<H: Hasher>(value: &T, mut hasher: H) -> u64 {
+        value.hash(&mut hasher);
         hasher.finish()
     }
 }
@@ -50,15 +58,22 @@ macro_rules! call_hasher_impl {
         #[cfg(feature = "specialize")]
         impl CallHasher for $typ {
             #[inline]
-            fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
-                hasher.hash_u64(*self as u64)
+            fn get_hash<H: Hasher>(value: &$typ, hasher: H) -> u64 {
+                hasher.hash_u64(*value as u64)
             }
         }
         #[cfg(feature = "specialize")]
         impl CallHasher for &$typ {
             #[inline]
-            fn get_hash<H: Hasher>(&self, hasher: H) -> u64 {
-                hasher.hash_u64(**self as u64)
+            fn get_hash<H: Hasher>(value: &&$typ, hasher: H) -> u64 {
+                hasher.hash_u64(**value as u64)
+            }
+        }
+        #[cfg(feature = "specialize")]
+        impl CallHasher for &&$typ {
+            #[inline]
+            fn get_hash<H: Hasher>(value: &&&$typ, hasher: H) -> u64 {
+                hasher.hash_u64(***value as u64)
             }
         }
     };
@@ -75,8 +90,24 @@ call_hasher_impl!(i64);
 #[cfg(feature = "specialize")]
 impl CallHasher for u128 {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write_u128(*self);
+    fn get_hash<H: Hasher>(value: &u128, mut hasher: H) -> u64 {
+        hasher.write_u128(*value);
+        hasher.short_finish()
+    }
+}
+
+impl CallHasher for &u128 {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &&u128, mut hasher: H) -> u64 {
+        hasher.write_u128(**value);
+        hasher.short_finish()
+    }
+}
+
+impl CallHasher for &&u128 {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &&&u128, mut hasher: H) -> u64 {
+        hasher.write_u128(***value);
         hasher.short_finish()
     }
 }
@@ -84,8 +115,26 @@ impl CallHasher for u128 {
 #[cfg(feature = "specialize")]
 impl CallHasher for i128 {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write_u128(*self as u128);
+    fn get_hash<H: Hasher>(value: &i128,  mut hasher: H) -> u64 {
+        hasher.write_u128(*value as u128);
+        hasher.short_finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for &i128 {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &&i128,  mut hasher: H) -> u64 {
+        hasher.write_u128(**value as u128);
+        hasher.short_finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for &&i128 {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &&&i128,  mut hasher: H) -> u64 {
+        hasher.write_u128(***value as u128);
         hasher.short_finish()
     }
 }
@@ -93,8 +142,8 @@ impl CallHasher for i128 {
 #[cfg(feature = "specialize")]
 impl CallHasher for [u8] {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self);
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value);
         hasher.finish()
     }
 }
@@ -102,26 +151,44 @@ impl CallHasher for [u8] {
 #[cfg(feature = "specialize")]
 impl CallHasher for &[u8] {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self);
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(*value);
         hasher.finish()
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(feature = "specialize")]
+impl CallHasher for &&[u8] {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(**value);
+        hasher.finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
 impl CallHasher for Vec<u8> {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self);
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value);
         hasher.finish()
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(feature = "specialize")]
 impl CallHasher for &Vec<u8> {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self);
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(*value);
+        hasher.finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for &&Vec<u8> {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(**value);
         hasher.finish()
     }
 }
@@ -129,8 +196,8 @@ impl CallHasher for &Vec<u8> {
 #[cfg(feature = "specialize")]
 impl CallHasher for str {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self.as_bytes());
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
         hasher.finish()
     }
 }
@@ -138,26 +205,62 @@ impl CallHasher for str {
 #[cfg(feature = "specialize")]
 impl CallHasher for &str {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self.as_bytes());
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
         hasher.finish()
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(feature = "specialize")]
+impl CallHasher for &&str {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl CallHasher for &&&str {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(all(feature = "specialize"))]
 impl CallHasher for String {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self.as_bytes());
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
         hasher.finish()
     }
 }
 
-#[cfg(all(feature = "specialize", feature = "std"))]
+#[cfg(all(feature = "specialize"))]
 impl CallHasher for &String {
     #[inline]
-    fn get_hash<H: Hasher>(&self, mut hasher: H) -> u64 {
-        hasher.write(self.as_bytes());
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(all(feature = "specialize"))]
+impl CallHasher for &&String {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
+        hasher.finish()
+    }
+}
+
+#[cfg(all(feature = "specialize"))]
+impl CallHasher for &&&String {
+    #[inline]
+    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
+        hasher.write(value.as_bytes());
         hasher.finish()
     }
 }
@@ -170,7 +273,7 @@ mod test {
     #[test]
     #[cfg(feature = "specialize")]
     pub fn test_specialized_invoked() {
-        let shortened = 0_u64.get_hash(AHasher::new_with_keys(1, 2));
+        let shortened = u64::get_hash(&0, AHasher::new_with_keys(1, 2));
         let mut hasher = AHasher::new_with_keys(1, 2);
         0_u64.hash(&mut hasher);
         assert_ne!(hasher.finish(), shortened);
@@ -180,21 +283,21 @@ mod test {
     #[test]
     pub fn test_input_processed() {
         let hasher = || AHasher::new_with_keys(3, 2);
-        assert_ne!(0, 0_u64.get_hash(hasher()));
-        assert_ne!(1, 0_u64.get_hash(hasher()));
-        assert_ne!(2, 0_u64.get_hash(hasher()));
-        assert_ne!(3, 0_u64.get_hash(hasher()));
-        assert_ne!(4, 0_u64.get_hash(hasher()));
-        assert_ne!(5, 0_u64.get_hash(hasher()));
+        assert_ne!(0, u64::get_hash(&0, hasher()));
+        assert_ne!(1, u64::get_hash(&0, hasher()));
+        assert_ne!(2, u64::get_hash(&0, hasher()));
+        assert_ne!(3, u64::get_hash(&0, hasher()));
+        assert_ne!(4, u64::get_hash(&0, hasher()));
+        assert_ne!(5, u64::get_hash(&0, hasher()));
 
-        assert_ne!(0, 1_u64.get_hash(hasher()));
-        assert_ne!(1, 1_u64.get_hash(hasher()));
-        assert_ne!(2, 1_u64.get_hash(hasher()));
-        assert_ne!(3, 1_u64.get_hash(hasher()));
-        assert_ne!(4, 1_u64.get_hash(hasher()));
-        assert_ne!(5, 1_u64.get_hash(hasher()));
+        assert_ne!(0, u64::get_hash(&1, hasher()));
+        assert_ne!(1, u64::get_hash(&1, hasher()));
+        assert_ne!(2, u64::get_hash(&1, hasher()));
+        assert_ne!(3, u64::get_hash(&1, hasher()));
+        assert_ne!(4, u64::get_hash(&1, hasher()));
+        assert_ne!(5, u64::get_hash(&1, hasher()));
 
-        let xored = 0_u64.get_hash(hasher()) ^ 1_u64.get_hash(hasher());
+        let xored = u64::get_hash(&0, hasher()) ^ u64::get_hash(&1, hasher());
         assert_ne!(0, xored);
         assert_ne!(1, xored);
         assert_ne!(2, xored);
@@ -206,13 +309,23 @@ mod test {
     #[test]
     pub fn test_ref_independent() {
         let hasher = || AHasher::new_with_keys(3, 2);
-        assert_eq!((&1_u8).get_hash(hasher()), 1_u8.get_hash(hasher()));
-        assert_eq!((&2_u16).get_hash(hasher()), 2_u16.get_hash(hasher()));
-        assert_eq!((&3_u32).get_hash(hasher()), 3_u32.get_hash(hasher()));
-        assert_eq!((&4_u64).get_hash(hasher()), 4_u64.get_hash(hasher()));
-        assert_eq!((&5_u128).get_hash(hasher()), 5_u128.get_hash(hasher()));
-        assert_eq!((&"test").get_hash(hasher()), "test".get_hash(hasher()));
-        assert_eq!((&"test").get_hash(hasher()), "test".to_string().get_hash(hasher()));
-        assert_eq!((&"test"[..]).get_hash(hasher()), "test".to_string().into_bytes().get_hash(hasher()));
+        assert_eq!(<&u8>::get_hash(&&1, hasher()), u8::get_hash(&1, hasher()));
+        assert_eq!(<&u16>::get_hash(&&2, hasher()), u16::get_hash(&2, hasher()));
+        assert_eq!(<&u32>::get_hash(&&3, hasher()), u32::get_hash(&3, hasher()));
+        assert_eq!(<&u64>::get_hash(&&4, hasher()), u64::get_hash(&4, hasher()));
+        assert_eq!(<&u128>::get_hash(&&5, hasher()), u128::get_hash(&5, hasher()));
+        assert_eq!(<&str>::get_hash(&"test", hasher()), str::get_hash("test", hasher()));
+        assert_eq!(<&str>::get_hash(&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        assert_eq!(<&str>::get_hash(&"test", hasher()), <[u8]>::get_hash("test".as_bytes(), hasher()));
+
+        let hasher = || AHasher::new_with_keys(3, 2);
+        assert_eq!(<&&u8>::get_hash(&&&1, hasher()), u8::get_hash(&1, hasher()));
+        assert_eq!(<&&u16>::get_hash(&&&2, hasher()), u16::get_hash(&2, hasher()));
+        assert_eq!(<&&u32>::get_hash(&&&3, hasher()), u32::get_hash(&3, hasher()));
+        assert_eq!(<&&u64>::get_hash(&&&4, hasher()), u64::get_hash(&4, hasher()));
+        assert_eq!(<&&u128>::get_hash(&&&5, hasher()), u128::get_hash(&5, hasher()));
+        assert_eq!(<&&str>::get_hash(&&"test", hasher()), str::get_hash("test",hasher()));
+        assert_eq!(<&&str>::get_hash(&&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        assert_eq!(<&&str>::get_hash(&&"test", hasher()), <[u8]>::get_hash(&"test".to_string().into_bytes(), hasher()));
     }
 }

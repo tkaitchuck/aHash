@@ -25,7 +25,7 @@ fn hash_test_final_wrapper(num: i32, string: &str) {
 fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
     let hasher1 = AHasher::new_with_keys(1, 2);
     let hasher2 = AHasher::new_with_keys(1, 2);
-    (num.get_hash(hasher1), string.as_bytes().get_hash(hasher2))
+    (i32::get_hash(&num, hasher1), <[u8]>::get_hash(string.as_bytes(), hasher2))
 }
 
 #[inline(never)]
@@ -38,7 +38,7 @@ fn hash_test_random_wrapper(num: i32, string: &str) {
 fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
     let hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
     let hasher2 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
-    (num.get_hash(hasher1), string.as_bytes().get_hash(hasher2))
+    (i32::get_hash(&num,hasher1), <[u8]>::get_hash(string.as_bytes(), hasher2))
 }
 
 #[inline(never)]
