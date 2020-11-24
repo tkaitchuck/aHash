@@ -110,13 +110,17 @@ pub(crate) trait HasherExt: Hasher {
 impl<T: Hasher> HasherExt for T {
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn hash_u64(self, value: u64) -> u64 {
-        value.get_hash(self)
+    default fn hash_u64(mut self, value: u64) -> u64 {
+        use core::hash::Hash;
+        value.hash(&mut self);
+        self.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn hash_u64(self, value: u64) -> u64 {
-        value.get_hash(self)
+    fn hash_u64(mut self, value: u64) -> u64 {
+        use core::hash::Hash;
+        value.hash(&mut self);
+        self.finish()
     }
     #[inline]
     #[cfg(feature = "specialize")]

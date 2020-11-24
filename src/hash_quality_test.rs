@@ -111,13 +111,13 @@ fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) 
 }
 
 fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) {
-    let base = 0.get_hash(constructor(0, 0));
+    let base = u128::get_hash(&0, constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives = vec![];
         for v in 0..256 {
             let input = (v as u128) << (shift * 8);
             let hasher = constructor(0, 0);
-            alternitives.push(input.get_hash(hasher));
+            alternitives.push(u128::get_hash(&input, hasher));
         }
         assert_each_byte_differs(base, alternitives);
     }
@@ -125,7 +125,7 @@ fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u128, u128) -
 
 ///Ensures that for every bit in the output there is some value for each byte in the key that flips it.
 fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl Fn(u128, u128) -> T) {
-    let base = item.get_hash(constructor(0, 0));
+    let base = H::get_hash(&item, constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives1 = vec![];
         let mut alternitives2 = vec![];
@@ -133,8 +133,8 @@ fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl
             let input = (v as u128) << (shift * 8);
             let hasher1 = constructor(input, 0);
             let hasher2 = constructor(0, input);
-            let h1 = item.get_hash(hasher1);
-            let h2 = item.get_hash(hasher2);
+            let h1 = H::get_hash(&item, hasher1);
+            let h2 = H::get_hash(&item, hasher2);
             alternitives1.push(h1);
             alternitives2.push(h2);
         }
@@ -228,7 +228,7 @@ fn test_no_pair_collisions<T: HasherExt>(hasher: impl Fn() -> T) {
 }
 
 fn hash<H: Hash, T: HasherExt>(b: &H, hasher: &dyn Fn() -> T) -> u64 {
-    b.get_hash(hasher())
+    H::get_hash(b, hasher())
 }
 
 fn test_single_bit_flip<T: HasherExt>(hasher: impl Fn() -> T) {

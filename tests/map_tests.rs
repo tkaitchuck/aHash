@@ -151,9 +151,9 @@ fn check_for_collisions<T: Hasher, H: Hash>(hasher: &impl Fn() -> T, items: &[H]
 }
 
 #[allow(unused)] // False positive
-fn hash<T: Hasher>(b: &impl Hash, hasher: &dyn Fn() -> T) -> u64 {
+fn hash<H: Hash, T: Hasher>(b: &H, hasher: &dyn Fn() -> T) -> u64 {
     let hasher = hasher();
-    b.get_hash(hasher)
+    H::get_hash(b, hasher)
 }
 
 #[test]
