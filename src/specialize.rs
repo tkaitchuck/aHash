@@ -8,7 +8,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
+#[cfg(feature = "specialize")]
 use alloc::string::String;
+#[cfg(feature = "specialize")]
 use alloc::vec::Vec;
 
 /// Provides a way to get an optimized hasher for a given data type.
@@ -318,6 +320,7 @@ mod test {
         assert_eq!(<&u128>::get_hash(&&5, hasher()), u128::get_hash(&5, hasher()));
         assert_eq!(<&str>::get_hash(&"test", hasher()), str::get_hash("test", hasher()));
         assert_eq!(<&str>::get_hash(&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        #[cfg(feature = "specialize")]
         assert_eq!(<&str>::get_hash(&"test", hasher()), <[u8]>::get_hash("test".as_bytes(), hasher()));
 
         let hasher = || AHasher::new_with_keys(3, 2);
@@ -328,6 +331,7 @@ mod test {
         assert_eq!(<&&u128>::get_hash(&&&5, hasher()), u128::get_hash(&5, hasher()));
         assert_eq!(<&&str>::get_hash(&&"test", hasher()), str::get_hash("test",hasher()));
         assert_eq!(<&&str>::get_hash(&&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        #[cfg(feature = "specialize")]
         assert_eq!(<&&str>::get_hash(&&"test", hasher()), <[u8]>::get_hash(&"test".to_string().into_bytes(), hasher()));
     }
 }
