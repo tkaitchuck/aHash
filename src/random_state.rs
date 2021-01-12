@@ -6,8 +6,16 @@ use const_random::const_random;
 use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std as alloc;
+
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use once_cell::race::OnceBox;
+#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
+use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
