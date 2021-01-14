@@ -102,7 +102,7 @@ impl AHasher {
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
         let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
-        self.buffer = (combined.wrapping_add(self.buffer) ^ self.pad).rotate_left(ROT);
+        self.buffer = (self.buffer.wrapping_add(self.pad) ^ combined).rotate_left(ROT);
     }
 }
 
