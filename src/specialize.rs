@@ -146,126 +146,112 @@ impl CallHasher for &&i128 {
 #[cfg(feature = "specialize")]
 impl CallHasher for [u8] {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &[u8] {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(*value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(*value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &&[u8] {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(**value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(**value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for Vec<u8> {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &Vec<u8> {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(*value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(*value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &&Vec<u8> {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(**value);
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(**value)
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for str {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &str {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &&str {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(feature = "specialize")]
 impl CallHasher for &&&str {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(all(feature = "specialize"))]
 impl CallHasher for String {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(all(feature = "specialize"))]
 impl CallHasher for &String {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(all(feature = "specialize"))]
 impl CallHasher for &&String {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 
 #[cfg(all(feature = "specialize"))]
 impl CallHasher for &&&String {
     #[inline]
-    fn get_hash<H: Hasher>(value: &Self, mut hasher: H) -> u64 {
-        hasher.write(value.as_bytes());
-        hasher.finish()
+    fn get_hash<H: Hasher>(value: &Self, hasher: H) -> u64 {
+        hasher.hash_str(value.as_bytes())
     }
 }
 

@@ -61,6 +61,7 @@ pub use crate::specialize::CallHasher;
 pub use crate::hash_map::AHashMap;
 #[cfg(feature = "std")]
 pub use crate::hash_set::AHashSet;
+use core::hash::Hash;
 use core::hash::Hasher;
 use core::hash::BuildHasher;
 
@@ -122,6 +123,9 @@ pub(crate) trait HasherExt: Hasher {
     fn hash_u64(self, value: u64) -> u64;
 
     #[doc(hidden)]
+    fn hash_str(self, value: &[u8]) -> u64;
+
+    #[doc(hidden)]
     fn short_finish(&self) -> u64;
 }
 
@@ -129,15 +133,25 @@ impl<T: Hasher> HasherExt for T {
     #[inline]
     #[cfg(feature = "specialize")]
     default fn hash_u64(mut self, value: u64) -> u64 {
-        use core::hash::Hash;
         value.hash(&mut self);
         self.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
     fn hash_u64(mut self, value: u64) -> u64 {
-        use core::hash::Hash;
         value.hash(&mut self);
+        self.finish()
+    }
+    #[inline]
+    #[cfg(feature = "specialize")]
+    default fn hash_str(mut self, value: &[u8]) -> u64 {
+        self.write(value);
+        self.finish()
+    }
+    #[inline]
+    #[cfg(not(feature = "specialize"))]
+    fn hash_str(mut self, value: &[u8]) -> u64 {
+        self.write(value);
         self.finish()
     }
     #[inline]

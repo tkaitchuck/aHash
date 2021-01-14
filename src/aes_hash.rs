@@ -101,6 +101,12 @@ impl HasherExt for AHasher {
     }
 
     #[inline]
+    fn hash_str(mut self, value: &[u8]) -> u64 {
+        self.write(value);
+        self.finish()
+    }
+
+    #[inline]
     fn short_finish(&self) -> u64 {
         let combined = aesdec(self.sum, self.enc);
         let result: [u64; 2] = aesenc(combined, combined).convert();

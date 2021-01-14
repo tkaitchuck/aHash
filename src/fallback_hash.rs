@@ -115,6 +115,12 @@ impl HasherExt for AHasher {
     }
 
     #[inline]
+    fn hash_str(mut self, value: &[u8]) -> u64 {
+        self.write(value);
+        self.finish()
+    }
+
+    #[inline]
     fn short_finish(&self) -> u64 {
         self.buffer.wrapping_add(self.pad)
     }
