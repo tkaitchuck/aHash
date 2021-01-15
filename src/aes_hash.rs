@@ -89,6 +89,7 @@ impl AHasher {
         self.enc = aesenc(self.enc, v2);
         self.sum = shuffle_and_add(self.sum, v2);
     }
+
 }
 
 #[cfg(feature = "specialize")]
@@ -102,8 +103,18 @@ impl HasherExt for AHasher {
 
     #[inline]
     fn hash_str(mut self, value: &[u8]) -> u64 {
-        self.write(value);
-        self.finish()
+        if value.len() > 8 {
+            self.write(value);
+            self.finish()
+        } else {
+            let length = value.len() as u64;
+            let value = read_small(value);
+            let value = [value[0] as u64, value[1] as u64];
+            let keys: [u64; 2] = self.key.convert();
+            let combined = folded_multiply(value[0] ^ keys[0], value[1] ^ keys[1]);
+            let rot = (self.enc & 63) as u32;
+            folded_multiply(length ^ combined, self.sum as u64).rotate_left(rot)
+        }
     }
 
     #[inline]
@@ -156,21 +167,8 @@ impl Hasher for AHasher {
         self.add_in_length(length as u64);
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() < 8 {
-            let value: [u64; 2] = if data.len() >= 2 {
-                if data.len() >= 4 {
-                    //len 4-8
-                    [data.read_u32().0 as u64, data.read_last_u32() as u64]
-                } else {
-                    //len 2-3
-                    [data.read_u16().0 as u64, data[data.len() - 1] as u64]
-                }
-            } else {
-                if data.len() > 0 {
-                    [data[0] as u64, 0]
-                } else {
-                    [0, 0]
-                }
-            };
+            let value = read_small(data);
+            let value = [value[0] as u64, value[1] as u64];
             self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
@@ -299,3 +297,4 @@ mod tests {
         assert_eq!(bytes, 0x6464646464646464);
     }
 }
+
