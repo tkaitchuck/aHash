@@ -1,11 +1,12 @@
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use crate::convert::Convert;
-use crate::{AHasher};
+use crate::{AHasher, BuildHasherExt};
 #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
 use const_random::const_random;
 use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
+use core::hash::Hash;
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -17,6 +18,11 @@ use once_cell::race::OnceBox;
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+use crate::aes_hash::*;
+
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
+use crate::fallback_hash::*;
 
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
@@ -191,6 +197,30 @@ impl BuildHasher for RandomState {
     #[inline]
     fn build_hasher(&self) -> AHasher {
         AHasher::from_random_state(self)
+    }
+}
+
+#[cfg(feature = "specialize")]
+impl BuildHasherExt for RandomState {
+    #[inline]
+    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = AHasherU64(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = AHasherFixed(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+        let mut hasher = AHasherStr(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

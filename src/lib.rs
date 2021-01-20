@@ -63,6 +63,7 @@ pub use crate::hash_map::AHashMap;
 pub use crate::hash_set::AHashSet;
 use core::hash::Hasher;
 use core::hash::BuildHasher;
+use core::hash::Hash;
 
 /// Provides a default [Hasher] with fixed keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -117,38 +118,59 @@ impl Default for AHasher {
 }
 
 /// Used for specialization. (Sealed)
-pub(crate) trait HasherExt: Hasher {
+pub(crate) trait BuildHasherExt: BuildHasher {
     #[doc(hidden)]
-    fn hash_u64(self, value: u64) -> u64;
+    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64;
 
     #[doc(hidden)]
-    fn short_finish(&self) -> u64;
+    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64;
+
+    #[doc(hidden)]
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64;
 }
 
-impl<T: Hasher> HasherExt for T {
+impl<B: BuildHasher> BuildHasherExt for B {
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn hash_u64(mut self, value: u64) -> u64 {
-        use core::hash::Hash;
-        value.hash(&mut self);
-        self.finish()
+    default fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn hash_u64(mut self, value: u64) -> u64 {
-        use core::hash::Hash;
-        value.hash(&mut self);
-        self.finish()
+    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn short_finish(&self) -> u64 {
-        self.finish()
+    default fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn short_finish(&self) -> u64 {
-        self.finish()
+    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+    #[inline]
+    #[cfg(feature = "specialize")]
+    default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+    #[inline]
+    #[cfg(not(feature = "specialize"))]
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
 }
 
