@@ -165,6 +165,7 @@ mod test {
     use crate::convert::Convert;
     use crate::*;
     use std::collections::HashMap;
+    use std::hash::Hash;
 
     #[test]
     fn test_default_builder() {
@@ -185,6 +186,45 @@ mod test {
         let input: &[u8] = b"dddddddd";
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
+    }
+
+
+    #[test]
+    fn test_non_zero() {
+        let mut hasher1 = AHasher::new_with_keys(0, 0);
+        let mut hasher2 = AHasher::new_with_keys(0, 0);
+        "foo".hash(&mut hasher1);
+        "bar".hash(&mut hasher2);
+        assert_ne!(hasher1.finish(), 0);
+        assert_ne!(hasher2.finish(), 0);
+        assert_ne!(hasher1.finish(), hasher2.finish());
+
+        let mut hasher1 = AHasher::new_with_keys(0, 0);
+        let mut hasher2 = AHasher::new_with_keys(0, 0);
+        3_u64.hash(&mut hasher1);
+        4_u64.hash(&mut hasher2);
+        assert_ne!(hasher1.finish(), 0);
+        assert_ne!(hasher2.finish(), 0);
+        assert_ne!(hasher1.finish(), hasher2.finish());
+    }
+
+    #[test]
+    fn test_non_zero_specialized() {
+        let hasher1 = AHasher::new_with_keys(0, 0);
+        let hasher2 = AHasher::new_with_keys(0, 0);
+        let h1 = str::get_hash("foo", hasher1);
+        let h2 = str::get_hash("bar", hasher2);
+        assert_ne!(h1, 0);
+        assert_ne!(h2, 0);
+        assert_ne!(h1, h2);
+
+        let hasher1 = AHasher::new_with_keys(0, 0);
+        let hasher2 = AHasher::new_with_keys(0, 0);
+        let h1 = u64::get_hash(&3_u64, hasher1);
+        let h2 = u64::get_hash(&4_u64, hasher2);
+        assert_ne!(h1, 0);
+        assert_ne!(h2, 0);
+        assert_ne!(h1, h2);
     }
 
     #[test]
