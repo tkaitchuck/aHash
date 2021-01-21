@@ -182,7 +182,7 @@ impl Hasher for AHasher {
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
-        folded_multiply(self.buffer, self.pad).rotate_left(rot)
+        folded_multiply(self.buffer ^ self.pad, MULTIPLE).rotate_left(rot)
     }
 }
 
