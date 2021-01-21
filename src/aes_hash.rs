@@ -3,6 +3,7 @@ use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
 use crate::RandomState;
 use core::hash::Hasher;
+use crate::random_state::PI;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -49,6 +50,9 @@ impl AHasher {
     /// ```
     #[inline]
     pub fn new_with_keys(key1: u128, key2: u128) -> Self {
+        let pi: [u128; 2] = PI.convert();
+        let key1: [u64; 2] = (key1 ^ pi[0]).convert();
+        let key2: [u64; 2] = (key2 ^ pi[1]).convert();
         Self {
             enc: key1,
             sum: key2,
