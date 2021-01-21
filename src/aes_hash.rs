@@ -1,8 +1,8 @@
 use crate::convert::*;
-use crate::operations::*;
-use core::hash::Hasher;
 use crate::fallback_hash::MULTIPLE;
+use crate::operations::*;
 use crate::RandomState;
+use core::hash::Hasher;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -353,7 +353,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3,4).build_hasher();
+        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);

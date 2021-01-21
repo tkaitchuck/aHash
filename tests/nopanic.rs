@@ -37,8 +37,10 @@ impl BuildHasher for SimpleBuildHasher {
 fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
     let hasher1 = AHasher::new_with_keys(1, 2);
     let hasher2 = AHasher::new_with_keys(1, 2);
-    (i32::get_hash(&num, &SimpleBuildHasher { hasher: hasher1 }),
-        <[u8]>::get_hash(string.as_bytes(), &SimpleBuildHasher { hasher: hasher2 }))
+    (
+        i32::get_hash(&num, &SimpleBuildHasher { hasher: hasher1 }),
+        <[u8]>::get_hash(string.as_bytes(), &SimpleBuildHasher { hasher: hasher2 }),
+    )
 }
 
 #[inline(never)]
@@ -51,7 +53,10 @@ fn hash_test_random_wrapper(num: i32, string: &str) {
 fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
     let build_hasher1 = RandomState::with_seeds(1, 2, 3, 4);
     let build_hasher2 = RandomState::with_seeds(1, 2, 3, 4);
-    (i32::get_hash(&num,&build_hasher1), <[u8]>::get_hash(string.as_bytes(), &build_hasher2))
+    (
+        i32::get_hash(&num, &build_hasher1),
+        <[u8]>::get_hash(string.as_bytes(), &build_hasher2),
+    )
 }
 
 #[inline(never)]

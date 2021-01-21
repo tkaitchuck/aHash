@@ -40,11 +40,11 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
-mod operations;
 #[cfg(feature = "std")]
 mod hash_map;
 #[cfg(feature = "std")]
 mod hash_set;
+mod operations;
 mod random_state;
 mod specialize;
 
@@ -61,9 +61,9 @@ pub use crate::specialize::CallHasher;
 pub use crate::hash_map::AHashMap;
 #[cfg(feature = "std")]
 pub use crate::hash_set::AHashSet;
-use core::hash::Hasher;
 use core::hash::BuildHasher;
 use core::hash::Hash;
+use core::hash::Hasher;
 
 /// Provides a default [Hasher] with fixed keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -87,16 +87,15 @@ use core::hash::Hash;
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
 impl Default for AHasher {
-
     /// Constructs a new [AHasher] with fixed keys.
     /// If `std` is enabled these will be generated upon first invocation.
     /// Otherwise if the `compile-time-rng`feature is enabled these will be generated at compile time.
     /// If neither of these features are available, hardcoded constants will be used.
-    /// 
+    ///
     /// Because the values are fixed, different hashers will all hash elements the same way.
     /// This could make hash values predictable, if DOS attacks are a concern. If this behaviour is
     /// not required, it may be preferable to use [RandomState] instead.
-    /// 
+    ///
     /// # Examples
     ///
     /// ```
@@ -160,14 +159,14 @@ impl<B: BuildHasher> BuildHasherExt for B {
     }
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+    default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()

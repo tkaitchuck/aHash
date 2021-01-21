@@ -12,24 +12,24 @@ pub use crate::fallback_hash::*;
 use const_random::const_random;
 use core::fmt;
 use core::hash::BuildHasher;
-use core::hash::Hasher;
 use core::hash::Hash;
+use core::hash::Hasher;
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
-#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-use once_cell::race::OnceBox;
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+use crate::aes_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-use crate::aes_hash::*;
+#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
+use once_cell::race::OnceBox;
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
-use crate::fallback_hash::*;
+use crate::fallback_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
 
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
@@ -54,19 +54,27 @@ const PI2: [u64; 4] = [
 #[inline]
 pub(crate) fn seeds() -> [u64; 4] {
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-        {
-            SEEDS.get_or_init(|| {
-                let mut result: [u8; 64] = [0; 64];
-                getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
-                Box::new(result.convert())
-            })[1]
-        }
+    {
+        SEEDS.get_or_init(|| {
+            let mut result: [u8; 64] = [0; 64];
+            getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
+            Box::new(result.convert())
+        })[1]
+    }
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
-        { [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)] }
+    {
+        [
+            const_random!(u64),
+            const_random!(u64),
+            const_random!(u64),
+            const_random!(u64),
+        ]
+    }
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-        { PI }
+    {
+        PI
+    }
 }
-
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
 /// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
@@ -105,8 +113,18 @@ impl RandomState {
         #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
         {
             RandomState::from_keys(
-                [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)],
-                [const_random!(u64), const_random!(u64), const_random!(u64), const_random!(u64)],
+                [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ],
+                [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ],
             )
         }
         #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
@@ -127,11 +145,11 @@ impl RandomState {
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
 
         let stack_mem_loc = &hasher as *const _ as usize;
-        #[cfg(not(all(target_arch="arm", target_os="none")))]
+        #[cfg(not(all(target_arch = "arm", target_os = "none")))]
         {
             hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
         }
-        #[cfg(all(target_arch="arm", target_os="none"))]
+        #[cfg(all(target_arch = "arm", target_os = "none"))]
         {
             let previous = COUNTER.load(Ordering::Relaxed);
             let new = previous.wrapping_add(stack_mem_loc);
@@ -146,7 +164,12 @@ impl RandomState {
             h.finish()
         };
 
-        RandomState { k0: mix(b[0]), k1: mix(b[1]), k2: mix(b[2]), k3: mix(b[3]) }
+        RandomState {
+            k0: mix(b[0]),
+            k1: mix(b[1]),
+            k2: mix(b[2]),
+            k3: mix(b[3]),
+        }
     }
 
     /// Internal. Used by Default.
@@ -227,7 +250,7 @@ impl BuildHasherExt for RandomState {
     }
 
     #[inline]
-    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64{
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = AHasherStr(self.build_hasher());
         value.hash(&mut hasher);
         hasher.finish()

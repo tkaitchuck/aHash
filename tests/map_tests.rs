@@ -1,4 +1,4 @@
-use std::hash::{Hash, Hasher, BuildHasher};
+use std::hash::{BuildHasher, Hash, Hasher};
 
 use criterion::*;
 use fxhash::FxHasher;

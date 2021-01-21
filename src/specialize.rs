@@ -1,17 +1,17 @@
+use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
-use core::hash::BuildHasher;
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
+use crate::BuildHasherExt;
 #[cfg(feature = "specialize")]
 use alloc::string::String;
 #[cfg(feature = "specialize")]
 use alloc::vec::Vec;
-use crate::BuildHasherExt;
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
@@ -85,7 +85,6 @@ impl CallHasher for u128 {
     }
 }
 
-
 #[cfg(feature = "specialize")]
 impl CallHasher for i128 {
     #[inline]
@@ -101,7 +100,6 @@ impl CallHasher for usize {
         build_hasher.hash_as_fixed_length(value)
     }
 }
-
 
 #[cfg(feature = "specialize")]
 impl CallHasher for isize {
@@ -193,10 +191,19 @@ mod test {
         assert_eq!(u32::get_hash(&&3, &build_hasher), u32::get_hash(&3, &build_hasher));
         assert_eq!(u64::get_hash(&&4, &build_hasher), u64::get_hash(&4, &build_hasher));
         assert_eq!(u128::get_hash(&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
-        assert_eq!(str::get_hash(&"test", &build_hasher), str::get_hash("test", &build_hasher));
-        assert_eq!(str::get_hash(&"test", &build_hasher), String::get_hash(&"test".to_string(), &build_hasher));
+        assert_eq!(
+            str::get_hash(&"test", &build_hasher),
+            str::get_hash("test", &build_hasher)
+        );
+        assert_eq!(
+            str::get_hash(&"test", &build_hasher),
+            String::get_hash(&"test".to_string(), &build_hasher)
+        );
         #[cfg(feature = "specialize")]
-        assert_eq!(str::get_hash(&"test", &build_hasher), <[u8]>::get_hash("test".as_bytes(), &build_hasher));
+        assert_eq!(
+            str::get_hash(&"test", &build_hasher),
+            <[u8]>::get_hash("test".as_bytes(), &build_hasher)
+        );
 
         let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
         assert_eq!(u8::get_hash(&&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
@@ -204,9 +211,18 @@ mod test {
         assert_eq!(u32::get_hash(&&&3, &build_hasher), u32::get_hash(&3, &build_hasher));
         assert_eq!(u64::get_hash(&&&4, &build_hasher), u64::get_hash(&4, &build_hasher));
         assert_eq!(u128::get_hash(&&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
-        assert_eq!(str::get_hash(&&"test", &build_hasher), str::get_hash("test",&build_hasher));
-        assert_eq!(str::get_hash(&&"test", &build_hasher), String::get_hash(&"test".to_string(), &build_hasher));
+        assert_eq!(
+            str::get_hash(&&"test", &build_hasher),
+            str::get_hash("test", &build_hasher)
+        );
+        assert_eq!(
+            str::get_hash(&&"test", &build_hasher),
+            String::get_hash(&"test".to_string(), &build_hasher)
+        );
         #[cfg(feature = "specialize")]
-        assert_eq!(str::get_hash(&&"test", &build_hasher), <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher));
+        assert_eq!(
+            str::get_hash(&&"test", &build_hasher),
+            <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher)
+        );
     }
 }

@@ -1,8 +1,8 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
-use core::hash::Hasher;
-use crate::RandomState;
 use crate::random_state::PI;
+use crate::RandomState;
+use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
@@ -40,10 +40,10 @@ impl AHasher {
             extra_keys: key2,
         }
     }
- 
+
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher  {
+    pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher {
         AHasher {
             buffer: rand_state.k0,
             pad: rand_state.k1,
@@ -319,7 +319,6 @@ impl Hasher for AHasherStr {
     #[inline]
     fn write_usize(&mut self, _i: usize) {}
 }
-
 
 #[cfg(test)]
 mod tests {

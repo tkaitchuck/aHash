@@ -8,11 +8,11 @@ use std::panic::UnwindSafe;
 
 #[cfg(feature = "serde")]
 use serde::{
-    ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
+    ser::{Serialize, Serializer},
 };
 
-use crate::{RandomState};
+use crate::RandomState;
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
@@ -41,8 +41,10 @@ impl<K, V> AHashMap<K, V, RandomState> {
     }
 }
 
-impl<K, V, S> AHashMap<K, V, S> where S: BuildHasher {
-
+impl<K, V, S> AHashMap<K, V, S>
+where
+    S: BuildHasher,
+{
     pub fn with_hasher(hash_builder: S) -> Self {
         AHashMap(HashMap::with_hasher(hash_builder))
     }
@@ -55,7 +57,7 @@ impl<K, V, S> AHashMap<K, V, S> where S: BuildHasher {
 impl<K, V, S> AHashMap<K, V, S>
 where
     K: Hash + Eq,
-    S: BuildHasher
+    S: BuildHasher,
 {
     /// Returns a reference to the value corresponding to the key.
     ///
@@ -324,9 +326,10 @@ impl<K, V> Default for AHashMap<K, V, RandomState> {
 }
 
 #[cfg(feature = "serde")]
-impl<K, V> Serialize for AHashMap<K, V> 
-where K: Serialize + Eq + Hash,
-      V: Serialize
+impl<K, V> Serialize for AHashMap<K, V>
+where
+    K: Serialize + Eq + Hash,
+    V: Serialize,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.deref().serialize(serializer)
@@ -334,12 +337,13 @@ where K: Serialize + Eq + Hash,
 }
 
 #[cfg(feature = "serde")]
-impl<'de, K, V> Deserialize<'de> for AHashMap<K, V> 
-where K: Deserialize<'de> + Eq + Hash,
-      V: Deserialize<'de>
+impl<'de, K, V> Deserialize<'de> for AHashMap<K, V>
+where
+    K: Deserialize<'de> + Eq + Hash,
+    V: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let hash_map =  HashMap::deserialize(deserializer);
+        let hash_map = HashMap::deserialize(deserializer);
         hash_map.map(|hash_map| Self(hash_map))
     }
 }
