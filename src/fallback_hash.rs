@@ -41,6 +41,17 @@ impl AHasher {
         }
     }
 
+    #[allow(unused)] // False positive
+    pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
+        let key1: [u64; 2] = key1.convert();
+        let key2: [u64; 2] = key2.convert();
+        Self {
+            buffer: key1[0],
+            pad: key1[1],
+            extra_keys: key2,
+        }
+    }
+
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher {

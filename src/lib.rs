@@ -231,18 +231,16 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher1 = AHasher::new_with_keys(0, 0);
-        let hasher2 = AHasher::new_with_keys(0, 0);
-        let h1 = str::get_hash("foo", hasher1);
-        let h2 = str::get_hash("bar", hasher2);
+        let hasher_build = RandomState::with_seeds(0,0,0,0);
+
+        let h1 = str::get_hash("foo", &hasher_build);
+        let h2 = str::get_hash("bar", &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);
 
-        let hasher1 = AHasher::new_with_keys(0, 0);
-        let hasher2 = AHasher::new_with_keys(0, 0);
-        let h1 = u64::get_hash(&3_u64, hasher1);
-        let h2 = u64::get_hash(&4_u64, hasher2);
+        let h1 = u64::get_hash(&3_u64, &hasher_build);
+        let h2 = u64::get_hash(&4_u64, &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);

@@ -20,14 +20,15 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-use crate::aes_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
+
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use once_cell::race::OnceBox;
 
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+use crate::aes_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
 use crate::fallback_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
 
