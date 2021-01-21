@@ -1,4 +1,5 @@
 use crate::convert::*;
+#[cfg(feature = "specialize")]
 use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
 use crate::RandomState;
@@ -104,6 +105,7 @@ impl AHasher {
     }
 
     #[inline]
+    #[cfg(feature = "specialize")]
     fn short_finish(&self) -> u64 {
         let combined = aesdec(self.sum, self.enc);
         let result: [u64; 2] = aesenc(combined, combined).convert();

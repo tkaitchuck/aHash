@@ -115,6 +115,7 @@ impl AHasher {
     }
 
     #[inline]
+    #[cfg(feature = "specialize")]
     fn short_finish(&self) -> u64 {
         self.buffer.wrapping_add(self.pad)
     }

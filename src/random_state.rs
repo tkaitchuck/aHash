@@ -1,5 +1,6 @@
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use crate::convert::Convert;
+#[cfg(feature = "specialize")]
 use crate::BuildHasherExt;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
@@ -12,6 +13,7 @@ pub use crate::fallback_hash::*;
 use const_random::const_random;
 use core::fmt;
 use core::hash::BuildHasher;
+#[cfg(feature = "specialize")]
 use core::hash::Hash;
 use core::hash::Hasher;
 
@@ -28,9 +30,9 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use once_cell::race::OnceBox;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-use crate::aes_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
+use crate::aes_hash::*;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
-use crate::fallback_hash::{AHasher, AHasherFixed, AHasherStr, AHasherU64};
+use crate::fallback_hash::*;
 
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
