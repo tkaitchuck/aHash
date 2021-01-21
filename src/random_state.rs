@@ -1,6 +1,13 @@
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use crate::convert::Convert;
-use crate::{AHasher, BuildHasherExt};
+use crate::BuildHasherExt;
+
+#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+pub use crate::aes_hash::*;
+
+#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
+pub use crate::fallback_hash::*;
+
 #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
 use const_random::const_random;
 use core::fmt;
@@ -204,7 +211,10 @@ impl BuildHasher for RandomState {
 impl BuildHasherExt for RandomState {
     #[inline]
     fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = AHasherU64(self.build_hasher());
+        let mut hasher = AHasherU64 {
+            buffer: self.k0,
+            pad: self.k1,
+        };
         value.hash(&mut hasher);
         hasher.finish()
     }

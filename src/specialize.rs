@@ -151,7 +151,8 @@ mod test {
     #[test]
     #[cfg(feature = "specialize")]
     pub fn test_specialized_invoked() {
-        let shortened = u64::get_hash(&0, AHasher::new_with_keys(1, 2));
+        let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+        let shortened = u64::get_hash(&0, &build_hasher);
         let mut hasher = AHasher::new_with_keys(1, 2);
         0_u64.hash(&mut hasher);
         assert_ne!(hasher.finish(), shortened);
@@ -160,22 +161,22 @@ mod test {
     /// Tests that some non-trivial transformation takes place.
     #[test]
     pub fn test_input_processed() {
-        let hasher = || AHasher::new_with_keys(3, 2);
-        assert_ne!(0, u64::get_hash(&0, hasher()));
-        assert_ne!(1, u64::get_hash(&0, hasher()));
-        assert_ne!(2, u64::get_hash(&0, hasher()));
-        assert_ne!(3, u64::get_hash(&0, hasher()));
-        assert_ne!(4, u64::get_hash(&0, hasher()));
-        assert_ne!(5, u64::get_hash(&0, hasher()));
+        let build_hasher = RandomState::with_seeds(2, 2, 2, 2);
+        assert_ne!(0, u64::get_hash(&0, &build_hasher));
+        assert_ne!(1, u64::get_hash(&0, &build_hasher));
+        assert_ne!(2, u64::get_hash(&0, &build_hasher));
+        assert_ne!(3, u64::get_hash(&0, &build_hasher));
+        assert_ne!(4, u64::get_hash(&0, &build_hasher));
+        assert_ne!(5, u64::get_hash(&0, &build_hasher));
 
-        assert_ne!(0, u64::get_hash(&1, hasher()));
-        assert_ne!(1, u64::get_hash(&1, hasher()));
-        assert_ne!(2, u64::get_hash(&1, hasher()));
-        assert_ne!(3, u64::get_hash(&1, hasher()));
-        assert_ne!(4, u64::get_hash(&1, hasher()));
-        assert_ne!(5, u64::get_hash(&1, hasher()));
+        assert_ne!(0, u64::get_hash(&1, &build_hasher));
+        assert_ne!(1, u64::get_hash(&1, &build_hasher));
+        assert_ne!(2, u64::get_hash(&1, &build_hasher));
+        assert_ne!(3, u64::get_hash(&1, &build_hasher));
+        assert_ne!(4, u64::get_hash(&1, &build_hasher));
+        assert_ne!(5, u64::get_hash(&1, &build_hasher));
 
-        let xored = u64::get_hash(&0, hasher()) ^ u64::get_hash(&1, hasher());
+        let xored = u64::get_hash(&0, &build_hasher) ^ u64::get_hash(&1, &build_hasher);
         assert_ne!(0, xored);
         assert_ne!(1, xored);
         assert_ne!(2, xored);
@@ -186,26 +187,26 @@ mod test {
 
     #[test]
     pub fn test_ref_independent() {
-        let hasher = || AHasher::new_with_keys(3, 2);
-        assert_eq!(<&u8>::get_hash(&&1, hasher()), u8::get_hash(&1, hasher()));
-        assert_eq!(<&u16>::get_hash(&&2, hasher()), u16::get_hash(&2, hasher()));
-        assert_eq!(<&u32>::get_hash(&&3, hasher()), u32::get_hash(&3, hasher()));
-        assert_eq!(<&u64>::get_hash(&&4, hasher()), u64::get_hash(&4, hasher()));
-        assert_eq!(<&u128>::get_hash(&&5, hasher()), u128::get_hash(&5, hasher()));
-        assert_eq!(<&str>::get_hash(&"test", hasher()), str::get_hash("test", hasher()));
-        assert_eq!(<&str>::get_hash(&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+        assert_eq!(u8::get_hash(&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
+        assert_eq!(u16::get_hash(&&2, &build_hasher), u16::get_hash(&2, &build_hasher));
+        assert_eq!(u32::get_hash(&&3, &build_hasher), u32::get_hash(&3, &build_hasher));
+        assert_eq!(u64::get_hash(&&4, &build_hasher), u64::get_hash(&4, &build_hasher));
+        assert_eq!(u128::get_hash(&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
+        assert_eq!(str::get_hash(&"test", &build_hasher), str::get_hash("test", &build_hasher));
+        assert_eq!(str::get_hash(&"test", &build_hasher), String::get_hash(&"test".to_string(), &build_hasher));
         #[cfg(feature = "specialize")]
-        assert_eq!(<&str>::get_hash(&"test", hasher()), <[u8]>::get_hash("test".as_bytes(), hasher()));
+        assert_eq!(str::get_hash(&"test", &build_hasher), <[u8]>::get_hash("test".as_bytes(), &build_hasher));
 
-        let hasher = || AHasher::new_with_keys(3, 2);
-        assert_eq!(<&&u8>::get_hash(&&&1, hasher()), u8::get_hash(&1, hasher()));
-        assert_eq!(<&&u16>::get_hash(&&&2, hasher()), u16::get_hash(&2, hasher()));
-        assert_eq!(<&&u32>::get_hash(&&&3, hasher()), u32::get_hash(&3, hasher()));
-        assert_eq!(<&&u64>::get_hash(&&&4, hasher()), u64::get_hash(&4, hasher()));
-        assert_eq!(<&&u128>::get_hash(&&&5, hasher()), u128::get_hash(&5, hasher()));
-        assert_eq!(<&&str>::get_hash(&&"test", hasher()), str::get_hash("test",hasher()));
-        assert_eq!(<&&str>::get_hash(&&"test", hasher()), String::get_hash(&"test".to_string(), hasher()));
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
+        assert_eq!(u8::get_hash(&&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
+        assert_eq!(u16::get_hash(&&&2, &build_hasher), u16::get_hash(&2, &build_hasher));
+        assert_eq!(u32::get_hash(&&&3, &build_hasher), u32::get_hash(&3, &build_hasher));
+        assert_eq!(u64::get_hash(&&&4, &build_hasher), u64::get_hash(&4, &build_hasher));
+        assert_eq!(u128::get_hash(&&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
+        assert_eq!(str::get_hash(&&"test", &build_hasher), str::get_hash("test",&build_hasher));
+        assert_eq!(str::get_hash(&&"test", &build_hasher), String::get_hash(&"test".to_string(), &build_hasher));
         #[cfg(feature = "specialize")]
-        assert_eq!(<&&str>::get_hash(&&"test", hasher()), <[u8]>::get_hash(&"test".to_string().into_bytes(), hasher()));
+        assert_eq!(str::get_hash(&&"test", &build_hasher), <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher));
     }
 }

@@ -187,15 +187,18 @@ impl Hasher for AHasher {
 }
 
 #[cfg(feature = "specialize")]
-pub(crate) struct AHasherU64(pub AHasher);
+pub(crate) struct AHasherU64 {
+    pub(crate) buffer: u64,
+    pub(crate) pad: u64,
+}
 
 /// A specialized hasher for only primitives under 64 bits.
 #[cfg(feature = "specialize")]
 impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
-        let rot = (self.0.pad & 64) as u32;
-        self.0.buffer.rotate_left(rot)
+        let rot = (self.pad & 64) as u32;
+        self.buffer.rotate_left(rot)
     }
 
     #[inline]
@@ -220,7 +223,7 @@ impl Hasher for AHasherU64 {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.0.buffer = folded_multiply(i ^ self.0.buffer, MULTIPLE);
+        self.buffer = folded_multiply(i ^ self.buffer, MULTIPLE);
     }
 
     #[inline]

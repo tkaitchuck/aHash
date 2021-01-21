@@ -1,4 +1,3 @@
-use crate::{CallHasher, HasherExt};
 use core::hash::{Hash, Hasher};
 use std::collections::HashMap;
 
@@ -93,7 +92,7 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     assert_eq!(2396744, map.len());
 }
 
-fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) {
+fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
     let mut a = constructor(1, 1);
     let mut b = constructor(1, 2);
     let mut c = constructor(2, 1);
@@ -110,22 +109,22 @@ fn test_keys_change_output<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) 
     assert_sufficiently_different(c.finish(), d.finish(), 1);
 }
 
-fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u128, u128) -> T) {
-    let base = u128::get_hash(&0, constructor(0, 0));
+fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
+    let base = hash_with(&0, constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives = vec![];
         for v in 0..256 {
             let input = (v as u128) << (shift * 8);
             let hasher = constructor(0, 0);
-            alternitives.push(u128::get_hash(&input, hasher));
+            alternitives.push(hash_with(&input, hasher));
         }
         assert_each_byte_differs(base, alternitives);
     }
 }
 
 ///Ensures that for every bit in the output there is some value for each byte in the key that flips it.
-fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl Fn(u128, u128) -> T) {
-    let base = H::get_hash(&item, constructor(0, 0));
+fn test_keys_affect_every_byte<H: Hash, T: Hasher>(item: H, constructor: impl Fn(u128, u128) -> T) {
+    let base = hash_with(&item, constructor(0, 0));
     for shift in 0..16 {
         let mut alternitives1 = vec![];
         let mut alternitives2 = vec![];
@@ -133,8 +132,8 @@ fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl
             let input = (v as u128) << (shift * 8);
             let hasher1 = constructor(input, 0);
             let hasher2 = constructor(0, input);
-            let h1 = H::get_hash(&item, hasher1);
-            let h2 = H::get_hash(&item, hasher2);
+            let h1 = hash_with(&item, hasher1);
+            let h2 = hash_with(&item, hasher2);
             alternitives1.push(h1);
             alternitives2.push(h2);
         }
@@ -191,7 +190,7 @@ fn test_single_key_bit_flip<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
     }
 }
 
-fn test_all_bytes_matter<T: HasherExt>(hasher: impl Fn() -> T) {
+fn test_all_bytes_matter<T: Hasher>(hasher: impl Fn() -> T) {
     let mut item = vec![0; 256];
     let base_hash = hash(&item, &hasher);
     for pos in 0..256 {
@@ -202,7 +201,7 @@ fn test_all_bytes_matter<T: HasherExt>(hasher: impl Fn() -> T) {
     }
 }
 
-fn test_no_pair_collisions<T: HasherExt>(hasher: impl Fn() -> T) {
+fn test_no_pair_collisions<T: Hasher>(hasher: impl Fn() -> T) {
     let base = [0_u64, 0_u64];
     let base_hash = hash(&base, &hasher);
     for bitpos1 in 0..64 {
@@ -227,11 +226,18 @@ fn test_no_pair_collisions<T: HasherExt>(hasher: impl Fn() -> T) {
     }
 }
 
-fn hash<H: Hash, T: HasherExt>(b: &H, hasher: &dyn Fn() -> T) -> u64 {
-    H::get_hash(b, hasher())
+fn hash<H: Hash, T: Hasher>(b: &H, hash_builder: &dyn Fn() -> T) -> u64 {
+    let mut hasher = hash_builder();
+    b.hash(&mut hasher);
+    hasher.finish()
 }
 
-fn test_single_bit_flip<T: HasherExt>(hasher: impl Fn() -> T) {
+fn hash_with<H: Hash, T: Hasher>(b: &H, mut hasher: T) -> u64 {
+    b.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
     let size = 32;
     let compare_value = hash(&0u32, &hasher);
     for pos in 0..size {
