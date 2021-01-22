@@ -40,11 +40,11 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
-mod operations;
 #[cfg(feature = "std")]
 mod hash_map;
 #[cfg(feature = "std")]
 mod hash_set;
+mod operations;
 mod random_state;
 mod specialize;
 
@@ -61,9 +61,10 @@ pub use crate::specialize::CallHasher;
 pub use crate::hash_map::AHashMap;
 #[cfg(feature = "std")]
 pub use crate::hash_set::AHashSet;
+
+use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
-use core::hash::BuildHasher;
 
 /// Provides a default [Hasher] with fixed keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -87,16 +88,15 @@ use core::hash::BuildHasher;
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
 impl Default for AHasher {
-
     /// Constructs a new [AHasher] with fixed keys.
     /// If `std` is enabled these will be generated upon first invocation.
     /// Otherwise if the `compile-time-rng`feature is enabled these will be generated at compile time.
     /// If neither of these features are available, hardcoded constants will be used.
-    /// 
+    ///
     /// Because the values are fixed, different hashers will all hash elements the same way.
     /// This could make hash values predictable, if DOS attacks are a concern. If this behaviour is
     /// not required, it may be preferable to use [RandomState] instead.
-    /// 
+    ///
     /// # Examples
     ///
     /// ```
@@ -118,18 +118,32 @@ impl Default for AHasher {
 }
 
 /// Used for specialization. (Sealed)
-pub(crate) trait HasherExt: Hasher {
+pub(crate) trait BuildHasherExt: BuildHasher {
     #[doc(hidden)]
-    fn hash_u64(self, value: u64) -> u64;
+    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64;
 
     #[doc(hidden)]
-    fn hash_str(self, value: &[u8]) -> u64;
+    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64;
 
     #[doc(hidden)]
-    fn short_finish(&self) -> u64;
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64;
 }
 
-impl<T: Hasher> HasherExt for T {
+impl<B: BuildHasher> BuildHasherExt for B {
+    #[inline]
+    #[cfg(feature = "specialize")]
+    default fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+    #[inline]
+    #[cfg(not(feature = "specialize"))]
+    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
     #[inline]
     #[cfg(feature = "specialize")]
     default fn hash_u64(mut self, value: u64) -> u64 {
@@ -161,8 +175,10 @@ impl<T: Hasher> HasherExt for T {
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn short_finish(&self) -> u64 {
-        self.finish()
+    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
 }
 
@@ -224,18 +240,16 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher1 = AHasher::new_with_keys(0, 0);
-        let hasher2 = AHasher::new_with_keys(0, 0);
-        let h1 = str::get_hash("foo", hasher1);
-        let h2 = str::get_hash("bar", hasher2);
+        let hasher_build = RandomState::with_seeds(0,0,0,0);
+
+        let h1 = str::get_hash("foo", &hasher_build);
+        let h2 = str::get_hash("bar", &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);
 
-        let hasher1 = AHasher::new_with_keys(0, 0);
-        let hasher2 = AHasher::new_with_keys(0, 0);
-        let h1 = u64::get_hash(&3_u64, hasher1);
-        let h2 = u64::get_hash(&4_u64, hasher2);
+        let h1 = u64::get_hash(&3_u64, &hasher_build);
+        let h2 = u64::get_hash(&4_u64, &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);

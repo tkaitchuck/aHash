@@ -1,4 +1,4 @@
-use crate::{RandomState};
+use crate::RandomState;
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
@@ -7,10 +7,9 @@ use std::ops::{BitAnd, BitOr, BitXor, Deref, DerefMut, Sub};
 
 #[cfg(feature = "serde")]
 use serde::{
-    ser::{Serialize, Serializer},
     de::{Deserialize, Deserializer},
+    ser::{Serialize, Serializer},
 };
-
 
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
@@ -39,8 +38,10 @@ impl<T> AHashSet<T, RandomState> {
     }
 }
 
-impl<T, S> AHashSet<T, S> where S: BuildHasher {
-
+impl<T, S> AHashSet<T, S>
+where
+    S: BuildHasher,
+{
     pub fn with_hasher(hash_builder: S) -> Self {
         AHashSet(HashSet::with_hasher(hash_builder))
     }
@@ -276,8 +277,9 @@ impl<T> Default for AHashSet<T, RandomState> {
 }
 
 #[cfg(feature = "serde")]
-impl<T> Serialize for AHashSet<T> 
-where T: Serialize + Eq + Hash,
+impl<T> Serialize for AHashSet<T>
+where
+    T: Serialize + Eq + Hash,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.deref().serialize(serializer)
@@ -285,11 +287,12 @@ where T: Serialize + Eq + Hash,
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T> Deserialize<'de> for AHashSet<T> 
-where T: Deserialize<'de> + Eq + Hash,
+impl<'de, T> Deserialize<'de> for AHashSet<T>
+where
+    T: Deserialize<'de> + Eq + Hash,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let hash_set =  HashSet::deserialize(deserializer);
+        let hash_set = HashSet::deserialize(deserializer);
         hash_set.map(|hash_set| Self(hash_set))
     }
 }
