@@ -79,6 +79,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -91,6 +92,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: i686-unknown-linux-gnu
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -105,6 +107,8 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          override: true
+          target: x86_64-unknown-linux-gnu
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -117,6 +121,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: thumbv6m-none-eabi
       - uses: actions-rs/cargo@v1
         with:
           command: check
@@ -129,6 +134,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
       - uses: actions-rs/cargo@v1
         with:
           command: check
