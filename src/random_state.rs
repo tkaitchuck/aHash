@@ -46,8 +46,7 @@ pub(crate) const PI: [u64; 4] = [
     0x082e_fa98_ec4e_6c89,
 ];
 
-#[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-const PI2: [u64; 4] = [
+pub(crate) const PI2: [u64; 4] = [
     0x4528_21e6_38d0_1377,
     0xbe54_66cf_34e9_0c6c,
     0xc0ac_29b7_c97c_50dd,
@@ -185,7 +184,7 @@ impl RandomState {
     /// Allows for explicitly setting the seeds to used.
     #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        RandomState { k0, k1, k2, k3 }
+        RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
     }
 }
 
