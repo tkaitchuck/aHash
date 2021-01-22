@@ -61,7 +61,6 @@ pub use crate::specialize::CallHasher;
 pub use crate::hash_map::AHashMap;
 #[cfg(feature = "std")]
 pub use crate::hash_set::AHashSet;
-
 use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
@@ -146,32 +145,24 @@ impl<B: BuildHasher> BuildHasherExt for B {
     }
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn hash_u64(mut self, value: u64) -> u64 {
-        value.hash(&mut self);
-        self.finish()
+    default fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
-    fn hash_u64(mut self, value: u64) -> u64 {
-        value.hash(&mut self);
-        self.finish()
+    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(feature = "specialize")]
-    default fn hash_str(mut self, value: &[u8]) -> u64 {
-        self.write(value);
-        self.finish()
-    }
-    #[inline]
-    #[cfg(not(feature = "specialize"))]
-    fn hash_str(mut self, value: &[u8]) -> u64 {
-        self.write(value);
-        self.finish()
-    }
-    #[inline]
-    #[cfg(feature = "specialize")]
-    default fn short_finish(&self) -> u64 {
-        self.finish()
+    default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = self.build_hasher();
+        value.hash(&mut hasher);
+        hasher.finish()
     }
     #[inline]
     #[cfg(not(feature = "specialize"))]
