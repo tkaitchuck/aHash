@@ -1,5 +1,6 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
+use crate::operations::read_small;
 use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
