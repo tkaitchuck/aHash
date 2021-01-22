@@ -119,7 +119,7 @@ fn test_input_affect_every_byte<T: HasherExt>(constructor: impl Fn(u128, u128) -
             let hasher = constructor(0, 0);
             alternitives.push(u128::get_hash(&input, hasher));
         }
-        assert_each_byte_differs(base, alternitives);
+        assert_each_byte_differs(shift, base, alternitives);
     }
 }
 
@@ -138,17 +138,17 @@ fn test_keys_affect_every_byte<H: Hash, T: HasherExt>(item: H, constructor: impl
             alternitives1.push(h1);
             alternitives2.push(h2);
         }
-        assert_each_byte_differs(base, alternitives1);
-        assert_each_byte_differs(base, alternitives2);
+        assert_each_byte_differs(shift, base, alternitives1);
+        assert_each_byte_differs(shift, base, alternitives2);
     }
 }
 
-fn assert_each_byte_differs(base: u64, alternitives: Vec<u64>) {
+fn assert_each_byte_differs(num: u64, base: u64, alternitives: Vec<u64>) {
     let mut changed_bits = 0_u64;
     for alternitive in alternitives {
         changed_bits |= base ^ alternitive
     }
-    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x}", changed_bits);
+    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x} on num: {:?}", changed_bits, num);
 }
 
 fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
