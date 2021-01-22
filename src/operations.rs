@@ -28,7 +28,7 @@ pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
         }
     } else {
         if data.len() > 0 {
-            [data[0] as u64, 0]
+            [data[0] as u64, data[0] as u64]
         } else {
             [0, 0]
         }

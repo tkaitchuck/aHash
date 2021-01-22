@@ -290,7 +290,7 @@ impl Hasher for AHasherFixed {
 #[cfg(feature = "specialize")]
 pub(crate) struct AHasherStr(pub AHasher);
 
-/// A specialized hasher for strings
+/// A specialized hasher for a single string
 /// Note that the other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
 #[cfg(feature = "specialize")]
 impl Hasher for AHasherStr {
@@ -301,7 +301,14 @@ impl Hasher for AHasherStr {
 
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
+        if bytes.len() > 8 {
+            self.0.write(bytes)
+        } else {
+            let value = read_small(bytes);
+            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer,
+                                           value[1] ^ self.0.extra_keys[1]);
+            self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
+        }
     }
 
     #[inline]
