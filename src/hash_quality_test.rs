@@ -332,7 +332,7 @@ mod fallback_tests {
 
     #[test]
     fn fallback_single_key_bit_flip() {
-        test_single_key_bit_flip(AHasher::test_with_keys)
+        test_single_key_bit_flip(AHasher::new_with_keys)
     }
 
     #[test]
@@ -352,7 +352,7 @@ mod fallback_tests {
 
     #[test]
     fn fallback_keys_change_output() {
-        test_keys_change_output(AHasher::test_with_keys);
+        test_keys_change_output(AHasher::new_with_keys);
     }
 
     #[test]
@@ -364,9 +364,9 @@ mod fallback_tests {
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
         #[cfg(not(feature = "specialize"))]
-        test_keys_affect_every_byte(0, |a, b| AHasher::test_with_keys(a ^ b, a));
-        test_keys_affect_every_byte("", |a, b| AHasher::test_with_keys(a ^ b, a));
-        test_keys_affect_every_byte((0, 0), |a, b| AHasher::test_with_keys(a ^ b, a));
+        test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
+        test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
+        test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
     }
 
     #[test]
@@ -376,10 +376,10 @@ mod fallback_tests {
 
     #[test]
     fn fallback_padding_doesnot_collide() {
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 0));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 2));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(2, 0));
-        test_padding_doesnot_collide(|| AHasher::test_with_keys(2, 2));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 0));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 2));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 0));
+        test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 2));
     }
 }
 
