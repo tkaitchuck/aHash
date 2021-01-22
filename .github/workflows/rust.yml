@@ -40,6 +40,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+  nightly:
+    name: nightly
+    runs-on: ubuntu-latest
+    env:
+        RUSTFLAGS: -C target-cpu=native
+    steps:
+      - uses: actions/checkout@v2 
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
@@ -98,7 +105,7 @@ jobs:
     name: Linux x86_64 - nightly
     runs-on: ubuntu-latest
     env:
-        RUSTFLAGS: -C target-feature=+aes
+        RUSTFLAGS: -C target-cpu=skylake -C target-feature=+aes
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
