@@ -1,9 +1,9 @@
 use crate::convert::*;
-use crate::operations::*;
 #[cfg(feature = "specialize")]
-use crate::HasherExt;
-use core::hash::Hasher;
+use crate::fallback_hash::MULTIPLE;
+use crate::operations::*;
 use crate::RandomState;
+use core::hash::Hasher;
 use crate::random_state::PI;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
@@ -61,6 +61,16 @@ impl AHasher {
         }
     }
 
+    #[allow(unused)] // False positive
+    pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
+        Self {
+            enc: key1,
+            sum: key2,
+            key: key1 ^ key2,
+        }
+    }
+
+
     #[inline]
     pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
@@ -94,34 +104,8 @@ impl AHasher {
         self.sum = shuffle_and_add(self.sum, v2);
     }
 
-}
-
-#[cfg(feature = "specialize")]
-impl HasherExt for AHasher {
     #[inline]
-    fn hash_u64(self, value: u64) -> u64 {
-        let mask = self.sum as u64;
-        let rot = (self.enc & 64) as u32;
-        folded_multiply(value ^ mask, crate::fallback_hash::MULTIPLE).rotate_left(rot)
-    }
-
-    #[inline]
-    fn hash_str(mut self, value: &[u8]) -> u64 {
-        if value.len() > 8 {
-            self.write(value);
-            self.finish()
-        } else {
-            let length = value.len() as u64;
-            let value = read_small(value);
-            let value = [value[0] as u64, value[1] as u64];
-            let keys: [u64; 2] = self.key.convert();
-            let combined = folded_multiply(value[0] ^ keys[0], value[1] ^ keys[1]);
-            let rot = (self.enc & 63) as u32;
-            folded_multiply(length ^ combined, self.sum as u64).rotate_left(rot)
-        }
-    }
-
-    #[inline]
+    #[cfg(feature = "specialize")]
     fn short_finish(&self) -> u64 {
         let combined = aesdec(self.sum, self.enc);
         let result: [u64; 2] = aesenc(combined, combined).convert();
@@ -229,6 +213,140 @@ impl Hasher for AHasher {
     }
 }
 
+#[cfg(feature = "specialize")]
+pub(crate) struct AHasherU64 {
+    pub(crate) buffer: u64,
+    pub(crate) pad: u64,
+}
+
+/// A specialized hasher for only primitives under 64 bits.
+#[cfg(feature = "specialize")]
+impl Hasher for AHasherU64 {
+    #[inline]
+    fn finish(&self) -> u64 {
+        let rot = (self.pad & 64) as u32;
+        self.buffer.rotate_left(rot)
+    }
+
+    #[inline]
+    fn write(&mut self, _bytes: &[u8]) {
+        unreachable!("This should never be called")
+    }
+
+    #[inline]
+    fn write_u8(&mut self, i: u8) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u16(&mut self, i: u16) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u32(&mut self, i: u32) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u64(&mut self, i: u64) {
+        self.buffer = folded_multiply(i ^ self.buffer, MULTIPLE);
+    }
+
+    #[inline]
+    fn write_u128(&mut self, _i: u128) {
+        unreachable!("This should never be called")
+    }
+
+    #[inline]
+    fn write_usize(&mut self, _i: usize) {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "specialize")]
+pub(crate) struct AHasherFixed(pub AHasher);
+
+/// A specialized hasher for fixed size primitives larger than 64 bits.
+#[cfg(feature = "specialize")]
+impl Hasher for AHasherFixed {
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.0.short_finish()
+    }
+
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.write(bytes)
+    }
+
+    #[inline]
+    fn write_u8(&mut self, i: u8) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u16(&mut self, i: u16) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u32(&mut self, i: u32) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    fn write_u64(&mut self, i: u64) {
+        self.0.write_u64(i);
+    }
+
+    #[inline]
+    fn write_u128(&mut self, i: u128) {
+        self.0.write_u128(i);
+    }
+
+    #[inline]
+    fn write_usize(&mut self, i: usize) {
+        self.0.write_usize(i);
+    }
+}
+
+#[cfg(feature = "specialize")]
+pub(crate) struct AHasherStr(pub AHasher);
+
+/// A specialized hasher for strings
+/// Note that the other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
+#[cfg(feature = "specialize")]
+impl Hasher for AHasherStr {
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.0.finish()
+    }
+
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.write(bytes)
+    }
+
+    #[inline]
+    fn write_u8(&mut self, _i: u8) {}
+
+    #[inline]
+    fn write_u16(&mut self, _i: u16) {}
+
+    #[inline]
+    fn write_u32(&mut self, _i: u32) {}
+
+    #[inline]
+    fn write_u64(&mut self, _i: u64) {}
+
+    #[inline]
+    fn write_u128(&mut self, _i: u128) {}
+
+    #[inline]
+    fn write_usize(&mut self, _i: usize) {}
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,7 +356,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3,4).build_hasher();
+        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);

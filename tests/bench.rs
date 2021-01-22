@@ -2,12 +2,12 @@ use ahash::{CallHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher, BuildHasher};
+use std::hash::{Hash, Hasher};
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn aeshash<H: Hash>(b: &H) -> u64 {
-    let hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
-    H::get_hash(b, hasher)
+    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+    H::get_hash(b, &build_hasher)
 }
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn aeshash<H: Hash>(_b: &H) -> u64 {
@@ -16,8 +16,8 @@ fn aeshash<H: Hash>(_b: &H) -> u64 {
 
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes")))]
 fn fallbackhash<H: Hash>(b: &H) -> u64 {
-    let hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
-    H::get_hash(b, hasher)
+    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+    H::get_hash(b, &build_hasher)
 }
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes"))]
 fn fallbackhash<H: Hash>(_b: &H) -> u64 {
