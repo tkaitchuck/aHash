@@ -154,9 +154,8 @@ impl Hasher for AHasher {
         let length = data.len();
         self.add_in_length(length as u64);
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() < 8 {
+        if data.len() <= 8 {
             let value = read_small(data);
-            let value = [value[0] as u64, value[1] as u64];
             self.hash_in(value.convert());
         } else {
             if data.len() > 32 {

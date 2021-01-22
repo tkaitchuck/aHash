@@ -178,10 +178,10 @@ impl Hasher for AHasher {
             }
         } else {
             let value = read_small(data);
-            let value = [value[0] as u64, value[1] as u64];
             self.large_update(value.convert());
         }
     }
+
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
