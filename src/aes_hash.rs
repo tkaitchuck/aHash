@@ -319,12 +319,23 @@ pub(crate) struct AHasherStr(pub AHasher);
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
-        self.0.finish()
+        let result : [u64; 2] = self.0.enc.convert();
+        result[0]
     }
 
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
+        if bytes.len() > 8 {
+            self.0.write(bytes);
+            self.0.enc = aesdec(self.0.sum, self.0.enc);
+            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+        } else {
+            self.0.add_in_length(bytes.len() as u64);
+            let value = read_small(bytes).convert();
+            self.0.sum = shuffle_and_add(self.0.sum, value);
+            self.0.enc = aesdec(self.0.sum, self.0.enc);
+            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+        }
     }
 
     #[inline]
