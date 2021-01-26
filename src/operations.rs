@@ -12,6 +12,29 @@ pub(crate) const fn folded_multiply(s: u64, by: u64) -> u64 {
     ((result & 0xffff_ffff_ffff_ffff) as u64) ^ ((result >> 64) as u64)
 }
 
+
+/// Given a small (less than 8 byte slice) returns the same data stored in two u32s.
+/// (order of and non-duplication of bytes is NOT guaranteed)
+#[inline(always)]
+pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
+    debug_assert!(data.len() <= 8);
+    if data.len() >= 2 {
+        if data.len() >= 4 {
+            //len 4-8
+            [data.read_u32().0 as u64, data.read_last_u32() as u64]
+        } else {
+            //len 2-3
+            [data.read_u16().0 as u64, data[data.len() - 1] as u64]
+        }
+    } else {
+        if data.len() > 0 {
+            [data[0] as u64, data[0] as u64]
+        } else {
+            [0, 0]
+        }
+    }
+}
+
 #[inline(always)]
 pub(crate) fn shuffle(a: u128) -> u128 {
     #[cfg(all(target_feature = "ssse3", not(miri)))]

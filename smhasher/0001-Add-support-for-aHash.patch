@@ -1,7 +1,7 @@
-From 426384ce34cf410d892eeeeeb7f6046d52bff8e7 Mon Sep 17 00:00:00 2001
+From 8d3446fbd6c73710ef2ea6bfe46fd3b7a1a787a7 Mon Sep 17 00:00:00 2001
 From: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
-Date: Sat, 11 Jul 2020 17:15:56 -0700
-Subject: [PATCH] Add support for ahash
+Date: Wed, 13 Jan 2021 21:56:02 -0800
+Subject: [PATCH] Add support for aHash
 
 ---
  CMakeLists.txt |  1 +
@@ -12,26 +12,32 @@ Subject: [PATCH] Add support for ahash
  create mode 100644 ahash.h
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 6ebab1a..9d79e98 100644
+index 3420a56..921d111 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -470,10 +470,11 @@ add_executable(
- target_link_libraries(
-   SMHasher
-   SMHasherSupport
-   ${HIGHWAY_LIB}
-   ${BLAKE3_LIB}
-+  libahash_c.a
-   ${CMAKE_THREAD_LIBS_INIT}
-   )
+@@ -638,14 +638,15 @@ if(ipo_supported)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DLTO")
+   # set_source_files_properties(main.cpp PROPERTIES COMPILE_FLAGS "-DLTO")
+ else()
+   message(STATUS "IPO / LTO not supported: <${error}>")
+ endif()
  
- #add_executable(
- #  bittest
+ target_link_libraries(SMHasher SMHasherSupport ${HIGHWAY_LIB} ${BLAKE3_LIB}
++                      libahash_c.a
+                       ${CMAKE_THREAD_LIBS_INIT})
+ 
+ # add_executable( bittest bittest.cpp )
+ #
+ # target_link_libraries( bittest SMHasherSupport ${CMAKE_THREAD_LIBS_INIT} )
+ 
+ if(NOT (CMAKE_CROSSCOMPILING))
 diff --git a/Hashes.h b/Hashes.h
-index 4e111c1..fcd3e38 100644
+index 472f4e4..9fae4e9 100644
 --- a/Hashes.h
 +++ b/Hashes.h
-@@ -19,10 +19,11 @@
+@@ -17,14 +17,15 @@
+ #include "opt_cmetrohash.h"
+ 
  #if defined(__SSE4_2__) && defined(__x86_64__)
  #include "metrohash/metrohash64crc.h"
  #include "metrohash/metrohash128crc.h"
@@ -43,7 +49,11 @@ index 4e111c1..fcd3e38 100644
  #include "jody_hash64.h"
  
  // objsize: 0-0x113 = 276
-@@ -356,10 +357,14 @@ inline void fasthash32_test ( const void * key, int len, uint32_t seed, void * o
+ #include "tifuhash.h"
+ // objsize: 5f0-85f = 623
+@@ -356,14 +357,18 @@ inline void cmetrohash64_2_test ( const void * key, int len, uint32_t seed, void
+ inline void fasthash32_test ( const void * key, int len, uint32_t seed, void * out ) {
+   *(uint32_t*)out = fasthash32(key, (size_t) len, seed);
  }
  #ifdef HAVE_INT64
  inline void fasthash64_test ( const void * key, int len, uint32_t seed, void * out ) {
@@ -58,6 +68,8 @@ index 4e111c1..fcd3e38 100644
  // objsize 0-778: 1912
  void mum_hash_test(const void * key, int len, uint32_t seed, void * out);
  
+ inline void mum_low_test ( const void * key, int len, uint32_t seed, void * out ) {
+   uint64_t result;
 diff --git a/ahash.h b/ahash.h
 new file mode 100644
 index 0000000..6c59caf
@@ -114,15 +126,17 @@ index 0000000..6c59caf
 +#endif
 \ No newline at end of file
 diff --git a/main.cpp b/main.cpp
-index 04060f2..7489aaf 100644
+index e9cf20d..ae3d273 100644
 --- a/main.cpp
 +++ b/main.cpp
-@@ -263,11 +263,11 @@ HashInfo g_hashes[] =
- 
-   { xxh3_test,            64, 0x39CD9E4A, "xxh3",        "xxHash v3, 64-bit", GOOD },
-   { xxh3low_test,         32, 0xFAE8467B, "xxh3low",     "xxHash v3, 64-bit, low 32-bits part", GOOD },
-   { xxh128_test,         128, 0xEB61B3A0, "xxh128",      "xxHash v3, 128-bit", GOOD },
-   { xxh128low_test,       64, 0x54D1CC70, "xxh128low",   "xxHash v3, 128-bit, low 64-bits part", GOOD },
+@@ -302,15 +302,15 @@ HashInfo g_hashes[] =
+   { MeowHash64_test,      64, 0xB04AC842, "MeowHash64low","MeowHash (requires x64 AES-NI)", POOR },
+   { MeowHash128_test,    128, 0xA0D29861, "MeowHash",     "MeowHash (requires x64 AES-NI)", POOR },
+ #endif
+   { t1ha1_64le_test,      64, 0xD6836381, "t1ha1_64le",  "Fast Positive Hash (portable, aims 64-bit, little-endian)", POOR },
+   { t1ha1_64be_test,      64, 0x93F864DE, "t1ha1_64be",  "Fast Positive Hash (portable, aims 64-bit, big-engian)", POOR },
+   { t1ha0_32le_test,      64, 0x7F7D7B29, "t1ha0_32le",  "Fast Positive Hash (portable, aims 32-bit, little-endian)", POOR },
+   { t1ha0_32be_test,      64, 0xDA6A4061, "t1ha0_32be",  "Fast Positive Hash (portable, aims 32-bit, big-endian)", POOR },
 -
 +  { ahash64_test,         64, 0x00000000, "ahash64",  "ahash 64bit", GOOD }, //Expected value set to zero because aHash does not adhere to a fixed output.
  #if __WORDSIZE >= 64
@@ -130,6 +144,8 @@ index 04060f2..7489aaf 100644
  #else
    // broken on certain travis
  # define TIFU_VERIF       0x0
+ #endif
+   // and now the quality hash funcs, slowest first
 -- 
 2.25.1
 

@@ -1,5 +1,6 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
+use crate::operations::read_small;
 use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
@@ -111,7 +112,7 @@ impl AHasher {
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
         let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
-        self.buffer = (combined.wrapping_add(self.buffer) ^ self.pad).rotate_left(ROT);
+        self.buffer = (self.buffer.wrapping_add(self.pad) ^ combined).rotate_left(ROT);
     }
 
     #[inline]
@@ -176,21 +177,11 @@ impl Hasher for AHasher {
                 self.large_update([data.read_u64().0, data.read_last_u64()].convert());
             }
         } else {
-            if data.len() >= 2 {
-                if data.len() >= 4 {
-                    let block = [data.read_u32().0 as u64, data.read_last_u32() as u64];
-                    self.large_update(block.convert());
-                } else {
-                    let value = [data.read_u16().0 as u32, data[data.len() - 1] as u32];
-                    self.update(value.convert());
-                }
-            } else {
-                if data.len() > 0 {
-                    self.update(data[0] as u64);
-                }
-            }
+            let value = read_small(data);
+            self.large_update(value.convert());
         }
     }
+
     #[inline]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
@@ -299,7 +290,7 @@ impl Hasher for AHasherFixed {
 #[cfg(feature = "specialize")]
 pub(crate) struct AHasherStr(pub AHasher);
 
-/// A specialized hasher for strings
+/// A specialized hasher for a single string
 /// Note that the other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
 #[cfg(feature = "specialize")]
 impl Hasher for AHasherStr {
@@ -310,7 +301,14 @@ impl Hasher for AHasherStr {
 
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
+        if bytes.len() > 8 {
+            self.0.write(bytes)
+        } else {
+            let value = read_small(bytes);
+            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer,
+                                           value[1] ^ self.0.extra_keys[1]);
+            self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
+        }
     }
 
     #[inline]

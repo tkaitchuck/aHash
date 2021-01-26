@@ -154,22 +154,8 @@ impl Hasher for AHasher {
         let length = data.len();
         self.add_in_length(length as u64);
         //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() < 8 {
-            let value: [u64; 2] = if data.len() >= 2 {
-                if data.len() >= 4 {
-                    //len 4-8
-                    [data.read_u32().0 as u64, data.read_last_u32() as u64]
-                } else {
-                    //len 2-3
-                    [data.read_u16().0 as u64, data[data.len() - 1] as u64]
-                }
-            } else {
-                if data.len() > 0 {
-                    [data[0] as u64, 0]
-                } else {
-                    [0, 0]
-                }
-            };
+        if data.len() <= 8 {
+            let value = read_small(data);
             self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
@@ -333,12 +319,23 @@ pub(crate) struct AHasherStr(pub AHasher);
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
-        self.0.finish()
+        let result : [u64; 2] = self.0.enc.convert();
+        result[0]
     }
 
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
+        if bytes.len() > 8 {
+            self.0.write(bytes);
+            self.0.enc = aesdec(self.0.sum, self.0.enc);
+            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+        } else {
+            self.0.add_in_length(bytes.len() as u64);
+            let value = read_small(bytes).convert();
+            self.0.sum = shuffle_and_add(self.0.sum, value);
+            self.0.enc = aesdec(self.0.sum, self.0.enc);
+            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+        }
     }
 
     #[inline]
@@ -432,3 +429,4 @@ mod tests {
         assert_eq!(bytes, 0x6464646464646464);
     }
 }
+
