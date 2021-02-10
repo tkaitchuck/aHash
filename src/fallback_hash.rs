@@ -101,7 +101,7 @@ impl AHasher {
     #[inline(always)]
     #[cfg(not(feature = "folded_multiply"))]
     fn update(&mut self, new_data: u64) {
-        self.buffer = (new_data ^ self.buffer).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE).rotate_left(ROT);
+        self.buffer = (new_data ^ self.buffer).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
