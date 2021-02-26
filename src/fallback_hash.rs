@@ -93,8 +93,18 @@ impl AHasher {
     /// attacker somehow knew part of (but not all) the contents of the buffer before hand,
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
+    #[cfg(feature = "folded_multiply")]
     fn update(&mut self, new_data: u64) {
         self.buffer = folded_multiply(new_data ^ self.buffer, MULTIPLE);
+    }
+
+    #[inline(always)]
+    #[cfg(not(feature = "folded_multiply"))]
+    fn update(&mut self, new_data: u64) {
+        let d1 = (new_data ^ self.buffer).wrapping_mul(0xBF58476D1CE4E5B9);
+        let d2 = (new_data ^ self.pad).wrapping_mul(0x94D049BB133111EB);
+        self.pad = (self.pad ^ d1).rotate_left(10).wrapping_mul(MULTIPLE);
+        self.buffer = (self.buffer ^ d2).rotate_left(8).wrapping_mul(MULTIPLE);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
@@ -109,10 +119,19 @@ impl AHasher {
     /// can't be changed by the same set of input bits. To cancel this sequence with subsequent input would require
     /// knowing the keys.
     #[inline(always)]
+    #[cfg(feature = "folded_multiply")]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
         let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
         self.buffer = (self.buffer.wrapping_add(self.pad) ^ combined).rotate_left(ROT);
+    }
+
+    #[inline(always)]
+    #[cfg(not(feature = "folded_multiply"))]
+    fn large_update(&mut self, new_data: u128) {
+        let block: [u64; 2] = new_data.convert();
+        self.update(block[0]);
+        self.update(block[1]);
     }
 
     #[inline]
@@ -183,9 +202,17 @@ impl Hasher for AHasher {
     }
 
     #[inline]
+    #[cfg(feature = "folded_multiply")]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
         folded_multiply(self.buffer, self.pad).rotate_left(rot)
+    }
+
+    #[inline]
+    #[cfg(not(feature = "folded_multiply"))]
+    fn finish(&self) -> u64 {
+        let rot = (self.pad & 63) as u32;
+        (self.buffer ^ self.pad).rotate_left(24).wrapping_mul(MULTIPLE).rotate_left(rot)
     }
 }
 
