@@ -101,7 +101,10 @@ impl AHasher {
     #[inline(always)]
     #[cfg(not(feature = "folded_multiply"))]
     fn update(&mut self, new_data: u64) {
-        self.buffer = (new_data ^ self.buffer).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE);
+        let d1 = (new_data ^ self.buffer).wrapping_mul(0xBF58476D1CE4E5B9);
+        let d2 = (new_data ^ self.pad).wrapping_mul(0x94D049BB133111EB);
+        self.pad = (self.pad ^ d1).rotate_left(10).wrapping_mul(MULTIPLE);
+        self.buffer = (self.buffer ^ d2).rotate_left(8).wrapping_mul(MULTIPLE);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
@@ -208,8 +211,8 @@ impl Hasher for AHasher {
     #[inline]
     #[cfg(not(feature = "folded_multiply"))]
     fn finish(&self) -> u64 {
-        let rot = (self.buffer & 63) as u32;
-        (self.buffer ^ self.pad).wrapping_mul(MULTIPLE).rotate_left(ROT).wrapping_mul(MULTIPLE).rotate_left(rot)
+        let rot = (self.pad & 63) as u32;
+        (self.buffer ^ self.pad).rotate_left(24).wrapping_mul(MULTIPLE).rotate_left(rot)
     }
 }
 
