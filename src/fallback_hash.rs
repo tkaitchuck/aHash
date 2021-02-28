@@ -211,7 +211,7 @@ impl Hasher for AHasher {
     #[cfg(not(feature = "folded_multiply"))]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
-        (self.buffer ^ self.pad).rotate_left(24).wrapping_mul(MULTIPLE).rotate_left(rot)
+        (self.buffer.wrapping_mul(MULTIPLE) ^ self.pad).rotate_left(rot)
     }
 }
 
