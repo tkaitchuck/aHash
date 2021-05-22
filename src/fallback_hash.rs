@@ -129,8 +129,8 @@ impl AHasher {
     #[cfg(not(feature = "folded_multiply"))]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
-        self.update(block[0]);
-        self.update(block[1]);
+        self.update(block[0] ^ self.extra_keys[0]);
+        self.update(block[1] ^ self.extra_keys[1]);
     }
 
     #[inline]
