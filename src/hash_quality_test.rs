@@ -273,11 +273,11 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                 let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                 assert!(
                     same_bytes <= 3,
-                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
                 );
                 assert!(
                     same_nibbles <= 8,
-                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
                 );
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
@@ -292,25 +292,21 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                     let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                     assert!(
                         same_bytes <= 3,
-                        format!(
-                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
-                            string,
-                            num,
-                            c,
-                            value,
-                            long.finish()
-                        )
+                        "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                        string,
+                        num,
+                        c,
+                        value,
+                        long.finish()
                     );
                     assert!(
                         same_nibbles <= 8,
-                        format!(
-                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
-                            string,
-                            num,
-                            c,
-                            value,
-                            long.finish()
-                        )
+                        "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                        string,
+                        num,
+                        c,
+                        value,
+                        long.finish()
                     );
                     let flipped_bits = (value ^ long.finish()).count_ones();
                     assert!(flipped_bits > 10);
@@ -364,7 +360,7 @@ mod fallback_tests {
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
         #[cfg(all(not(feature = "specialize"), feature = "folded_multiply"))]
-        test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
+            test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
     }
@@ -391,8 +387,10 @@ mod aes_tests {
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
 
-    const BAD_KEY: u128 = 0x5252_5252_5252_5252_5252_5252_5252_5252; //This encrypts to 0.
-    const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363; //This decrypts to 0.
+    //This encrypts to 0.
+    const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363;
+    //This decrypts to 0.
+    const BAD_KEY: u128 = 0x5252_5252_5252_5252_5252_5252_5252_5252;
 
     #[test]
     fn test_single_bit_in_byte() {
@@ -444,10 +442,11 @@ mod aes_tests {
     #[test]
     fn aes_keys_affect_every_byte() {
         #[cfg(not(feature = "specialize"))]
-        test_keys_affect_every_byte(0, AHasher::test_with_keys);
+            test_keys_affect_every_byte(0, AHasher::test_with_keys);
         test_keys_affect_every_byte("", AHasher::test_with_keys);
         test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
     }
+
     #[test]
     fn aes_finish_is_consistant() {
         test_finish_is_consistent(AHasher::test_with_keys)
