@@ -93,6 +93,8 @@ jobs:
         with:
           toolchain: stable
           target: i686-unknown-linux-gnu
+      - name: Install cross compile tools
+        run: sudo apt-get install -y gcc-multilib libc6-i386 libc6-dev-i386
       - uses: actions-rs/cargo@v1
         with:
           command: check
