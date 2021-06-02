@@ -37,7 +37,7 @@ mod convert;
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(target_arch = "aarch64", target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
 ))]
 mod aes_hash;
 mod fallback_hash;
@@ -54,13 +54,13 @@ mod specialize;
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(target_arch = "aarch64", target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
 ))]
 pub use crate::aes_hash::AHasher;
 
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(target_arch = "aarch64", target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
 )))]
 pub use crate::fallback_hash::AHasher;
 pub use crate::random_state::RandomState;
