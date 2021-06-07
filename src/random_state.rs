@@ -182,6 +182,9 @@ impl RandomState {
     }
 
     /// Allows for explicitly setting the seeds to used.
+    ///
+    /// Note: This method is robust against 0s being passed for one or more of the parameters
+    /// or the same value being passed for more than one parameter.
     #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
