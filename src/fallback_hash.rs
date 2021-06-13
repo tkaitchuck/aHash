@@ -239,7 +239,7 @@ impl Hasher for AHasherU64 {
 
     #[inline]
     fn write(&mut self, _bytes: &[u8]) {
-        unreachable!("This should never be called")
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
@@ -264,12 +264,12 @@ impl Hasher for AHasherU64 {
 
     #[inline]
     fn write_u128(&mut self, _i: u128) {
-        unreachable!("This should never be called")
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
     fn write_usize(&mut self, _i: usize) {
-        unimplemented!()
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 }
 
