@@ -5,13 +5,13 @@ use crate::BuildHasherExt;
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "nightly")
 ))]
 pub use crate::aes_hash::*;
 
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "nightly")
 )))]
 pub use crate::fallback_hash::*;
 
@@ -37,12 +37,12 @@ use once_cell::race::OnceBox;
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "nightly")
 ))]
 use crate::aes_hash::*;
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri))
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "nightly")
 )))]
 use crate::fallback_hash::*;
 

@@ -24,6 +24,9 @@ doc = true
 [features]
 default = ["std"]
 
+# Enabling this will enable AES-based hashing on ARM.
+nightly = []
+
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
 
