@@ -316,6 +316,16 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
     }
 }
 
+fn test_length_extension<T: Hasher>(hasher: impl Fn(u128, u128) -> T) {
+    for key in 0..256 {
+        let h1 = hasher(key, key);
+        let v1 = hash_with(&[0_u8, 0, 0, 0, 0, 0, 0, 0], h1);
+        let h2 = hasher(key, key);
+        let v2 = hash_with(&[1_u8, 0, 0, 0, 0, 0, 0, 0, 0], h2);
+        assert_ne!(v1, v2);
+    }
+}
+
 #[cfg(test)]
 mod fallback_tests {
     use crate::fallback_hash::*;
@@ -376,6 +386,11 @@ mod fallback_tests {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 2));
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 0));
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 2));
+    }
+
+    #[test]
+    fn fallback_length_extension() {
+        test_length_extension(|a, b| AHasher::new_with_keys(a, b));
     }
 }
 
@@ -456,5 +471,10 @@ mod aes_tests {
     fn aes_padding_doesnot_collide() {
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+    }
+
+    #[test]
+    fn aes_length_extension() {
+        test_length_extension(|a, b| AHasher::test_with_keys(a, b));
     }
 }
