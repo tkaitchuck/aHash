@@ -24,9 +24,6 @@ doc = true
 [features]
 default = ["std"]
 
-# Enabling this will enable AES-based hashing on ARM.
-stdsimd = []
-
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
 
