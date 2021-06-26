@@ -29,11 +29,6 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use once_cell::race::OnceBox;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-use crate::aes_hash::*;
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
-use crate::fallback_hash::*;
-
 #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
 
