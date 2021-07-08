@@ -65,14 +65,16 @@ codegen-units = 1
 version_check = "0.9"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
-once_cell = { version = "1.5.2", default-features = false, features = ["unstable", "alloc"] }
-getrandom = { version = "0.2.0" }
+getrandom = { version = "0.2.3" }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 
 [target.'cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi")))'.dependencies]
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
+
+[dependencies]
+once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"

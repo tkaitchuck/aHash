@@ -11,6 +11,7 @@ pub use crate::fallback_hash::*;
 
 #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
 use const_random::const_random;
+use core::any::{Any, TypeId};
 use core::fmt;
 use core::hash::BuildHasher;
 #[cfg(feature = "specialize")]
@@ -22,11 +23,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
-
-#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
-#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
 use once_cell::race::OnceBox;
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
@@ -34,10 +32,17 @@ use crate::aes_hash::*;
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
 use crate::fallback_hash::*;
 
-#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
+static RAND_SOURCE: OnceBox<Box<dyn RandomSource + Send + Sync>> = OnceBox::new();
 
-static COUNTER: AtomicUsize = AtomicUsize::new(0);
+/// A supplier of Randomness used for different hashers.
+/// See [RandomState.set_random_source].
+pub trait RandomSource {
+
+    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2];
+
+    fn gen_hasher_seed(&self) -> usize;
+
+}
 
 pub(crate) const PI: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
@@ -53,28 +58,67 @@ pub(crate) const PI2: [u64; 4] = [
     0x3f84_d5b5_b547_0917,
 ];
 
-#[inline]
-pub(crate) fn seeds() -> [u64; 4] {
+struct DefaultRandomSource {
+    counter: AtomicUsize,
+}
+
+impl DefaultRandomSource {
+    fn new() -> DefaultRandomSource {
+        DefaultRandomSource {
+            counter: AtomicUsize::new(&PI as *const _ as usize),
+        }
+    }
+}
+
+impl RandomSource for DefaultRandomSource {
+
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-    {
+    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
+        static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
+
         SEEDS.get_or_init(|| {
             let mut result: [u8; 64] = [0; 64];
             getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
             Box::new(result.convert())
-        })[1]
+        })
     }
+
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
-    {
-        [
-            const_random!(u64),
-            const_random!(u64),
-            const_random!(u64),
-            const_random!(u64),
-        ]
+    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
+        const RAND: [[u64; 4]; 2] = [
+            [
+                const_random!(u64),
+                const_random!(u64),
+                const_random!(u64),
+                const_random!(u64),
+            ], [
+                const_random!(u64),
+                const_random!(u64),
+                const_random!(u64),
+                const_random!(u64),
+            ]
+        ];
+        &RAND
     }
+
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-    {
-        PI
+    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
+        &[PI, PI2]
+    }
+
+    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
+    fn gen_hasher_seed(&self) -> usize {
+        let stack = self as *const _ as usize;
+        self.counter.fetch_add(stack, Ordering::Relaxed)
+    }
+
+    #[cfg(all(target_arch = "arm", target_os = "none"))]
+    fn gen_hasher_seed(&self) -> usize {
+        let stack = self as *const _ as usize;
+        let previous = self.counter.load(Ordering::Relaxed);
+        let new = previous.wrapping_add(stack);
+        self.counter.store(new, Ordering::Relaxed);
+        new
     }
 }
 
@@ -100,72 +144,50 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
+
+    /// Provides an optional way to manually supply a source of randomness for Hasher keys.
+    ///
+    /// The provided [RandomSource] will be used to be used as a source of randomness by [RandomState] to generate new states.
+    /// If this method is not invoked the standard source of randomness is used as described in the Readme.
+    ///
+    /// The source of randomness can only be set once, and must be set before the first RandomState is created.
+    /// If the source has already been specified `Err` is returned with a `bool` indicating if the set failed because
+    /// method was previously invoked (true) or if the default source is already being used (false).
+    pub fn set_random_source(source: impl RandomSource + Send + Sync + 'static) -> Result<(), bool> {
+        RAND_SOURCE.set(Box::new(Box::new(source))).map_err(|s| s.as_ref().type_id() != TypeId::of::<&DefaultRandomSource>())
+    }
+
+    #[inline]
+    fn get_src() -> &'static dyn RandomSource {
+        RAND_SOURCE.get_or_init(|| Box::new(Box::new(DefaultRandomSource::new()))).as_ref()
+    }
+
     /// Use randomly generated keys
     #[inline]
     pub fn new() -> RandomState {
-        #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-        {
-            let seeds = SEEDS.get_or_init(|| {
-                let mut result: [u8; 64] = [0; 64];
-                getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
-                Box::new(result.convert())
-            });
-            RandomState::from_keys(seeds[0], seeds[1])
-        }
-        #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
-        {
-            RandomState::from_keys(
-                [
-                    const_random!(u64),
-                    const_random!(u64),
-                    const_random!(u64),
-                    const_random!(u64),
-                ],
-                [
-                    const_random!(u64),
-                    const_random!(u64),
-                    const_random!(u64),
-                    const_random!(u64),
-                ],
-            )
-        }
-        #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-        {
-            RandomState::from_keys(PI, PI2)
-        }
+        let src = Self::get_src();
+        let fixed = src.get_fixed_seeds();
+        Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
     }
 
     /// Allows for supplying seeds, but each time it is called the resulting state will be different.
     /// This is done using a static counter, so it can safely be used with a fixed keys.
     #[inline]
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        RandomState::from_keys(seeds(), [k0, k1, k2, k3])
+        let src = Self::get_src();
+        let fixed = src.get_fixed_seeds();
+        RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], src.gen_hasher_seed())
     }
 
-    fn from_keys(a: [u64; 4], b: [u64; 4]) -> RandomState {
-        let [k0, k1, k2, k3] = a;
+    fn from_keys(a: &[u64; 4], b: &[u64; 4], c: usize) -> RandomState {
+        let &[k0, k1, k2, k3] = a;
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
-
-        let stack_mem_loc = &hasher as *const _ as usize;
-        #[cfg(not(all(target_arch = "arm", target_os = "none")))]
-        {
-            hasher.write_usize(COUNTER.fetch_add(stack_mem_loc, Ordering::Relaxed));
-        }
-        #[cfg(all(target_arch = "arm", target_os = "none"))]
-        {
-            let previous = COUNTER.load(Ordering::Relaxed);
-            let new = previous.wrapping_add(stack_mem_loc);
-            COUNTER.store(new, Ordering::Relaxed);
-            hasher.write_usize(new);
-        }
-        #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-        hasher.write_usize(&PI as *const _ as usize);
+        hasher.write_usize(c);
         let mix = |k: u64| {
             let mut h = hasher.clone();
             h.write_u64(k);
             h.finish()
         };
-
         RandomState {
             k0: mix(b[0]),
             k1: mix(b[1]),
@@ -177,8 +199,17 @@ impl RandomState {
     /// Internal. Used by Default.
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState {
-        let [k0, k1, k2, k3] = seeds();
+        let [k0, k1, k2, k3] = Self::get_src().get_fixed_seeds()[0];
         RandomState { k0, k1, k2, k3 }
+    }
+
+    /// Allows for explicitly setting a seed to used.
+    ///
+    /// Note: This method does not require the provided seed to be strong.
+    #[inline]
+    pub fn with_seed(key: usize) -> RandomState {
+        let fixed = Self::get_src().get_fixed_seeds();
+        RandomState::from_keys(&fixed[0], &fixed[1], key)
     }
 
     /// Allows for explicitly setting the seeds to used.
@@ -276,19 +307,19 @@ mod test {
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
     #[test]
     fn test_not_pi() {
-        assert_ne!(PI, seeds());
+        assert_ne!(PI, RandomState::get_src().get_fixed_seeds()[0]);
     }
 
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
     #[test]
     fn test_not_pi_const() {
-        assert_ne!(PI, seeds());
+        assert_ne!(PI, RandomState::get_src().get_fixed_seeds()[0]);
     }
 
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
     #[test]
     fn test_pi() {
-        assert_eq!(PI, seeds());
+        assert_eq!(PI, RandomState::get_src().get_fixed_seeds()[0]);
     }
 
     #[test]
