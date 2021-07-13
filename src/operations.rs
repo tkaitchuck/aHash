@@ -100,6 +100,22 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
         transmute(_mm_aesenc_si128(value, transmute(xor)))
     }
 }
+
+#[cfg(all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd"))]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
+    #[cfg(target_arch = "arm")]
+    use core::arch::arm::*;
+    #[cfg(target_arch = "aarch64")]
+    use core::arch::aarch64::*;
+    use core::mem::transmute;
+    unsafe {
+        let value = transmute(value);
+        transmute(vaesmcq_u8(vaeseq_u8(value, transmute(xor))))
+    }
+}
+
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
 #[allow(unused)]
 #[inline(always)]
@@ -112,6 +128,21 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     unsafe {
         let value = transmute(value);
         transmute(_mm_aesdec_si128(value, transmute(xor)))
+    }
+}
+
+#[cfg(all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd"))]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
+    #[cfg(target_arch = "arm")]
+    use core::arch::arm::*;
+    #[cfg(target_arch = "aarch64")]
+    use core::arch::aarch64::*;
+    use core::mem::transmute;
+    unsafe {
+        let value = transmute(value);
+        transmute(vaesimcq_u8(vaesdq_u8(value, transmute(xor))))
     }
 }
 

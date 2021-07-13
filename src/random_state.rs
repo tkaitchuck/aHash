@@ -3,10 +3,16 @@ use crate::convert::Convert;
 #[cfg(feature = "specialize")]
 use crate::BuildHasherExt;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+))]
 pub use crate::aes_hash::*;
 
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
+#[cfg(not(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+)))]
 pub use crate::fallback_hash::*;
 
 #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
@@ -27,9 +33,15 @@ use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use once_cell::race::OnceBox;
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+))]
 use crate::aes_hash::*;
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri))))]
+#[cfg(not(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+)))]
 use crate::fallback_hash::*;
 
 static RAND_SOURCE: OnceBox<Box<dyn RandomSource + Send + Sync>> = OnceBox::new();

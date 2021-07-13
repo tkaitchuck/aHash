@@ -395,7 +395,10 @@ mod fallback_tests {
 }
 
 ///Basic sanity tests of the cypto properties of aHash.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+))]
 #[cfg(test)]
 mod aes_tests {
     use crate::aes_hash::*;
