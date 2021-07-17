@@ -12,6 +12,7 @@ edition = "2018"
 readme = "README.md"
 build = "./build.rs"
 exclude = ["/smhasher"]
+resolver = "2"
 
 [lib]
 name = "ahash"
@@ -73,7 +74,7 @@ serde = { version = "1.0.117", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 
-[dependencies]
+[target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
 once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]

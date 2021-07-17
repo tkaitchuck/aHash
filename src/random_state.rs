@@ -31,6 +31,7 @@ extern crate std as alloc;
 
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
+#[cfg(not(all(target_arch = "arm", target_os = "none")))]
 use once_cell::race::OnceBox;
 
 #[cfg(any(
@@ -44,6 +45,7 @@ use crate::aes_hash::*;
 )))]
 use crate::fallback_hash::*;
 
+#[cfg(not(all(target_arch = "arm", target_os = "none")))]
 static RAND_SOURCE: OnceBox<Box<dyn RandomSource + Send + Sync>> = OnceBox::new();
 
 /// A supplier of Randomness used for different hashers.
@@ -78,6 +80,12 @@ impl DefaultRandomSource {
     fn new() -> DefaultRandomSource {
         DefaultRandomSource {
             counter: AtomicUsize::new(&PI as *const _ as usize),
+        }
+    }
+
+    const fn default() -> DefaultRandomSource {
+        DefaultRandomSource {
+            counter: AtomicUsize::new(PI[3] as usize),
         }
     }
 }
@@ -165,13 +173,22 @@ impl RandomState {
     /// The source of randomness can only be set once, and must be set before the first RandomState is created.
     /// If the source has already been specified `Err` is returned with a `bool` indicating if the set failed because
     /// method was previously invoked (true) or if the default source is already being used (false).
+    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
     pub fn set_random_source(source: impl RandomSource + Send + Sync + 'static) -> Result<(), bool> {
         RAND_SOURCE.set(Box::new(Box::new(source))).map_err(|s| s.as_ref().type_id() != TypeId::of::<&DefaultRandomSource>())
     }
 
     #[inline]
+    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
     fn get_src() -> &'static dyn RandomSource {
         RAND_SOURCE.get_or_init(|| Box::new(Box::new(DefaultRandomSource::new()))).as_ref()
+    }
+
+    #[inline]
+    #[cfg(all(target_arch = "arm", target_os = "none"))]
+    fn get_src() -> &'static dyn RandomSource {
+        static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::default();
+        &RAND_SOURCE
     }
 
     /// Use randomly generated keys
