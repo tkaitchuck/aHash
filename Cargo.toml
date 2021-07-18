@@ -11,7 +11,7 @@ categories = ["algorithms", "data-structures", "no-std"]
 edition = "2018"
 readme = "README.md"
 build = "./build.rs"
-exclude = ["/smhasher"]
+exclude = ["/smhasher", "/benchmark_tools"]
 resolver = "2"
 
 [lib]
