@@ -2,6 +2,7 @@
 use crate::convert::Convert;
 #[cfg(feature = "specialize")]
 use crate::BuildHasherExt;
+use crate::{PI, PI2};
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
@@ -57,20 +58,6 @@ pub trait RandomSource {
     fn gen_hasher_seed(&self) -> usize;
 
 }
-
-pub(crate) const PI: [u64; 4] = [
-    0x243f_6a88_85a3_08d3,
-    0x1319_8a2e_0370_7344,
-    0xa409_3822_299f_31d0,
-    0x082e_fa98_ec4e_6c89,
-];
-
-pub(crate) const PI2: [u64; 4] = [
-    0x4528_21e6_38d0_1377,
-    0xbe54_66cf_34e9_0c6c,
-    0xc0ac_29b7_c97c_50dd,
-    0x3f84_d5b5_b547_0917,
-];
 
 struct DefaultRandomSource {
     counter: AtomicUsize,

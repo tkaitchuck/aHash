@@ -19,6 +19,8 @@ use alloc::vec::Vec;
 /// for a specific type. So this may be faster for primitive types.
 /// # Example
 /// ```
+/// # #[cfg(feature = "random-state")]
+/// # {
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;
 /// use ahash::CallHasher;
@@ -27,16 +29,20 @@ use alloc::vec::Vec;
 /// //...
 /// let value: u32 = 17;
 /// let hash = u32::get_hash(&value, &hash_builder);
+/// # }
 /// ```
 /// Note that the type used to invoke `get_hash` must be the same a the type of value passed.
 /// For example get a hasher specialized on `[u8]` can invoke:
 /// ```
+/// # #[cfg(feature = "random-state")]
+/// # {
 /// /// use std::hash::BuildHasher;
 /// # use ahash::RandomState;
 /// # use ahash::CallHasher;
 /// # let hash_builder = RandomState::new();
 /// let bytes: [u8; 4] = [1, 2, 3, 4];
 /// let hash = <[u8]>::get_hash(&bytes, &hash_builder);
+/// # }
 /// ```
 pub trait CallHasher {
     fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64;
@@ -152,7 +158,7 @@ impl CallHasher for String {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "random-state"))]
 mod test {
     use super::*;
     use crate::*;

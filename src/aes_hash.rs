@@ -2,9 +2,10 @@ use crate::convert::*;
 #[cfg(feature = "specialize")]
 use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
+use crate::PI;
+#[cfg(feature = "random-state")]
 use crate::RandomState;
 use core::hash::Hasher;
-use crate::random_state::PI;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -70,7 +71,7 @@ impl AHasher {
         }
     }
 
-
+    #[cfg(feature = "random-state")]
     #[inline]
     pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
@@ -369,11 +370,12 @@ mod tests {
     use super::*;
     use crate::convert::Convert;
     use crate::operations::aesenc;
-    use crate::RandomState;
     use std::hash::{BuildHasher, Hasher};
+
+    #[cfg(feature = "random-state")]
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+        let mut hasher = crate::RandomState::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);

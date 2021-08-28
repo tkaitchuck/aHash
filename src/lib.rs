@@ -11,11 +11,14 @@
 //!
 //! # Example
 //! ```
+//! # #[cfg(feature = "random-state")]
+//! # {
 //! use ahash::{AHasher, RandomState};
 //! use std::collections::HashMap;
 //!
 //! let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
 //! map.insert(12, 34);
+//! # }
 //! ```
 //! For convinence wrappers called `AHashMap` and `AHashSet` are also provided.
 //! These to the same thing with slightly less typing.
@@ -49,6 +52,7 @@ mod hash_map;
 #[cfg(feature = "std")]
 mod hash_set;
 mod operations;
+#[cfg(feature = "random-state")]
 mod random_state;
 mod specialize;
 
@@ -63,6 +67,8 @@ pub use crate::aes_hash::AHasher;
     all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
 )))]
 pub use crate::fallback_hash::AHasher;
+
+#[cfg(feature = "random-state")]
 pub use crate::random_state::RandomState;
 
 pub use crate::specialize::CallHasher;
@@ -75,6 +81,22 @@ use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
 
+pub(crate) const PI: [u64; 4] = [
+    0x243f_6a88_85a3_08d3,
+    0x1319_8a2e_0370_7344,
+    0xa409_3822_299f_31d0,
+    0x082e_fa98_ec4e_6c89,
+];
+
+#[cfg(feature = "random-state")]
+pub(crate) const PI2: [u64; 4] = [
+    0x4528_21e6_38d0_1377,
+    0xbe54_66cf_34e9_0c6c,
+    0xc0ac_29b7_c97c_50dd,
+    0x3f84_d5b5_b547_0917,
+];
+
+#[cfg(feature = "random-state")]
 /// Provides a default [Hasher] with fixed keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
 /// [AHasher]s in order to hash the keys of the map.
@@ -86,7 +108,7 @@ use core::hash::Hasher;
 /// # Example
 /// ```
 /// use std::hash::BuildHasherDefault;
-/// use ahash::{AHasher, RandomState};
+/// use ahash::AHasher;
 /// use std::collections::HashMap;
 ///
 /// let mut map: HashMap<i32, i32, BuildHasherDefault<AHasher>> = HashMap::default();

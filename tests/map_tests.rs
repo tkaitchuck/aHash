@@ -3,7 +3,7 @@ use std::hash::{BuildHasher, Hash, Hasher};
 use criterion::*;
 use fxhash::FxHasher;
 
-use ahash::{AHasher, CallHasher, RandomState};
+use ahash::{AHasher, CallHasher};
 
 fn gen_word_pairs() -> Vec<String> {
     let words: Vec<_> = r#"
@@ -155,9 +155,10 @@ fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
     H::get_hash(b, build_hasher)
 }
 
+#[cfg(feature = "random-state")]
 #[test]
 fn test_bucket_distribution() {
-    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+    let build_hasher = ahash::RandomState::with_seeds(1, 2, 3, 4);
     test_hash_common_words(&build_hasher);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&build_hasher, &sequence, 32);

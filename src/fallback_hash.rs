@@ -1,7 +1,8 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
 use crate::operations::read_small;
-use crate::random_state::PI;
+use crate::PI;
+#[cfg(feature = "random-state")]
 use crate::RandomState;
 use core::hash::Hasher;
 
@@ -53,6 +54,7 @@ impl AHasher {
         }
     }
 
+    #[cfg(feature = "random-state")]
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher {

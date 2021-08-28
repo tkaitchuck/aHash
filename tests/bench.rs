@@ -1,3 +1,5 @@
+#![cfg(feature = "random-state")]
+
 use ahash::{CallHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;

@@ -26,7 +26,10 @@ doc = true
 default = ["std"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
-std = []
+std = ["random-state"]
+
+# Enable this will enable `RandomState`.
+random-state = ["getrandom"]
 
 # This is an alternitive to runtime key generation which does compile time key generation if getrandom is not available.
 # (If getrandom is available this does nothing.)
@@ -66,7 +69,7 @@ codegen-units = 1
 version_check = "0.9"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
-getrandom = { version = "0.2.3" }
+getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 
