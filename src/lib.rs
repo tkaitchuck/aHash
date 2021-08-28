@@ -22,12 +22,15 @@
 //! ```
 //! For convinence wrappers called `AHashMap` and `AHashSet` are also provided.
 //! These to the same thing with slightly less typing.
-//! ```ignore
+//! ```
+//! # #[cfg(feature = "std")]
+//! # {
 //! use ahash::AHashMap;
 //!
 //! let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
 //! map.insert(12, 34);
 //! map.insert(56, 78);
+//! # }
 //! ```
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
