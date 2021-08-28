@@ -17,4 +17,4 @@ lto = 'fat'
 debug-assertions = false
 
 [dependencies]
-ahash = { path = "../../", default-features = false }
+ahash = { path = "../../", default-features = false, features = ["random-state"] }
