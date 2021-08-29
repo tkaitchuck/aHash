@@ -29,7 +29,7 @@ default = ["std"]
 std = ["random-state"]
 
 # Enable this will enable `RandomState`.
-random-state = ["getrandom"]
+random-state = ["getrandom", "once_cell"]
 
 # This is an alternitive to runtime key generation which does compile time key generation if getrandom is not available.
 # (If getrandom is available this does nothing.)
@@ -78,7 +78,7 @@ const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
-once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
+once_cell = { version = "1.8", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
 no-panic = "0.1.10"
