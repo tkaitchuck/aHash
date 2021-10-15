@@ -12,7 +12,6 @@ edition = "2018"
 readme = "README.md"
 build = "./build.rs"
 exclude = ["/smhasher", "/benchmark_tools"]
-resolver = "2"
 
 [lib]
 name = "ahash"
