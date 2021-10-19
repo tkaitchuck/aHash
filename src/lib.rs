@@ -19,7 +19,7 @@
 //! ```
 //! For convinence wrappers called `AHashMap` and `AHashSet` are also provided.
 //! These to the same thing with slightly less typing.
-//! ```ignore
+//! ```
 //! use ahash::AHashMap;
 //!
 //! let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
