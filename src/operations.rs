@@ -1,5 +1,8 @@
 use crate::convert::*;
 
+///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
+pub(crate) const MULTIPLE: u64 = 6364136223846793005;
+
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
 #[cfg(all(target_feature = "ssse3", not(miri)))]

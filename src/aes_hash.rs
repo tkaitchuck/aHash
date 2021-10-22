@@ -1,6 +1,4 @@
 use crate::convert::*;
-#[cfg(feature = "specialize")]
-use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
 use crate::RandomState;
 use core::hash::Hasher;

@@ -1,12 +1,13 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
 use crate::operations::read_small;
+use crate::operations::MULTIPLE;
 use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
 
-///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
-pub(crate) const MULTIPLE: u64 = 6364136223846793005;
+
+
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
