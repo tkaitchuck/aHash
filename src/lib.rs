@@ -39,6 +39,9 @@ map.insert(56, 78);
 
 #[macro_use]
 mod convert;
+
+mod fallback_hash;
+
 cfg_if::cfg_if! {
     if #[cfg(any(
             all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
@@ -47,7 +50,6 @@ cfg_if::cfg_if! {
         mod aes_hash;
         pub use crate::aes_hash::AHasher;
     } else {
-        mod fallback_hash;
         pub use crate::fallback_hash::AHasher;
     }
 }
