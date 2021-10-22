@@ -64,7 +64,7 @@ cfg_if::cfg_if! {
             ];
             &RAND
         }
-    } else if #[cfg(feature = "runtime-rng")] {
+    } else if #[cfg(all(feature = "runtime-rng", not(fuzzing)))] {
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use crate::convert::Convert;
         
