@@ -127,12 +127,6 @@ impl DefaultRandomSource {
             counter: AtomicUsize::new(&PI as *const _ as usize),
         }
     }
-
-    const fn default() -> DefaultRandomSource {
-        DefaultRandomSource {
-            counter: AtomicUsize::new(PI[3] as usize),
-        }
-    }
 }
 
 impl RandomSource for DefaultRandomSource {
@@ -179,7 +173,7 @@ impl RandomState {
         if #[cfg(all(target_arch = "arm", target_os = "none"))] {
             #[inline]
             fn get_src() -> &'static dyn RandomSource {
-                static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::default();
+                static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::new();
                 &RAND_SOURCE
             }
         } else {
@@ -205,6 +199,7 @@ impl RandomState {
 
     /// Use randomly generated keys
     #[inline]
+    #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
         let src = Self::get_src();
         let fixed = get_fixed_seeds();
@@ -263,6 +258,7 @@ impl RandomState {
     }
 }
 
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
@@ -278,26 +274,26 @@ impl BuildHasher for RandomState {
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ahash::{AHasher, RandomState};
-    /// use std::hash::{Hasher, BuildHasher};
-    ///
-    /// let build_hasher = RandomState::new();
-    /// let mut hasher_1 = build_hasher.build_hasher();
-    /// let mut hasher_2 = build_hasher.build_hasher();
-    ///
-    /// hasher_1.write_u32(1234);
-    /// hasher_2.write_u32(1234);
-    ///
-    /// assert_eq!(hasher_1.finish(), hasher_2.finish());
-    ///
-    /// let other_build_hasher = RandomState::new();
-    /// let mut different_hasher = other_build_hasher.build_hasher();
-    /// different_hasher.write_u32(1234);
-    /// assert_ne!(different_hasher.finish(), hasher_1.finish());
-    /// ```
+    #[cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##" # Examples
+```
+        use ahash::{AHasher, RandomState};
+        use std::hash::{Hasher, BuildHasher};
+    
+        let build_hasher = RandomState::new();
+        let mut hasher_1 = build_hasher.build_hasher();
+        let mut hasher_2 = build_hasher.build_hasher();
+    
+        hasher_1.write_u32(1234);
+        hasher_2.write_u32(1234);
+    
+        assert_eq!(hasher_1.finish(), hasher_2.finish());
+    
+        let other_build_hasher = RandomState::new();
+        let mut different_hasher = other_build_hasher.build_hasher();
+        different_hasher.write_u32(1234);
+        assert_ne!(different_hasher.finish(), hasher_1.finish());
+```
+    "##)]
     /// [Hasher]: std::hash::Hasher
     /// [BuildHasher]: std::hash::BuildHasher
     /// [HashMap]: std::collections::HashMap
@@ -340,8 +336,8 @@ mod test {
 
     #[test]
     fn test_unique() {
-        let a = RandomState::new();
-        let b = RandomState::new();
+        let a = RandomState::generate_with(1, 2, 3, 4);
+        let b = RandomState::generate_with(1, 2, 3, 4);
         assert_ne!(a.build_hasher().finish(), b.build_hasher().finish());
     }
 
@@ -354,13 +350,13 @@ mod test {
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
     #[test]
     fn test_not_pi_const() {
-        assert_ne!(PI, RandomState::get_src().get_fixed_seeds()[0]);
+        assert_ne!(PI, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
     #[test]
     fn test_pi() {
-        assert_eq!(PI, RandomState::get_src().get_fixed_seeds()[0]);
+        assert_eq!(PI, get_fixed_seeds()[0]);
     }
 
     #[test]

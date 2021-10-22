@@ -23,7 +23,8 @@ use alloc::vec::Vec;
 /// use ahash::RandomState;
 /// use ahash::CallHasher;
 ///
-/// let hash_builder = RandomState::new();
+#[cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = "let hash_builder = RandomState::new();")]
+#[cfg_attr(not(any(feature = "compile-time-rng", feature = "runtime-rng")), doc = "let hash_builder = RandomState::generate_with(1, 2, 3, 4);")]
 /// //...
 /// let value: u32 = 17;
 /// let hash = u32::get_hash(&value, &hash_builder);
@@ -34,7 +35,7 @@ use alloc::vec::Vec;
 /// /// use std::hash::BuildHasher;
 /// # use ahash::RandomState;
 /// # use ahash::CallHasher;
-/// # let hash_builder = RandomState::new();
+/// # let hash_builder = RandomState::generate_with(1, 2, 3, 4);
 /// let bytes: [u8; 4] = [1, 2, 3, 4];
 /// let hash = <[u8]>::get_hash(&bytes, &hash_builder);
 /// ```

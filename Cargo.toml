@@ -28,10 +28,10 @@ default = ["std", "runtime-rng"]
 std = []
 
 # Runtime random key generation using getrandom.
-runtime-rng = ["getrandom", "once_cell"]
+runtime-rng = ["getrandom"]
 
 # This is an alternative to runtime key generation which does compile time key generation if runtime-rng is not available.
-# (If runtime-rng is available this does nothing.)
+# (If runtime-rng is enabled this does nothing.)
 # If this is on (and runtime-rng is off) it implies the produced binary will not be identical.
 # If this is disabled and runtime-rng is unavailable constant keys are used.
 compile-time-rng = ["const-random"]
@@ -68,14 +68,13 @@ codegen-units = 1
 version_check = "0.9"
 
 [dependencies]
-once_cell = { version = "1.8", default-features = false, features = ["unstable", "alloc"], optional = true }
 getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 cfg-if = "1.0"
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
-once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
+once_cell = { version = "1.8", default-features = false, features = ["unstable", "alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"
