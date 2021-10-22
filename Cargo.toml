@@ -22,15 +22,18 @@ bench = true
 doc = true
 
 [features]
-default = ["std"]
+default = ["std", "runtime-rng"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
 
-# This is an alternitive to runtime key generation which does compile time key generation if getrandom is not available.
-# (If getrandom is available this does nothing.)
-# If this is on (and getrandom is off) it implies the produced binary will not be identical.
-# If this is disabled and gerrandom is unavailable constant keys are used.
+# Runtime random key generation using getrandom.
+runtime-rng = ["getrandom", "once_cell"]
+
+# This is an alternative to runtime key generation which does compile time key generation if runtime-rng is not available.
+# (If runtime-rng is available this does nothing.)
+# If this is on (and runtime-rng is off) it implies the produced binary will not be identical.
+# If this is disabled and runtime-rng is unavailable constant keys are used.
 compile-time-rng = ["const-random"]
 
 [[bench]]
@@ -64,12 +67,9 @@ codegen-units = 1
 [build-dependencies]
 version_check = "0.9"
 
-[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
-getrandom = { version = "0.2.3" }
-const-random = { version = "0.1.12", optional = true }
-serde = { version = "1.0.117", optional = true }
-
-[target.'cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi")))'.dependencies]
+[dependencies]
+once_cell = { version = "1.8", default-features = false, features = ["unstable", "alloc"], optional = true }
+getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 
