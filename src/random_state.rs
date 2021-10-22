@@ -127,6 +127,13 @@ impl DefaultRandomSource {
             counter: AtomicUsize::new(&PI as *const _ as usize),
         }
     }
+
+    #[cfg(all(target_arch = "arm", target_os = "none"))]
+    const fn default() -> DefaultRandomSource {
+        DefaultRandomSource {
+            counter: AtomicUsize::new(PI[3] as usize),
+        }
+    }
 }
 
 impl RandomSource for DefaultRandomSource {
@@ -173,7 +180,7 @@ impl RandomState {
         if #[cfg(all(target_arch = "arm", target_os = "none"))] {
             #[inline]
             fn get_src() -> &'static dyn RandomSource {
-                static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::new();
+                static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::default();
                 &RAND_SOURCE
             }
         } else {
