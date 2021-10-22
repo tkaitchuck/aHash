@@ -34,43 +34,40 @@
 
 #[macro_use]
 mod convert;
+cfg_if::cfg_if! {
+    if #[cfg(any(
+            all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+            all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+            ))] {
+        mod aes_hash;
+        pub use crate::aes_hash::AHasher;
+    } else {
+        mod fallback_hash;
+        pub use crate::fallback_hash::AHasher;
+    }
+}
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
-))]
-mod aes_hash;
-mod fallback_hash;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        mod hash_map;
+        mod hash_set;
+
+        pub use crate::hash_map::AHashMap;
+        pub use crate::hash_set::AHashSet;
+    }
+}
+
 #[cfg(test)]
 mod hash_quality_test;
 
-#[cfg(feature = "std")]
-mod hash_map;
-#[cfg(feature = "std")]
-mod hash_set;
 mod operations;
 mod random_state;
 mod specialize;
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
-))]
-pub use crate::aes_hash::AHasher;
-
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
-)))]
-pub use crate::fallback_hash::AHasher;
 pub use crate::random_state::RandomState;
 
 pub use crate::specialize::CallHasher;
 
-#[cfg(feature = "std")]
-pub use crate::hash_map::AHashMap;
-#[cfg(feature = "std")]
-pub use crate::hash_set::AHashSet;
 use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;

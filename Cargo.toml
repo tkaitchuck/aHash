@@ -72,6 +72,7 @@ once_cell = { version = "1.8", default-features = false, features = ["unstable",
 getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
+cfg-if = "1.0"
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
 once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
