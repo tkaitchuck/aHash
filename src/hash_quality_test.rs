@@ -273,11 +273,11 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                 let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                 assert!(
                     same_bytes <= 3,
-                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
                 );
                 assert!(
                     same_nibbles <= 8,
-                    format!("{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish())
+                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
                 );
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
@@ -292,31 +292,37 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                     let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                     assert!(
                         same_bytes <= 3,
-                        format!(
-                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
-                            string,
-                            num,
-                            c,
-                            value,
-                            long.finish()
-                        )
+                        "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                        string,
+                        num,
+                        c,
+                        value,
+                        long.finish()
                     );
                     assert!(
                         same_nibbles <= 8,
-                        format!(
-                            "string {:?} + {} bytes of {} -> {:x} vs {:x}",
-                            string,
-                            num,
-                            c,
-                            value,
-                            long.finish()
-                        )
+                        "string {:?} + {} bytes of {} -> {:x} vs {:x}",
+                        string,
+                        num,
+                        c,
+                        value,
+                        long.finish()
                     );
                     let flipped_bits = (value ^ long.finish()).count_ones();
                     assert!(flipped_bits > 10);
                 }
             }
         }
+    }
+}
+
+fn test_length_extension<T: Hasher>(hasher: impl Fn(u128, u128) -> T) {
+    for key in 0..256 {
+        let h1 = hasher(key, key);
+        let v1 = hash_with(&[0_u8, 0, 0, 0, 0, 0, 0, 0], h1);
+        let h2 = hasher(key, key);
+        let v2 = hash_with(&[1_u8, 0, 0, 0, 0, 0, 0, 0, 0], h2);
+        assert_ne!(v1, v2);
     }
 }
 
@@ -363,8 +369,8 @@ mod fallback_tests {
     #[test]
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
-        #[cfg(not(feature = "specialize"))]
-        test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
+        #[cfg(all(not(feature = "specialize"), feature = "folded_multiply"))]
+            test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
     }
@@ -381,18 +387,28 @@ mod fallback_tests {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 0));
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 2));
     }
+
+    #[test]
+    fn fallback_length_extension() {
+        test_length_extension(|a, b| AHasher::new_with_keys(a, b));
+    }
 }
 
 ///Basic sanity tests of the cypto properties of aHash.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+))]
 #[cfg(test)]
 mod aes_tests {
     use crate::aes_hash::*;
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
 
-    const BAD_KEY: u128 = 0x5252_5252_5252_5252_5252_5252_5252_5252; //This encrypts to 0.
-    const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363; //This decrypts to 0.
+    //This encrypts to 0.
+    const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363;
+    //This decrypts to 0.
+    const BAD_KEY: u128 = 0x5252_5252_5252_5252_5252_5252_5252_5252;
 
     #[test]
     fn test_single_bit_in_byte() {
@@ -444,10 +460,11 @@ mod aes_tests {
     #[test]
     fn aes_keys_affect_every_byte() {
         #[cfg(not(feature = "specialize"))]
-        test_keys_affect_every_byte(0, AHasher::test_with_keys);
+            test_keys_affect_every_byte(0, AHasher::test_with_keys);
         test_keys_affect_every_byte("", AHasher::test_with_keys);
         test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
     }
+
     #[test]
     fn aes_finish_is_consistant() {
         test_finish_is_consistent(AHasher::test_with_keys)
@@ -457,5 +474,10 @@ mod aes_tests {
     fn aes_padding_doesnot_collide() {
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+    }
+
+    #[test]
+    fn aes_length_extension() {
+        test_length_extension(|a, b| AHasher::test_with_keys(a, b));
     }
 }

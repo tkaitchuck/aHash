@@ -129,8 +129,8 @@ impl AHasher {
     #[cfg(not(feature = "folded_multiply"))]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
-        self.update(block[0]);
-        self.update(block[1]);
+        self.update(block[0] ^ self.extra_keys[0]);
+        self.update(block[1] ^ self.extra_keys[1]);
     }
 
     #[inline]
@@ -170,8 +170,15 @@ impl Hasher for AHasher {
     }
 
     #[inline]
+    #[cfg(any(target_pointer_width = "64", target_pointer_width = "32", target_pointer_width = "16"))]
     fn write_usize(&mut self, i: usize) {
         self.write_u64(i as u64);
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "128")]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u128(i as u128);
     }
 
     #[inline]
@@ -226,13 +233,13 @@ pub(crate) struct AHasherU64 {
 impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
-        let rot = (self.pad & 64) as u32;
+        let rot = (self.pad & 63) as u32;
         self.buffer.rotate_left(rot)
     }
 
     #[inline]
     fn write(&mut self, _bytes: &[u8]) {
-        unreachable!("This should never be called")
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
@@ -257,12 +264,12 @@ impl Hasher for AHasherU64 {
 
     #[inline]
     fn write_u128(&mut self, _i: u128) {
-        unreachable!("This should never be called")
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
     fn write_usize(&mut self, _i: usize) {
-        unimplemented!()
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 }
 

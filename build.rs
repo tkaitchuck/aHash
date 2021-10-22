@@ -7,6 +7,7 @@ fn main() {
     if let Some(channel) = version_check::Channel::read() {
         if channel.supports_features() {
             println!("cargo:rustc-cfg=feature=\"specialize\"");
+            println!("cargo:rustc-cfg=feature=\"stdsimd\"");
         }
     }
     let arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH was not set");

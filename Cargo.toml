@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.7.2"
+version = "0.7.6"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -11,7 +11,7 @@ categories = ["algorithms", "data-structures", "no-std"]
 edition = "2018"
 readme = "README.md"
 build = "./build.rs"
-exclude = ["/smhasher"]
+exclude = ["/smhasher", "/benchmark_tools"]
 
 [lib]
 name = "ahash"
@@ -68,10 +68,13 @@ codegen-units = 1
 version_check = "0.9"
 
 [dependencies]
-once_cell = { version = "1.5.2", default-features = false, features = ["unstable", "alloc"], optional = true }
-getrandom = { version = "0.2.0", optional = true }
+once_cell = { version = "1.8", default-features = false, features = ["unstable", "alloc"], optional = true }
+getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
+
+[target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
+once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"
