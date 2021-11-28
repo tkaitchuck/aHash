@@ -74,8 +74,6 @@ mod specialize;
 
 pub use crate::random_state::RandomState;
 
-pub use crate::specialize::CallHasher;
-
 use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
@@ -202,6 +200,7 @@ mod test {
     use crate::*;
     use std::collections::HashMap;
     use std::hash::Hash;
+    use crate::specialize::CallHasher;
 
     #[test]
     fn test_default_builder() {

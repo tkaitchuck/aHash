@@ -1,4 +1,6 @@
-use ahash::{AHasher, CallHasher, RandomState};
+#![feature(build_hasher_simple_hash_one)]
+
+use ahash::{AHasher, RandomState};
 use std::hash::BuildHasher;
 
 #[macro_use]
@@ -38,8 +40,8 @@ fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
     let hasher1 = AHasher::new_with_keys(1, 2);
     let hasher2 = AHasher::new_with_keys(1, 2);
     (
-        i32::get_hash(&num, &SimpleBuildHasher { hasher: hasher1 }),
-        <[u8]>::get_hash(string.as_bytes(), &SimpleBuildHasher { hasher: hasher2 }),
+        SimpleBuildHasher { hasher: hasher1 }.hash_one(num),
+        SimpleBuildHasher { hasher: hasher2 }.hash_one(string.as_bytes()),
     )
 }
 
@@ -54,8 +56,8 @@ fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
     let build_hasher1 = RandomState::with_seeds(1, 2, 3, 4);
     let build_hasher2 = RandomState::with_seeds(1, 2, 3, 4);
     (
-        i32::get_hash(&num, &build_hasher1),
-        <[u8]>::get_hash(string.as_bytes(), &build_hasher2),
+        build_hasher1.hash_one(&num),
+        build_hasher2.hash_one(string.as_bytes())
     )
 }
 

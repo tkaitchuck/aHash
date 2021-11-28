@@ -1,9 +1,11 @@
+#![feature(build_hasher_simple_hash_one)]
+
 use std::hash::{BuildHasher, Hash, Hasher};
 
 use criterion::*;
 use fxhash::FxHasher;
 
-use ahash::{AHasher, CallHasher, RandomState};
+use ahash::{AHasher, RandomState};
 
 fn gen_word_pairs() -> Vec<String> {
     let words: Vec<_> = r#"
@@ -152,7 +154,7 @@ fn check_for_collisions<H: Hash, B: BuildHasher>(build_hasher: &B, items: &[H], 
 
 #[allow(unused)] // False positive
 fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
-    H::get_hash(b, build_hasher)
+    build_hasher.hash_one(b)
 }
 
 #[test]
