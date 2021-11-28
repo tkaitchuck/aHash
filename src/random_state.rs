@@ -308,6 +308,14 @@ impl BuildHasher for RandomState {
     fn build_hasher(&self) -> AHasher {
         AHasher::from_random_state(self)
     }
+
+    #[cfg(feature = "specialize")]
+    #[inline]
+    fn hash_one<T: Hash>(&self, x: T) -> u64
+        where Self: Sized {
+        use crate::specialize::CallHasher;
+        T::get_hash(&x, self)
+    }
 }
 
 #[cfg(feature = "specialize")]

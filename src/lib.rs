@@ -35,6 +35,7 @@ map.insert(56, 78);
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
+#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
 #![cfg_attr(feature = "stdsimd", feature(stdsimd))]
 
 #[macro_use]
