@@ -169,6 +169,25 @@ fn test_bucket_distribution() {
     check_for_collisions(&build_hasher, &sequence, 256);
 }
 
+#[test]
+fn test_ahash_alias_map_construction() {
+    let mut map = ahash::HashMap::default();
+    map.insert(1, "test");
+    use ahash::HashMapExt;
+    let mut map = ahash::HashMap::with_capacity(1234);
+    map.insert(1, "test");
+}
+
+#[test]
+fn test_ahash_alias_set_construction() {
+    let mut set = ahash::HashSet::default();
+    set.insert(1);
+
+    use ahash::HashSetExt;
+    let mut set = ahash::HashSet::with_capacity(1235);
+    set.insert(1);
+}
+
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
