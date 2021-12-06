@@ -26,6 +26,9 @@ default = ["std"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
+# Enabling this will use type aliases instead for new types for `AHashMap` and `AHashSet` 
+# Note that this is mutually exclusive to the "std" feature
+type-alias = []
 
 # This is an alternitive to runtime key generation which does compile time key generation if getrandom is not available.
 # (If getrandom is available this does nothing.)

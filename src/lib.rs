@@ -28,7 +28,7 @@
 //! ```
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
-#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+#![cfg_attr(all(not(test), not(feature = "std"), not(feature = "type-alias")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
 #![cfg_attr(feature = "stdsimd", feature(stdsimd))]
 
@@ -44,9 +44,19 @@ mod fallback_hash;
 #[cfg(test)]
 mod hash_quality_test;
 
-#[cfg(feature = "std")]
+// Ensure mutal exlusive features
+#[cfg(all(feature = "std", feature = "type-alias"))]
+compile_error!("Feature \"std\" and \"type-alias\" are mutually exlusive");
+
+#[cfg(all(feature = "type-alias", not(feature = "std")))]
+pub type AHashMap<K, V> = std::collections::HashMap<K,V, std::hash::BuildHasherDefault<AHasher>>;
+
+#[cfg(all(feature = "type-alias", not(feature = "std")))]
+pub type AHashSet<K> = std::collections::HashSet<K, std::hash::BuildHasherDefault<AHasher>>;
+
+#[cfg(all(not(feature = "type-alias"), feature = "std"))]
 mod hash_map;
-#[cfg(feature = "std")]
+#[cfg(all(not(feature = "type-alias"), feature = "std"))]
 mod hash_set;
 mod operations;
 mod random_state;
@@ -67,9 +77,9 @@ pub use crate::random_state::RandomState;
 
 pub use crate::specialize::CallHasher;
 
-#[cfg(feature = "std")]
+#[cfg(all(not(feature = "type-alias"), feature = "std"))]
 pub use crate::hash_map::AHashMap;
-#[cfg(feature = "std")]
+#[cfg(all(not(feature = "type-alias"), feature = "std"))]
 pub use crate::hash_set::AHashSet;
 use core::hash::BuildHasher;
 use core::hash::Hash;
@@ -189,6 +199,24 @@ impl<B: BuildHasher> BuildHasherExt for B {
 //     let a = RandomState::with_seeds(11, 22, 33, 44);
 //     <[u8]>::get_hash(input, &a)
 // }
+
+#[cfg(all(feature = "type-alias", not(feature = "std")))]
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_ahash_map_construction() {
+        let mut map = AHashMap::with_capacity_and_hasher(1234, Default::default());
+        map.insert(1, "test");
+    }
+
+    #[test]
+    fn test_ahash_set_construction() {
+        let mut set = AHashSet::with_capacity_and_hasher(1234, Default::default());
+        set.insert(1);
+    }
+}
 
 #[cfg(feature = "std")]
 #[cfg(test)]
