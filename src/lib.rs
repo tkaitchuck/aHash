@@ -62,11 +62,11 @@ mod hash_quality_test;
 #[cfg(feature = "std")]
 /// [Hasher]: std::hash::Hasher
 /// [HashMap]: std::collections::HashMap
-/// Type alias for [HashMap]<K, V, std::hash::BuildHasherDefault<AHasher>>
-pub type HashMap<K, V> = std::collections::HashMap<K, V, std::hash::BuildHasherDefault<AHasher>>;
+/// Type alias for [HashMap]<K, V, ahash::RandomState>
+pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
 #[cfg(feature = "std")]
-/// Type alias for [HashSet]<K, std::hash::BuildHasherDefault<AHasher>>
-pub type HashSet<K> = std::collections::HashSet<K, std::hash::BuildHasherDefault<AHasher>>;
+/// Type alias for [HashSet]<K, ahash::RandomState>
+pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
 
 #[cfg(feature = "std")]
 mod hash_map;
