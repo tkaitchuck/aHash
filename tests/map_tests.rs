@@ -169,6 +169,7 @@ fn test_bucket_distribution() {
     check_for_collisions(&build_hasher, &sequence, 256);
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_ahash_alias_map_construction() {
     let mut map = ahash::HashMap::default();
@@ -178,6 +179,7 @@ fn test_ahash_alias_map_construction() {
     map.insert(1, "test");
 }
 
+#[cfg(feature = "std")]
 #[test]
 fn test_ahash_alias_set_construction() {
     let mut set = ahash::HashSet::default();
