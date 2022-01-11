@@ -20,7 +20,7 @@
 //! For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
 //! The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
 //! std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
-//! prevent you from using it as a swap in replacement for the normal std collections.
+//! can't be used where a generic `std::collection::HashMap<K, V, S>` is required.
 //! 
 //! ```ignore
 //! use ahash::AHashMap;
