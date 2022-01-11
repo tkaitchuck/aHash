@@ -17,7 +17,7 @@
 //! let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
 //! map.insert(12, 34);
 //! ```
-//! For convinence both new type wrappers and type aliases. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
+//! For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
 //! The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
 //! std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
 //! prevent you from using it as a swap in replacement for the normal std collections.
