@@ -22,6 +22,24 @@ impl<T> From<HashSet<T, crate::RandomState>> for AHashSet<T> {
     }
 }
 
+impl<T, const N: usize> From<[T; N]> for AHashSet<T>
+where
+    T: Eq + Hash,
+{
+    /// # Examples
+    ///
+    /// ```
+    /// use ahash::AHashSet;
+    ///
+    /// let set1 = AHashSet::from([1, 2, 3, 4]);
+    /// let set2: AHashSet<_> = [1, 2, 3, 4].into();
+    /// assert_eq!(set1, set2);
+    /// ```
+    fn from(arr: [T; N]) -> Self {
+        Self::from_iter(arr)
+    }
+}
+
 impl<T> Into<HashSet<T, crate::RandomState>> for AHashSet<T> {
     fn into(self) -> HashSet<T, crate::RandomState> {
         self.0
