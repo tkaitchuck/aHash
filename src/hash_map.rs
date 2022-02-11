@@ -25,6 +25,24 @@ impl<K, V> From<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
     }
 }
 
+impl<K, V, const N: usize> From<[(K, V); N]> for AHashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    /// # Examples
+    ///
+    /// ```
+    /// use ahash::AHashMap;
+    ///
+    /// let map1 = AHashMap::from([(1, 2), (3, 4)]);
+    /// let map2: AHashMap<_, _> = [(1, 2), (3, 4)].into();
+    /// assert_eq!(map1, map2);
+    /// ```
+    fn from(arr: [(K, V); N]) -> Self {
+        Self::from_iter(arr)
+    }
+}
+
 impl<K, V> Into<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
     fn into(self) -> HashMap<K, V, crate::RandomState> {
         self.0
