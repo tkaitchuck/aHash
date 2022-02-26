@@ -212,16 +212,17 @@ impl RandomState {
         let &[k0, k1, k2, k3] = a;
         let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3 });
         hasher.write_usize(c);
-        let mix = |k: u64| {
+        let mix = |l: u64, r: u64| {
             let mut h = hasher.clone();
-            h.write_u64(k);
+            h.write_u64(l);
+            h.write_u64(r);
             h.finish()
         };
         RandomState {
-            k0: mix(b[0]),
-            k1: mix(b[1]),
-            k2: mix(b[2]),
-            k3: mix(b[3]),
+            k0: mix(b[0], b[2]),
+            k1: mix(b[1], b[3]),
+            k2: mix(b[2], b[1]),
+            k3: mix(b[3], b[0]),
         }
     }
 
