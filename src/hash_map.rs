@@ -364,6 +364,40 @@ where
         let hash_map = HashMap::deserialize(deserializer);
         hash_map.map(|hash_map| Self(hash_map))
     }
+
+    fn deserialize_in_place<D: Deserializer<'de>>(deserializer: D, place: &mut Self) -> Result<(), D::Error> {
+        use serde::de::{MapAccess, Visitor};
+
+        struct MapInPlaceVisitor<'a, K: 'a, V: 'a>(&'a mut AHashMap<K, V>);
+
+        impl<'a, 'de, K, V> Visitor<'de> for MapInPlaceVisitor<'a, K, V>
+        where
+            K: Deserialize<'de> + Eq + Hash,
+            V: Deserialize<'de>,
+        {
+            type Value = ();
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a map")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                self.0.clear();
+                self.0.reserve(map.size_hint().unwrap_or(0).min(4096));
+
+                while let Some((key, value)) = map.next_entry()? {
+                    self.0.insert(key, value);
+                }
+
+                Ok(())
+            }
+        }
+
+        deserializer.deserialize_map(MapInPlaceVisitor(place))
+    }
 }
 
 #[cfg(test)]
@@ -382,8 +416,14 @@ mod test {
         let mut map = AHashMap::new();
         map.insert("for".to_string(), 0);
         map.insert("bar".to_string(), 1);
-        let serialization = serde_json::to_string(&map).unwrap();
-        let deserialization: AHashMap<String, u64> = serde_json::from_str(&serialization).unwrap();
+        let mut serialization = serde_json::to_string(&map).unwrap();
+        let mut deserialization: AHashMap<String, u64> = serde_json::from_str(&serialization).unwrap();
+        assert_eq!(deserialization, map);
+
+        map.insert("baz".to_string(), 2);
+        serialization = serde_json::to_string(&map).unwrap();
+        let mut deserializer = serde_json::Deserializer::from_str(&serialization);
+        AHashMap::deserialize_in_place(&mut deserializer, &mut deserialization).unwrap();
         assert_eq!(deserialization, map);
     }
 }
