@@ -71,26 +71,20 @@ cfg_if::cfg_if! {
 
         pub use crate::hash_map::AHashMap;
         pub use crate::hash_set::AHashSet;
+
+        /// [Hasher]: std::hash::Hasher
+        /// [HashMap]: std::collections::HashMap
+        /// Type alias for [HashMap]<K, V, ahash::RandomState>
+        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
+
+        /// Type alias for [HashSet]<K, ahash::RandomState>
+        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
     }
 }
 
 #[cfg(test)]
 mod hash_quality_test;
 
-
-#[cfg(feature = "std")]
-/// [Hasher]: std::hash::Hasher
-/// [HashMap]: std::collections::HashMap
-/// Type alias for [HashMap]<K, V, ahash::RandomState>
-pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
-#[cfg(feature = "std")]
-/// Type alias for [HashSet]<K, ahash::RandomState>
-pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
-
-#[cfg(feature = "std")]
-mod hash_map;
-#[cfg(feature = "std")]
-mod hash_set;
 mod operations;
 mod random_state;
 mod specialize;
