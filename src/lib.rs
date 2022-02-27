@@ -20,17 +20,26 @@ map.insert(12, 34);
 ```
 "##)]
 #![cfg_attr(feature = "std", doc = r##"
-For convinence wrappers called `AHashMap` and `AHashSet` are also provided.
-These to the same thing with slightly less typing.
+For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
+The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
+std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
+can't be used where a generic `std::collection::HashMap<K, V, S>` is required.
+
 ```
 use ahash::AHashMap;
 
 let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
 map.insert(12, 34);
 map.insert(56, 78);
+// There are also type aliases provieded together with some extension traits to make
+// it more of a drop in replacement for the std::HashMap/HashSet
+use ahash::{HashMapExt, HashSetExt}; // Used to get with_capacity()
+let mut map = ahash::HashMap::with_capacity(10);
+map.insert(12, 34);
+let mut set = ahash::HashSet::with_capacity(10);
+set.insert(10);
 ```
 "##)]
-
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
@@ -68,6 +77,20 @@ cfg_if::cfg_if! {
 #[cfg(test)]
 mod hash_quality_test;
 
+
+#[cfg(feature = "std")]
+/// [Hasher]: std::hash::Hasher
+/// [HashMap]: std::collections::HashMap
+/// Type alias for [HashMap]<K, V, ahash::RandomState>
+pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
+#[cfg(feature = "std")]
+/// Type alias for [HashSet]<K, ahash::RandomState>
+pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
+
+#[cfg(feature = "std")]
+mod hash_map;
+#[cfg(feature = "std")]
+mod hash_set;
 mod operations;
 mod random_state;
 mod specialize;
@@ -77,6 +100,54 @@ pub use crate::random_state::RandomState;
 use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
+
+#[cfg(feature = "std")]
+/// A convenience trait that can be used together with the type aliases defined to
+/// get access to the `new()` and `with_capacity()` methods for the HashMap type alias.
+pub trait HashMapExt {
+    /// Constructs a new HashMap
+    fn new() -> Self;
+    /// Constructs a new HashMap with a given initial capacity
+    fn with_capacity(capacity: usize) -> Self;
+}
+
+#[cfg(feature = "std")]
+/// A convenience trait that can be used together with the type aliases defined to
+/// get access to the `new()` and `with_capacity()` methods for the HashSet type aliases.
+pub trait HashSetExt {
+    /// Constructs a new HashSet
+    fn new() -> Self;
+    /// Constructs a new HashSet with a given initial capacity
+    fn with_capacity(capacity: usize) -> Self;
+}
+
+#[cfg(feature = "std")]
+impl<K, V, S> HashMapExt for std::collections::HashMap<K, V, S>
+where
+    S: BuildHasher + Default,
+{
+    fn new() -> Self {
+        std::collections::HashMap::with_hasher(S::default())
+    }
+
+    fn with_capacity(capacity: usize) -> Self {
+        std::collections::HashMap::with_capacity_and_hasher(capacity, S::default())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<K, S> HashSetExt for std::collections::HashSet<K, S>
+where
+    S: BuildHasher + Default,
+{
+    fn new() -> Self {
+        std::collections::HashSet::with_hasher(S::default())
+    }
+
+    fn with_capacity(capacity: usize) -> Self {
+        std::collections::HashSet::with_capacity_and_hasher(capacity, S::default())
+    }
+}
 
 /// Provides a default [Hasher] with fixed keys.
 /// This is typically used in conjunction with [BuildHasherDefault] to create
@@ -203,6 +274,18 @@ mod test {
     use crate::specialize::CallHasher;
 
     #[test]
+    fn test_ahash_alias_map_construction() {
+        let mut map = super::HashMap::with_capacity(1234);
+        map.insert(1, "test");
+    }
+
+    #[test]
+    fn test_ahash_alias_set_construction() {
+        let mut set = super::HashSet::with_capacity(1234);
+        set.insert(1);
+    }
+
+    #[test]
     fn test_default_builder() {
         use core::hash::BuildHasherDefault;
 
@@ -222,7 +305,6 @@ mod test {
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
     }
-
 
     #[test]
     fn test_non_zero() {
@@ -245,7 +327,7 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher_build = RandomState::with_seeds(0,0,0,0);
+        let hasher_build = RandomState::with_seeds(0, 0, 0, 0);
 
         let h1 = str::get_hash("foo", &hasher_build);
         let h2 = str::get_hash("bar", &hasher_build);
