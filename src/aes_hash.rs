@@ -83,14 +83,6 @@ impl AHasher {
     }
 
     #[inline(always)]
-    fn add_in_length(&mut self, length: u64) {
-        //This will be scrambled by the next AES round.
-        let mut enc: [u64; 2] = self.enc.convert();
-        enc[0] = enc[0].wrapping_add(length);
-        self.enc = enc.convert();
-    }
-
-    #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
         self.enc = aesenc(self.enc, new_value);
         self.sum = shuffle_and_add(self.sum, new_value);
@@ -159,7 +151,8 @@ impl Hasher for AHasher {
     fn write(&mut self, input: &[u8]) {
         let mut data = input;
         let length = data.len();
-        self.add_in_length(length as u64);
+        add_in_length(&mut self.enc, length as u64);
+
         //A 'binary search' on sizes reduces the number of comparisons.
         if data.len() <= 8 {
             let value = read_small(data);
@@ -337,7 +330,8 @@ impl Hasher for AHasherStr {
             self.0.enc = aesdec(self.0.sum, self.0.enc);
             self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
         } else {
-            self.0.add_in_length(bytes.len() as u64);
+            add_in_length(&mut self.0.enc, bytes.len() as u64);
+
             let value = read_small(bytes).convert();
             self.0.sum = shuffle_and_add(self.0.sum, value);
             self.0.enc = aesdec(self.0.sum, self.0.enc);
