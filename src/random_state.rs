@@ -46,6 +46,7 @@ pub(crate) const PI2: [u64; 4] = [
 
 cfg_if::cfg_if! {
     if #[cfg(all(feature = "compile-time-rng", any(test, fuzzing)))] {
+        #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use const_random::const_random;
         
@@ -65,6 +66,7 @@ cfg_if::cfg_if! {
             &RAND
         }
     } else if #[cfg(all(feature = "runtime-rng", not(fuzzing)))] {
+        #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use crate::convert::Convert;
         
@@ -77,6 +79,7 @@ cfg_if::cfg_if! {
             })
         }
     } else if #[cfg(feature = "compile-time-rng")] {
+        #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use const_random::const_random;
         
