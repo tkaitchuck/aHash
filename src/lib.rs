@@ -49,7 +49,7 @@ mod convert;
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
     all(
         any(target_arch = "arm", target_arch = "aarch64"),
-        target_feature = "crypto",
+        any(target_feature = "aes", target_feature = "crypto"),
         not(miri),
         feature = "stdsimd"
     )
@@ -80,7 +80,7 @@ mod specialize;
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
     all(
         any(target_arch = "arm", target_arch = "aarch64"),
-        target_feature = "crypto",
+        any(target_feature = "aes", target_feature = "crypto"),
         not(miri),
         feature = "stdsimd"
     )
@@ -91,7 +91,7 @@ pub use crate::aes_hash::AHasher;
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
     all(
         any(target_arch = "arm", target_arch = "aarch64"),
-        target_feature = "crypto",
+        any(target_feature = "aes", target_feature = "crypto"),
         not(miri),
         feature = "stdsimd"
     )
