@@ -140,46 +140,25 @@ impl DefaultRandomSource {
 }
 
 impl RandomSource for DefaultRandomSource {
-
-    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
-    fn gen_hasher_seed(&self) -> usize {
-        let stack = self as *const _ as usize;
-        self.counter.fetch_add(stack, Ordering::Relaxed)
-    }
-
-    #[cfg(all(target_arch = "arm", target_os = "none"))]
-    fn gen_hasher_seed(&self) -> usize {
-        let stack = self as *const _ as usize;
-        let previous = self.counter.load(Ordering::Relaxed);
-        let new = previous.wrapping_add(stack);
-        self.counter.store(new, Ordering::Relaxed);
-        new
-    }
-}
-
-/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
-/// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
-///
-/// [build_hasher]: ahash::
-/// [Hasher]: std::hash::Hasher
-/// [BuildHasher]: std::hash::BuildHasher
-/// [HashMap]: std::collections::HashMap
-#[derive(Clone)]
-pub struct RandomState {
-    pub(crate) k0: u64,
-    pub(crate) k1: u64,
-    pub(crate) k2: u64,
-    pub(crate) k3: u64,
-}
-
-impl fmt::Debug for RandomState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.pad("RandomState { .. }")
-    }
-}
-
-impl RandomState {
     cfg_if::cfg_if! {
+        if #[cfg(all(target_arch = "arm", target_os = "none"))] {
+            fn gen_hasher_seed(&self) -> usize {
+                let stack = self as *const _ as usize;
+                let previous = self.counter.load(Ordering::Relaxed);
+                let new = previous.wrapping_add(stack);
+                self.counter.store(new, Ordering::Relaxed);
+                new
+            }
+        } else {
+            fn gen_hasher_seed(&self) -> usize {
+                let stack = self as *const _ as usize;
+                self.counter.fetch_add(stack, Ordering::Relaxed)
+            }
+        }
+    }
+}
+
+cfg_if::cfg_if! {
         if #[cfg(all(target_arch = "arm", target_os = "none"))] {
             #[inline]
             fn get_src() -> &'static dyn RandomSource {
@@ -205,13 +184,35 @@ impl RandomState {
                 RAND_SOURCE.get_or_init(|| Box::new(Box::new(DefaultRandomSource::new()))).as_ref()
             }
         }
-    }
+}
 
+/// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
+/// [AHasher]s in order to hash the keys of the map. See `build_hasher` below.
+///
+/// [build_hasher]: ahash::
+/// [Hasher]: std::hash::Hasher
+/// [BuildHasher]: std::hash::BuildHasher
+/// [HashMap]: std::collections::HashMap
+#[derive(Clone)]
+pub struct RandomState {
+    pub(crate) k0: u64,
+    pub(crate) k1: u64,
+    pub(crate) k2: u64,
+    pub(crate) k3: u64,
+}
+
+impl fmt::Debug for RandomState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.pad("RandomState { .. }")
+    }
+}
+
+impl RandomState {
     /// Use randomly generated keys
     #[inline]
     #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
-        let src = Self::get_src();
+        let src = get_src();
         let fixed = get_fixed_seeds();
         Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
     }
@@ -220,7 +221,7 @@ impl RandomState {
     /// This is done using a static counter, so it can safely be used with a fixed keys.
     #[inline]
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        let src = Self::get_src();
+        let src = get_src();
         let fixed = get_fixed_seeds();
         RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], src.gen_hasher_seed())
     }
