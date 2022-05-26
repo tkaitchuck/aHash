@@ -4,11 +4,11 @@ use std::env;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    if let Some(channel) = version_check::Channel::read() {
-        if channel.supports_features() {
-            println!("cargo:rustc-cfg=feature=\"specialize\"");
-            println!("cargo:rustc-cfg=feature=\"stdsimd\"");
-        }
+    if let Some(true) = version_check::supports_feature("specialize") {
+        println!("cargo:rustc-cfg=feature=\"specialize\"");
+    }
+    if let Some(true) = version_check::supports_feature("stdsimd") {
+        println!("cargo:rustc-cfg=feature=\"stdsimd\"");
     }
     let os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS was not set");
     if os.eq_ignore_ascii_case("linux")
