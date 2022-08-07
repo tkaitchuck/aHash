@@ -65,7 +65,7 @@ debug-assertions = false
 codegen-units = 1
 
 [build-dependencies]
-version_check = "0.9"
+version_check = "0.9.4"
 
 [dependencies]
 getrandom = { version = "0.2.3", optional = true }

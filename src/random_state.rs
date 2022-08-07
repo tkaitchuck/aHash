@@ -1,7 +1,8 @@
+
 cfg_if::cfg_if! {
     if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-        all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+         all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
     ))] {
         pub use crate::aes_hash::*;
     } else {
@@ -28,7 +29,6 @@ use core::any::{Any, TypeId};
 use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
-
 
 pub(crate) const PI: [u64; 4] = [
     0x243f_6a88_85a3_08d3,

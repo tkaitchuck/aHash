@@ -8,7 +8,7 @@ use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
 ))]
 fn aeshash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
@@ -16,7 +16,7 @@ fn aeshash<H: Hash>(b: &H) -> u64 {
 }
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
 )))]
 fn aeshash<H: Hash>(_b: &H) -> u64 {
     panic!("aes must be enabled")
@@ -24,7 +24,7 @@ fn aeshash<H: Hash>(_b: &H) -> u64 {
 
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
 )))]
 fn fallbackhash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
@@ -32,7 +32,7 @@ fn fallbackhash<H: Hash>(b: &H) -> u64 {
 }
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
 ))]
 fn fallbackhash<H: Hash>(_b: &H) -> u64 {
     panic!("aes must be disabled")
@@ -84,6 +84,7 @@ const U32_VALUE: u32 = 12345678;
 const U64_VALUE: u64 = 1234567890123456;
 const U128_VALUE: u128 = 12345678901234567890123456789012;
 
+#[cfg(target_feature = "aes")]
 fn bench_ahash(c: &mut Criterion) {
     let mut group = c.benchmark_group("aeshash");
     group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
@@ -94,6 +95,7 @@ fn bench_ahash(c: &mut Criterion) {
     group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(aeshash(s))));
 }
 
+#[cfg(not(target_feature = "aes"))]
 fn bench_fallback(c: &mut Criterion) {
     let mut group = c.benchmark_group("fallback");
     group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
@@ -203,9 +205,26 @@ fn bench_map(c: &mut Criterion) {
 }
 
 criterion_main!(benches);
+
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+))]
 criterion_group!(
     benches,
     bench_ahash,
+    bench_fx,
+    bench_fnv,
+    bench_sea,
+    bench_sip
+);
+
+#[cfg(not(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+)))]
+criterion_group!(
+    benches,
     bench_fallback,
     bench_fx,
     bench_fnv,

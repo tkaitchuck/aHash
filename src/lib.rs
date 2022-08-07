@@ -55,7 +55,10 @@ mod fallback_hash;
 cfg_if::cfg_if! {
     if #[cfg(any(
             all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-            all(any(target_arch = "arm", target_arch = "aarch64"), target_feature = "crypto", not(miri), feature = "stdsimd")
+            all(any(target_arch = "arm", target_arch = "aarch64"),
+                any(target_feature = "aes", target_feature = "crypto"),
+                not(miri),
+                feature = "stdsimd")
             ))] {
         mod aes_hash;
         pub use crate::aes_hash::AHasher;
