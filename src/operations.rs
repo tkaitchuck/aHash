@@ -63,7 +63,7 @@ pub(crate) fn add_and_shuffle(a: u128, b: u128) -> u128 {
     shuffle(sum.convert())
 }
 
-#[allow(unused)] //not used by fallbac
+#[allow(unused)] //not used by fallback
 #[inline(always)]
 pub(crate) fn shuffle_and_add(base: u128, to_add: u128) -> u128 {
     let shuffled: [u64; 2] = shuffle(base).convert();
@@ -149,6 +149,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     }
 }
 
+#[allow(unused)]
 #[inline(always)]
 pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
     #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))]

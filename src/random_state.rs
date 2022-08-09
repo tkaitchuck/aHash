@@ -4,9 +4,9 @@ cfg_if::cfg_if! {
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
          all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
     ))] {
-        pub use crate::aes_hash::*;
+        use crate::aes_hash::*;
     } else {
-        pub use crate::fallback_hash::*;
+        use crate::fallback_hash::*;
     }
 }
 cfg_if::cfg_if! {
@@ -113,7 +113,7 @@ cfg_if::cfg_if! {
     }
 }
 /// A supplier of Randomness used for different hashers.
-/// See [RandomState::set_random_source].
+/// See [set_random_source].
 pub trait RandomSource {
 
     fn gen_hasher_seed(&self) -> usize;

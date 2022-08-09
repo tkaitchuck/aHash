@@ -89,7 +89,7 @@ cfg_if::cfg_if! {
 mod hash_quality_test;
 
 mod operations;
-mod random_state;
+pub mod random_state;
 mod specialize;
 
 pub use crate::random_state::RandomState;
