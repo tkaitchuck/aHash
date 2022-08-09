@@ -8,8 +8,8 @@ extern crate no_panic;
 #[no_panic]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
     use core::hash::Hasher;
-    let mut hasher1 = AHasher::new_with_keys(1, 2);
-    let mut hasher2 = AHasher::new_with_keys(3, 4);
+    let mut hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+    let mut hasher2 = RandomState::with_seeds(3, 4, 5, 6).build_hasher();
     hasher1.write_i32(num);
     hasher2.write(string.as_bytes());
     (hasher1.finish(), hasher2.finish())
@@ -43,8 +43,8 @@ impl BuildHasher for SimpleBuildHasher {
 #[inline(never)]
 #[no_panic]
 fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
-    let hasher1 = AHasher::new_with_keys(1, 2);
-    let hasher2 = AHasher::new_with_keys(1, 2);
+    let hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+    let hasher2 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
     (
         SimpleBuildHasher { hasher: hasher1 }.hash_one(num),
         SimpleBuildHasher { hasher: hasher2 }.hash_one(string.as_bytes()),

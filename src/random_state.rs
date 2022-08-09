@@ -269,6 +269,16 @@ impl RandomState {
         RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
     }
 
+    /// Calculates the hash of a single value.
+    ///
+    /// This is intended as a convenience for code which *consumes* hashes, such
+    /// as the implementation of a hash table or in unit tests that check
+    /// whether a custom [`Hash`] implementation behaves as expected.
+    ///
+    /// This must not be used in any code which *creates* hashes, such as in an
+    /// implementation of [`Hash`].  The way to create a combined hash of
+    /// multiple values is to call [`Hash::hash`] multiple times using the same
+    /// [`Hasher`], not to call this method repeatedly and combine the results.
     #[inline]
     pub fn hash_one<T: Hash>(&self, x: T) -> u64
         where Self: Sized {
@@ -321,6 +331,16 @@ impl BuildHasher for RandomState {
         AHasher::from_random_state(self)
     }
 
+    /// Calculates the hash of a single value.
+    ///
+    /// This is intended as a convenience for code which *consumes* hashes, such
+    /// as the implementation of a hash table or in unit tests that check
+    /// whether a custom [`Hash`] implementation behaves as expected.
+    ///
+    /// This must not be used in any code which *creates* hashes, such as in an
+    /// implementation of [`Hash`].  The way to create a combined hash of
+    /// multiple values is to call [`Hash::hash`] multiple times using the same
+    /// [`Hasher`], not to call this method repeatedly and combine the results.
     #[cfg(feature = "specialize")]
     #[inline]
     fn hash_one<T: Hash>(&self, x: T) -> u64 {
