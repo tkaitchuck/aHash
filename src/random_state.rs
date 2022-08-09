@@ -1,4 +1,5 @@
 
+use core::hash::Hash;
 cfg_if::cfg_if! {
     if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
@@ -12,7 +13,6 @@ cfg_if::cfg_if! {
 cfg_if::cfg_if! {
     if #[cfg(feature = "specialize")]{
         use crate::BuildHasherExt;
-        use core::hash::Hash;
     }
 }
 cfg_if::cfg_if! {
@@ -268,6 +268,13 @@ impl RandomState {
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
     }
+
+    #[inline]
+    pub fn hash_one<T: Hash>(&self, x: T) -> u64
+        where Self: Sized {
+        use crate::specialize::CallHasher;
+        T::get_hash(&x, self)
+    }
 }
 
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
@@ -316,10 +323,8 @@ impl BuildHasher for RandomState {
 
     #[cfg(feature = "specialize")]
     #[inline]
-    fn hash_one<T: Hash>(&self, x: T) -> u64
-        where Self: Sized {
-        use crate::specialize::CallHasher;
-        T::get_hash(&x, self)
+    fn hash_one<T: Hash>(&self, x: T) -> u64 {
+        RandomState::hash_one(self, x)
     }
 }
 

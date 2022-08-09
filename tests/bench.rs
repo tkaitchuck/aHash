@@ -1,10 +1,10 @@
-#![feature(build_hasher_simple_hash_one)]
+#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
 
 use ahash::{AHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
+use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),

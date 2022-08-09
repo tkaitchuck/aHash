@@ -1,7 +1,5 @@
-#![feature(build_hasher_simple_hash_one)]
-
 use ahash::{AHasher, RandomState};
-use std::hash::BuildHasher;
+use std::hash::{BuildHasher, Hash, Hasher};
 
 #[macro_use]
 extern crate no_panic;
@@ -24,6 +22,14 @@ fn hash_test_final_wrapper(num: i32, string: &str) {
 
 struct SimpleBuildHasher {
     hasher: AHasher,
+}
+
+impl SimpleBuildHasher {
+    fn hash_one<T: Hash>(&self, x: T) -> u64 where Self: Sized {
+        let mut hasher = self.build_hasher();
+        x.hash(&mut hasher);
+        hasher.finish()
+    }
 }
 
 impl BuildHasher for SimpleBuildHasher {
@@ -70,5 +76,6 @@ fn hash_test_specialize_wrapper(num: i32, string: &str) {
 fn test_no_panic() {
     hash_test_final_wrapper(2, "Foo");
     hash_test_specialize_wrapper(2, "Bar");
-    hash_test_random_wrapper(2, "Baz");
+    hash_test_random(2, "Baz");
+    hash_test_random_wrapper(2, "Bat");
 }
