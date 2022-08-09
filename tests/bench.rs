@@ -147,61 +147,64 @@ fn bench_sip(c: &mut Criterion) {
 }
 
 fn bench_map(c: &mut Criterion) {
-    let mut group = c.benchmark_group("map");
-    group.bench_function("aHash-alias", |b| b.iter(|| {
-        let hm: ahash::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
+    #[cfg(feature = "std")]
+        {
+            let mut group = c.benchmark_group("map");
+            group.bench_function("aHash-alias", |b| b.iter(|| {
+                let hm: ahash::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
+            group.bench_function("aHash-hashBrown", |b| b.iter(|| {
+                let hm: hashbrown::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
+            group.bench_function("aHash-hashBrown-explicit", |b| b.iter(|| {
+                let hm: hashbrown::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
+            group.bench_function("aHash-wrapper", |b| b.iter(|| {
+                let hm: ahash::AHashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
+            group.bench_function("aHash-rand", |b| b.iter(|| {
+                let hm: std::collections::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
+            group.bench_function("aHash-default", |b| b.iter(|| {
+                let hm: std::collections::HashMap<i32, i32, BuildHasherDefault<AHasher>> = (0..1_000_000).map(|i| (i, i)).collect();
+                let mut sum = 0;
+                for i in 0..1_000_000 {
+                    if let Some(x) = hm.get(&i) {
+                        sum += x;
+                    }
+                }
+            }));
         }
-    }));
-    group.bench_function("aHash-hashBrown", |b| b.iter(|| {
-        let hm: hashbrown::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
-        }
-    }));
-    group.bench_function("aHash-hashBrown-explicit", |b| b.iter(|| {
-        let hm: hashbrown::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
-        }
-    }));
-    group.bench_function("aHash-wrapper", |b| b.iter(|| {
-        let hm: ahash::AHashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
-        }
-    }));
-    group.bench_function("aHash-rand", |b| b.iter(|| {
-        let hm: std::collections::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
-        }
-    }));
-    group.bench_function("aHash-default", |b| b.iter(|| {
-        let hm: std::collections::HashMap<i32, i32, BuildHasherDefault<AHasher>> = (0..1_000_000).map(|i| (i, i)).collect();
-        let mut sum = 0;
-        for i in 0..1_000_000 {
-            if let Some(x) = hm.get(&i) {
-                sum += x;
-            }
-        }
-    }));
 }
 
 criterion_main!(benches);
