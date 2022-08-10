@@ -1,62 +1,34 @@
-#[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-use crate::convert::Convert;
-#[cfg(feature = "specialize")]
-use crate::BuildHasherExt;
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
-))]
-pub use crate::aes_hash::*;
-
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
-)))]
-pub use crate::fallback_hash::*;
-
-#[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
-use const_random::const_random;
-use core::any::{Any, TypeId};
-use core::fmt;
-use core::hash::BuildHasher;
-#[cfg(feature = "specialize")]
 use core::hash::Hash;
-use core::hash::Hasher;
-
-#[cfg(not(feature = "std"))]
-extern crate alloc;
-#[cfg(feature = "std")]
-extern crate std as alloc;
+cfg_if::cfg_if! {
+    if #[cfg(any(
+        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+         all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    ))] {
+        use crate::aes_hash::*;
+    } else {
+        use crate::fallback_hash::*;
+    }
+}
+cfg_if::cfg_if! {
+    if #[cfg(feature = "specialize")]{
+        use crate::BuildHasherExt;
+    }
+}
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        extern crate std as alloc;
+    } else {
+        extern crate alloc;
+    }
+}
 
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicUsize, Ordering};
-#[cfg(not(all(target_arch = "arm", target_os = "none")))]
-use once_cell::race::OnceBox;
-
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
-))]
-use crate::aes_hash::*;
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
-)))]
-use crate::fallback_hash::*;
-
-#[cfg(not(all(target_arch = "arm", target_os = "none")))]
-static RAND_SOURCE: OnceBox<Box<dyn RandomSource + Send + Sync>> = OnceBox::new();
-
-/// A supplier of Randomness used for different hashers.
-/// See [RandomState.set_random_source].
-pub trait RandomSource {
-
-    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2];
-
-    fn gen_hasher_seed(&self) -> usize;
-
-}
+use core::any::{Any, TypeId};
+use core::fmt;
+use core::hash::BuildHasher;
+use core::hash::Hasher;
 
 pub(crate) const PI: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
@@ -72,6 +44,82 @@ pub(crate) const PI2: [u64; 4] = [
     0x3f84_d5b5_b547_0917,
 ];
 
+cfg_if::cfg_if! {
+    if #[cfg(all(feature = "compile-time-rng", any(test, fuzzing)))] {
+        #[inline]
+        fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
+            use const_random::const_random;
+        
+            const RAND: [[u64; 4]; 2] = [
+                [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ], [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ]
+            ];
+            &RAND
+        }
+    } else if #[cfg(all(feature = "runtime-rng", not(fuzzing)))] {
+        #[inline]
+        fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
+            use crate::convert::Convert;
+        
+            static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
+        
+            SEEDS.get_or_init(|| {
+                let mut result: [u8; 64] = [0; 64];
+                getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
+                Box::new(result.convert())
+            })
+        }
+    } else if #[cfg(feature = "compile-time-rng")] {
+        #[inline]
+        fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
+            use const_random::const_random;
+        
+            const RAND: [[u64; 4]; 2] = [
+                [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ], [
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                    const_random!(u64),
+                ]
+            ];
+            &RAND
+        }
+    } else {
+        fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
+            &[PI, PI2]
+        }        
+    }
+}
+
+cfg_if::cfg_if! {
+    if #[cfg(not(all(target_arch = "arm", target_os = "none")))] {
+        use once_cell::race::OnceBox;
+
+        static RAND_SOURCE: OnceBox<Box<dyn RandomSource + Send + Sync>> = OnceBox::new();
+    }
+}
+/// A supplier of Randomness used for different hashers.
+/// See [set_random_source].
+pub trait RandomSource {
+
+    fn gen_hasher_seed(&self) -> usize;
+
+}
+
 struct DefaultRandomSource {
     counter: AtomicUsize,
 }
@@ -83,6 +131,7 @@ impl DefaultRandomSource {
         }
     }
 
+    #[cfg(all(target_arch = "arm", target_os = "none"))]
     const fn default() -> DefaultRandomSource {
         DefaultRandomSource {
             counter: AtomicUsize::new(PI[3] as usize),
@@ -91,55 +140,50 @@ impl DefaultRandomSource {
 }
 
 impl RandomSource for DefaultRandomSource {
-
-    #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
-    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
-        static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
-
-        SEEDS.get_or_init(|| {
-            let mut result: [u8; 64] = [0; 64];
-            getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
-            Box::new(result.convert())
-        })
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_arch = "arm", target_os = "none"))] {
+            fn gen_hasher_seed(&self) -> usize {
+                let stack = self as *const _ as usize;
+                let previous = self.counter.load(Ordering::Relaxed);
+                let new = previous.wrapping_add(stack);
+                self.counter.store(new, Ordering::Relaxed);
+                new
+            }
+        } else {
+            fn gen_hasher_seed(&self) -> usize {
+                let stack = self as *const _ as usize;
+                self.counter.fetch_add(stack, Ordering::Relaxed)
+            }
+        }
     }
+}
 
-    #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
-    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
-        const RAND: [[u64; 4]; 2] = [
-            [
-                const_random!(u64),
-                const_random!(u64),
-                const_random!(u64),
-                const_random!(u64),
-            ], [
-                const_random!(u64),
-                const_random!(u64),
-                const_random!(u64),
-                const_random!(u64),
-            ]
-        ];
-        &RAND
-    }
+cfg_if::cfg_if! {
+        if #[cfg(all(target_arch = "arm", target_os = "none"))] {
+            #[inline]
+            fn get_src() -> &'static dyn RandomSource {
+                static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::default();
+                &RAND_SOURCE
+            }
+        } else {
+            /// Provides an optional way to manually supply a source of randomness for Hasher keys.
+            ///
+            /// The provided [RandomSource] will be used to be used as a source of randomness by [RandomState] to generate new states.
+            /// If this method is not invoked the standard source of randomness is used as described in the Readme.
+            ///
+            /// The source of randomness can only be set once, and must be set before the first RandomState is created.
+            /// If the source has already been specified `Err` is returned with a `bool` indicating if the set failed because
+            /// method was previously invoked (true) or if the default source is already being used (false).
+            #[cfg(not(all(target_arch = "arm", target_os = "none")))]
+            pub fn set_random_source(source: impl RandomSource + Send + Sync + 'static) -> Result<(), bool> {
+                RAND_SOURCE.set(Box::new(Box::new(source))).map_err(|s| s.as_ref().type_id() != TypeId::of::<&DefaultRandomSource>())
+            }
 
-    #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
-    fn get_fixed_seeds(&self) -> &'static [[u64; 4]; 2] {
-        &[PI, PI2]
-    }
-
-    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
-    fn gen_hasher_seed(&self) -> usize {
-        let stack = self as *const _ as usize;
-        self.counter.fetch_add(stack, Ordering::Relaxed)
-    }
-
-    #[cfg(all(target_arch = "arm", target_os = "none"))]
-    fn gen_hasher_seed(&self) -> usize {
-        let stack = self as *const _ as usize;
-        let previous = self.counter.load(Ordering::Relaxed);
-        let new = previous.wrapping_add(stack);
-        self.counter.store(new, Ordering::Relaxed);
-        new
-    }
+            #[inline]
+            fn get_src() -> &'static dyn RandomSource {
+                RAND_SOURCE.get_or_init(|| Box::new(Box::new(DefaultRandomSource::new()))).as_ref()
+            }
+        }
 }
 
 /// Provides a [Hasher] factory. This is typically used (e.g. by [HashMap]) to create
@@ -164,38 +208,12 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
-
-    /// Provides an optional way to manually supply a source of randomness for Hasher keys.
-    ///
-    /// The provided [RandomSource] will be used to be used as a source of randomness by [RandomState] to generate new states.
-    /// If this method is not invoked the standard source of randomness is used as described in the Readme.
-    ///
-    /// The source of randomness can only be set once, and must be set before the first RandomState is created.
-    /// If the source has already been specified `Err` is returned with a `bool` indicating if the set failed because
-    /// method was previously invoked (true) or if the default source is already being used (false).
-    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
-    pub fn set_random_source(source: impl RandomSource + Send + Sync + 'static) -> Result<(), bool> {
-        RAND_SOURCE.set(Box::new(Box::new(source))).map_err(|s| s.as_ref().type_id() != TypeId::of::<&DefaultRandomSource>())
-    }
-
-    #[inline]
-    #[cfg(not(all(target_arch = "arm", target_os = "none")))]
-    fn get_src() -> &'static dyn RandomSource {
-        RAND_SOURCE.get_or_init(|| Box::new(Box::new(DefaultRandomSource::new()))).as_ref()
-    }
-
-    #[inline]
-    #[cfg(all(target_arch = "arm", target_os = "none"))]
-    fn get_src() -> &'static dyn RandomSource {
-        static RAND_SOURCE: DefaultRandomSource = DefaultRandomSource::default();
-        &RAND_SOURCE
-    }
-
     /// Use randomly generated keys
     #[inline]
+    #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
-        let src = Self::get_src();
-        let fixed = src.get_fixed_seeds();
+        let src = get_src();
+        let fixed = get_fixed_seeds();
         Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
     }
 
@@ -203,8 +221,8 @@ impl RandomState {
     /// This is done using a static counter, so it can safely be used with a fixed keys.
     #[inline]
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        let src = Self::get_src();
-        let fixed = src.get_fixed_seeds();
+        let src = get_src();
+        let fixed = get_fixed_seeds();
         RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], src.gen_hasher_seed())
     }
 
@@ -229,7 +247,7 @@ impl RandomState {
     /// Internal. Used by Default.
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState {
-        let [k0, k1, k2, k3] = Self::get_src().get_fixed_seeds()[0];
+        let [k0, k1, k2, k3] = get_fixed_seeds()[0];
         RandomState { k0, k1, k2, k3 }
     }
 
@@ -238,7 +256,7 @@ impl RandomState {
     /// Note: This method does not require the provided seed to be strong.
     #[inline]
     pub fn with_seed(key: usize) -> RandomState {
-        let fixed = Self::get_src().get_fixed_seeds();
+        let fixed = get_fixed_seeds();
         RandomState::from_keys(&fixed[0], &fixed[1], key)
     }
 
@@ -250,8 +268,26 @@ impl RandomState {
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
     }
+
+    /// Calculates the hash of a single value.
+    ///
+    /// This is intended as a convenience for code which *consumes* hashes, such
+    /// as the implementation of a hash table or in unit tests that check
+    /// whether a custom [`Hash`] implementation behaves as expected.
+    ///
+    /// This must not be used in any code which *creates* hashes, such as in an
+    /// implementation of [`Hash`].  The way to create a combined hash of
+    /// multiple values is to call [`Hash::hash`] multiple times using the same
+    /// [`Hasher`], not to call this method repeatedly and combine the results.
+    #[inline]
+    pub fn hash_one<T: Hash>(&self, x: T) -> u64
+        where Self: Sized {
+        use crate::specialize::CallHasher;
+        T::get_hash(&x, self)
+    }
 }
 
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
@@ -267,32 +303,48 @@ impl BuildHasher for RandomState {
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ahash::{AHasher, RandomState};
-    /// use std::hash::{Hasher, BuildHasher};
-    ///
-    /// let build_hasher = RandomState::new();
-    /// let mut hasher_1 = build_hasher.build_hasher();
-    /// let mut hasher_2 = build_hasher.build_hasher();
-    ///
-    /// hasher_1.write_u32(1234);
-    /// hasher_2.write_u32(1234);
-    ///
-    /// assert_eq!(hasher_1.finish(), hasher_2.finish());
-    ///
-    /// let other_build_hasher = RandomState::new();
-    /// let mut different_hasher = other_build_hasher.build_hasher();
-    /// different_hasher.write_u32(1234);
-    /// assert_ne!(different_hasher.finish(), hasher_1.finish());
-    /// ```
+    #[cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##" # Examples
+```
+        use ahash::{AHasher, RandomState};
+        use std::hash::{Hasher, BuildHasher};
+    
+        let build_hasher = RandomState::new();
+        let mut hasher_1 = build_hasher.build_hasher();
+        let mut hasher_2 = build_hasher.build_hasher();
+    
+        hasher_1.write_u32(1234);
+        hasher_2.write_u32(1234);
+    
+        assert_eq!(hasher_1.finish(), hasher_2.finish());
+    
+        let other_build_hasher = RandomState::new();
+        let mut different_hasher = other_build_hasher.build_hasher();
+        different_hasher.write_u32(1234);
+        assert_ne!(different_hasher.finish(), hasher_1.finish());
+```
+    "##)]
     /// [Hasher]: std::hash::Hasher
     /// [BuildHasher]: std::hash::BuildHasher
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
         AHasher::from_random_state(self)
+    }
+
+    /// Calculates the hash of a single value.
+    ///
+    /// This is intended as a convenience for code which *consumes* hashes, such
+    /// as the implementation of a hash table or in unit tests that check
+    /// whether a custom [`Hash`] implementation behaves as expected.
+    ///
+    /// This must not be used in any code which *creates* hashes, such as in an
+    /// implementation of [`Hash`].  The way to create a combined hash of
+    /// multiple values is to call [`Hash::hash`] multiple times using the same
+    /// [`Hasher`], not to call this method repeatedly and combine the results.
+    #[cfg(feature = "specialize")]
+    #[inline]
+    fn hash_one<T: Hash>(&self, x: T) -> u64 {
+        RandomState::hash_one(self, x)
     }
 }
 
@@ -329,27 +381,27 @@ mod test {
 
     #[test]
     fn test_unique() {
-        let a = RandomState::new();
-        let b = RandomState::new();
+        let a = RandomState::generate_with(1, 2, 3, 4);
+        let b = RandomState::generate_with(1, 2, 3, 4);
         assert_ne!(a.build_hasher().finish(), b.build_hasher().finish());
     }
 
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
     #[test]
     fn test_not_pi() {
-        assert_ne!(PI, RandomState::get_src().get_fixed_seeds()[0]);
+        assert_ne!(PI, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
     #[test]
     fn test_not_pi_const() {
-        assert_ne!(PI, RandomState::get_src().get_fixed_seeds()[0]);
+        assert_ne!(PI, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
     #[test]
     fn test_pi() {
-        assert_eq!(PI, RandomState::get_src().get_fixed_seeds()[0]);
+        assert_eq!(PI, get_fixed_seeds()[0]);
     }
 
     #[test]

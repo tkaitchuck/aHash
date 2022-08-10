@@ -8,103 +8,92 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! aHash is not a cryptographically secure hash.
-//!
-//! # Example
-//! ```
-//! use ahash::{AHasher, RandomState};
-//! use std::collections::HashMap;
-//!
-//! let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
-//! map.insert(12, 34);
-//! ```
-//! For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
-//! The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
-//! std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
-//! can't be used where a generic `std::collection::HashMap<K, V, S>` is required.
 //! 
-//! ```ignore
-//! use ahash::AHashMap;
-//!
-//! let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
-//! map.insert(12, 34);
-//! map.insert(56, 78);
-//! // There are also type aliases provieded together with some extension traits to make
-//! // it more of a drop in replacement for the std::HashMap/HashSet
-//! use ahash::{HashMapExt, HashSetExt}; // Used to get with_capacity()
-//! let mut map = ahash::HashMap::with_capacity(10);
-//! map.insert(12, 34);
-//! let mut set = ahash::HashSet::with_capacity(10);
-//! set.insert(10);
-//! ```
+#![cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##"
+# Example
+```
+use ahash::{AHasher, RandomState};
+use std::collections::HashMap;
+
+let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
+map.insert(12, 34);
+```
+"##)]
+#![cfg_attr(feature = "std", doc = r##"
+For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
+The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
+std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
+can't be used where a generic `std::collection::HashMap<K, V, S>` is required.
+
+```
+use ahash::AHashMap;
+
+let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
+map.insert(12, 34);
+map.insert(56, 78);
+// There are also type aliases provieded together with some extension traits to make
+// it more of a drop in replacement for the std::HashMap/HashSet
+use ahash::{HashMapExt, HashSetExt}; // Used to get with_capacity()
+let mut map = ahash::HashMap::with_capacity(10);
+map.insert(12, 34);
+let mut set = ahash::HashSet::with_capacity(10);
+set.insert(10);
+```
+"##)]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
+#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
 #![cfg_attr(feature = "stdsimd", feature(stdsimd))]
 
 #[macro_use]
 mod convert;
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-))]
-mod aes_hash;
 mod fallback_hash;
+
+cfg_if::cfg_if! {
+    if #[cfg(any(
+            all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+            all(any(target_arch = "arm", target_arch = "aarch64"),
+                any(target_feature = "aes", target_feature = "crypto"),
+                not(miri),
+                feature = "stdsimd")
+            ))] {
+        mod aes_hash;
+        pub use crate::aes_hash::AHasher;
+    } else {
+        pub use crate::fallback_hash::AHasher;
+    }
+}
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        mod hash_map;
+        mod hash_set;
+
+        pub use crate::hash_map::AHashMap;
+        pub use crate::hash_set::AHashSet;
+
+        /// [Hasher]: std::hash::Hasher
+        /// [HashMap]: std::collections::HashMap
+        /// Type alias for [HashMap]<K, V, ahash::RandomState>
+        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
+
+        /// Type alias for [HashSet]<K, ahash::RandomState>
+        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
+    }
+}
+
 #[cfg(test)]
 mod hash_quality_test;
 
-#[cfg(feature = "std")]
-/// [Hasher]: std::hash::Hasher
-/// [HashMap]: std::collections::HashMap
-/// Type alias for [HashMap]<K, V, ahash::RandomState>
-pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
-#[cfg(feature = "std")]
-/// Type alias for [HashSet]<K, ahash::RandomState>
-pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
-
-#[cfg(feature = "std")]
-mod hash_map;
-#[cfg(feature = "std")]
-mod hash_set;
 mod operations;
-mod random_state;
+pub mod random_state;
 mod specialize;
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-))]
-pub use crate::aes_hash::AHasher;
-
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-)))]
-pub use crate::fallback_hash::AHasher;
 pub use crate::random_state::RandomState;
 
-pub use crate::specialize::CallHasher;
-
-#[cfg(feature = "std")]
-pub use crate::hash_map::AHashMap;
-#[cfg(feature = "std")]
-pub use crate::hash_set::AHashSet;
 use core::hash::BuildHasher;
 use core::hash::Hash;
 use core::hash::Hasher;
@@ -279,6 +268,7 @@ mod test {
     use crate::*;
     use std::collections::HashMap;
     use std::hash::Hash;
+    use crate::specialize::CallHasher;
 
     #[test]
     fn test_ahash_alias_map_construction() {

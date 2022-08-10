@@ -1,9 +1,10 @@
+#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
+
 use std::hash::{BuildHasher, Hash, Hasher};
 
 use criterion::*;
 use fxhash::FxHasher;
-
-use ahash::{AHasher, CallHasher, RandomState};
+use ahash::RandomState;
 
 fn gen_word_pairs() -> Vec<String> {
     let words: Vec<_> = r#"
@@ -150,9 +151,18 @@ fn check_for_collisions<H: Hash, B: BuildHasher>(build_hasher: &B, items: &[H], 
     );
 }
 
+#[cfg(feature = "specialize")]
 #[allow(unused)] // False positive
 fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
-    H::get_hash(b, build_hasher)
+    build_hasher.hash_one(b)
+}
+
+#[cfg(not(feature = "specialize"))]
+#[allow(unused)] // False positive
+fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
+    let mut hasher = build_hasher.build_hasher();
+    b.hash(&mut hasher);
+    hasher.finish()
 }
 
 #[test]
@@ -193,7 +203,7 @@ fn test_ahash_alias_set_construction() {
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
-        let mut hasher = AHasher::new_with_keys(1234, 5678);
+        let mut hasher = RandomState::with_seeds(12, 34, 56, 78).build_hasher();
         item.hash(&mut hasher);
         total = total.wrapping_add(hasher.finish());
     }

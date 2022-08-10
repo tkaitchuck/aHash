@@ -1,6 +1,4 @@
 use crate::convert::*;
-#[cfg(feature = "specialize")]
-use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
 use crate::RandomState;
 use core::hash::Hasher;
@@ -50,7 +48,7 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key1: u128, key2: u128) -> Self {
+    pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
         let key1 = key1 ^ pi[0];
         let key2 = key2 ^ pi[1];
