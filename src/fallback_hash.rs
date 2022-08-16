@@ -6,8 +6,6 @@ use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
 
-
-
 const ROT: u32 = 23; //17
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
@@ -102,9 +100,11 @@ impl AHasher {
     #[inline(always)]
     #[cfg(not(feature = "folded_multiply"))]
     fn update(&mut self, new_data: u64) {
-        let d1 = (new_data ^ self.buffer).wrapping_mul(MULTIPLE);
-        self.pad = (self.pad ^ d1).rotate_left(8).wrapping_mul(MULTIPLE);
-        self.buffer = (self.buffer ^ self.pad).rotate_left(24);
+        use crate::operations::INCREMENT;
+
+        self.buffer = (self.buffer ^ new_data).wrapping_mul(self.pad ^ new_data.swap_bytes()); //Changing rather than fixed multiple removes linearity
+        self.buffer ^= self.buffer >> 47; // xorshift some good bits to the bottom
+        self.pad = self.pad.wrapping_add(INCREMENT);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
@@ -129,9 +129,13 @@ impl AHasher {
     #[inline(always)]
     #[cfg(not(feature = "folded_multiply"))]
     fn large_update(&mut self, new_data: u128) {
+        use crate::operations::INCREMENT;
+
         let block: [u64; 2] = new_data.convert();
-        self.update(block[0] ^ self.extra_keys[0]);
-        self.update(block[1] ^ self.extra_keys[1]);
+        self.buffer = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
+        self.buffer = (self.buffer ^ block[1]).wrapping_mul(self.pad.wrapping_add(1013904223) ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
+        self.buffer ^= self.buffer >> 47; // xorshift some good bits to the bottom
+        self.pad = self.pad.wrapping_add(INCREMENT);
     }
 
     #[inline]
