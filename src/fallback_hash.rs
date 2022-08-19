@@ -338,6 +338,7 @@ impl Hasher for AHasherStr {
     }
 
     #[inline]
+    #[cfg(feature = "folded_multiply")]
     fn write(&mut self, bytes: &[u8]) {
         if bytes.len() > 8 {
             self.0.write(bytes)
@@ -347,6 +348,12 @@ impl Hasher for AHasherStr {
                                            value[1] ^ self.0.extra_keys[1]);
             self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
         }
+    }
+
+    #[inline]
+    #[cfg(not(feature = "folded_multiply"))]
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.write(bytes)
     }
 
     #[inline]
