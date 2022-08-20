@@ -132,8 +132,8 @@ impl AHasher {
         use crate::operations::INCREMENT;
 
         let block: [u64; 2] = new_data.convert();
-        self.buffer = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
-        self.buffer = (self.buffer ^ block[1]).wrapping_mul(self.pad.wrapping_add(1013904223) ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
+        self.buffer = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ self.extra_keys[0] ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
+        self.buffer = (self.buffer ^ block[1]).wrapping_mul(self.pad ^ self.extra_keys[1] ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
         self.buffer ^= self.buffer >> 47; // xorshift some good bits to the bottom
         self.pad = self.pad.wrapping_add(INCREMENT);
     }
