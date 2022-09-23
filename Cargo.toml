@@ -68,10 +68,17 @@ codegen-units = 1
 version_check = "0.9.4"
 
 [dependencies]
-getrandom = { version = "0.2.3", optional = true }
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 cfg-if = "1.0"
+
+[target."cfg(not(any(target_arch = \"wasm32\", target_abi = \"unknown\")))".dependencies.getrandom]
+version = "0.2.7"
+optional = true
+
+[target."cfg(any(target_arch = \"wasm32\", target_abi = \"unknown\"))".dependencies.getrandom]
+version = "0.2.7"
+features = ["js"]
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
 once_cell = { version = "1.8", default-features = false, features = ["unstable", "alloc"] }
