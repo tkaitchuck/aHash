@@ -210,7 +210,6 @@ impl fmt::Debug for RandomState {
 impl RandomState {
     /// Use randomly generated keys
     #[inline]
-    #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
         let src = get_src();
         let fixed = get_fixed_seeds();
@@ -287,7 +286,6 @@ impl RandomState {
     }
 }
 
-#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
