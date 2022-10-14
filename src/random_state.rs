@@ -301,7 +301,7 @@ impl BuildHasher for RandomState {
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
-    #[cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##" # Examples
+    #[cfg_attr(feature = "std", doc = r##" # Examples
 ```
         use ahash::{AHasher, RandomState};
         use std::hash::{Hasher, BuildHasher};

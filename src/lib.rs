@@ -8,8 +8,8 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! aHash is not a cryptographically secure hash.
-//! 
-#![cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##"
+//!
+#![cfg_attr(feature = "std", doc = r##"
 # Example
 ```
 use ahash::{AHasher, RandomState};
