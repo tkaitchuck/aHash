@@ -23,8 +23,13 @@ cfg_if::cfg_if! {
     }
 }
 
+#[cfg(feature = "atomic-polyfill")]
+use atomic_polyfill as atomic;
+#[cfg(not(feature = "atomic-polyfill"))]
+use core::sync::atomic;
+
 use alloc::boxed::Box;
-use core::sync::atomic::{AtomicUsize, Ordering};
+use atomic::{AtomicUsize, Ordering};
 use core::any::{Any, TypeId};
 use core::fmt;
 use core::hash::BuildHasher;
