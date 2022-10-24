@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::operations::folded_multiply;
+use crate::operations::{add_by_64s, folded_multiply};
 use crate::operations::read_small;
 use crate::operations::MULTIPLE;
 use crate::random_state::PI;
@@ -130,11 +130,10 @@ impl AHasher {
     #[cfg(not(feature = "folded_multiply"))]
     fn large_update(&mut self, new_data: u128) {
         use crate::operations::INCREMENT;
-
-        let block: [u64; 2] = new_data.convert();
-        self.buffer = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ self.extra_keys[0] ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
-        self.buffer = (self.buffer ^ block[1]).wrapping_mul(self.pad ^ self.extra_keys[1] ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
-        self.buffer ^= self.buffer >> 47; // xorshift some good bits to the bottom
+        let  block = add_by_64s(new_data.convert(), self.extra_keys);
+        let b1 = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
+        let b2 = (self.buffer.swap_bytes() ^ block[1]).wrapping_mul(self.pad ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
+        self.buffer = b1 ^ b2;
         self.pad = self.pad.wrapping_add(INCREMENT);
     }
 
