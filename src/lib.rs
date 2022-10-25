@@ -15,7 +15,7 @@
 //! But this also means that different computers or computers using different versions of ahash will observe different
 //! hash values.
 #![cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##"
 # Usage
 AHash is a drop in replacement for the default implementation of the Hasher trait. To construct a HashMap using aHash as its hasher do the following:

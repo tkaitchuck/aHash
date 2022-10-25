@@ -118,6 +118,12 @@ cfg_if::cfg_if! {
 }
 /// A supplier of Randomness used for different hashers.
 /// See [set_random_source].
+///
+/// If [set_random_source] aHash will default to the best available source of randomness.
+/// In order this is:
+/// 1. OS provided random number generator (available if the `runtime-rng` flag is enabled which it is by default)
+/// 2. Strong compile time random numbers used to permute a static "counter". (available if `compile-time-rng` is enabled. __Enabling this is recommended if `runtime-rng` is not possible__)
+/// 3. A static counter that adds the memory address of each [RandomState] created permuted with fixed constants. (Similar to above but with fixed keys)
 pub trait RandomSource {
     fn gen_hasher_seed(&self) -> usize;
 }
@@ -200,7 +206,7 @@ cfg_if::cfg_if! {
 ///
 /// | Constructor   | Dynamically random? | Seed |
 /// |---------------|---------------------|------|
-/// |`new`          | Each instance unique|_`RandomSource`_|
+/// |`new`          | Each instance unique|_[RandomSource]_|
 /// |`generate_with`| Each instance unique|`u64` x 4 + static counter|
 /// |`with_seed`    | Fixed per process   |`u64` + static random number|
 /// |`with_seeds`   | Fixed               |`u64` x 4|
@@ -223,10 +229,8 @@ impl RandomState {
 
     /// Create a new `RandomState` `BuildHasher` using random keys.
     ///
-    /// NOTE: This method is only available when a source of randomness is available. So
-    /// either the flag `runtime-rng` (on by default) or `compile-time-rng` must be enabled.
+    /// (Each instance will have a unique set of keys).
     #[inline]
-    #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
         let src = get_src();
         let fixed = get_fixed_seeds();
@@ -308,7 +312,7 @@ impl RandomState {
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
@@ -321,7 +325,7 @@ impl RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
@@ -358,9 +362,7 @@ impl RandomState {
 /// Each instance created in this way will have a unique set of keys. (But the resulting instance
 /// can be used to create many hashers each or which will have the same keys.)
 ///
-/// NOTE: This method is only available when a source of randomness is available. So
-/// either the flag `runtime-rng` (on by default) or `compile-time-rng` must be enabled.
-#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
+/// This is the same as [RandomState::new()]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
@@ -377,7 +379,7 @@ impl BuildHasher for RandomState {
     /// will generate the same hashes for the same input data.
     ///
     #[cfg_attr(
-        any(feature = "compile-time-rng", feature = "runtime-rng"),
+        feature = "std",
         doc = r##" # Examples
 ```
         use ahash::{AHasher, RandomState};
@@ -411,7 +413,7 @@ impl BuildHasher for RandomState {
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
@@ -424,7 +426,7 @@ impl BuildHasher for RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
