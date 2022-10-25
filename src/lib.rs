@@ -1,18 +1,24 @@
-//! AHash is a hashing algorithm is intended to be a high performance, (hardware specific), keyed hash function.
-//! This can be seen as a DOS resistant alternative to `FxHash`, or a fast equivalent to `SipHash`.
-//! It provides a high speed hash algorithm, but where the result is not predictable without knowing a Key.
-//! This allows it to be used in a `HashMap` without allowing for the possibility that an malicious user can
+//! AHash is a high performance keyed hash function.
+//!
+//! It is a DOS resistant alternative to `FxHash` or a faster alternative to `SipHash`.
+//!
+//! It quickly provides a high quality hash where the result is not predictable without knowing the Key.
+//! AHash works with `HashMap` to hash keys, but without allowing for the possibility that an malicious user can
 //! induce a collision.
 //!
 //! # How aHash works
 //!
-//! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
-//! aHash is not a cryptographically secure hash.
+//! When it is available aHash uses the hardware AES instructions to provide a keyed hash function.
+//! When it is not, aHash falls back on a slightly slower alternative algorithm.
 //!
+//! AHash does not have a fixed standard for its output. This allows it to improve over time.
+//! But this also means that different computers or computers using different versions of ahash will observe different
+//! hash values.
 #![cfg_attr(
     any(feature = "compile-time-rng", feature = "runtime-rng"),
     doc = r##"
-# Example
+# Usage
+AHash is a drop in replacement for the default implementation of the Hasher trait. To construct a HashMap using aHash as its hasher do the following:
 ```
 use ahash::{AHasher, RandomState};
 use std::collections::HashMap;
@@ -25,25 +31,46 @@ map.insert(12, 34);
 #![cfg_attr(
     feature = "std",
     doc = r##"
-For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
-The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
-std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
-can't be used where a generic `std::collection::HashMap<K, V, S>` is required.
+For convenience, both new-type wrappers and type aliases are provided.
 
+The new type wrappers are called called `AHashMap` and `AHashSet`.
+These do the same thing with slightly less typing. (For convience `From`, `Into`, and `Deref` are provided).
 ```
 use ahash::AHashMap;
 
-let mut map: AHashMap<i32, i32> = AHashMap::with_capacity(4);
+let mut map: AHashMap<i32, i32> = AHashMap::new();
 map.insert(12, 34);
-map.insert(56, 78);
-// There are also type aliases provieded together with some extension traits to make
-// it more of a drop in replacement for the std::HashMap/HashSet
-use ahash::{HashMapExt, HashSetExt}; // Used to get with_capacity()
-let mut map = ahash::HashMap::with_capacity(10);
-map.insert(12, 34);
-let mut set = ahash::HashSet::with_capacity(10);
-set.insert(10);
 ```
+
+For even less typing and better interop with existing libraries which require a `std::collection::HashMap` (such as rayon),
+the type aliases [HashMap], [HashSet] are provided. These alias the `std::HashMap` and `std::HashSet` using aHash as the hasher.
+
+```
+use ahash::{HashMap, HashMapExt};
+
+let mut map: HashMap<i32, i32> = HashMap::new();
+map.insert(12, 34);
+```
+Note the import of [HashMapExt]. This is needed for the constructor.
+
+# Directly hashing
+
+Hashers can also be instantiated with `RandomState`. For example:
+```
+use std::hash::BuildHasher;
+use ahash::RandomState;
+
+let hash_builder = RandomState::with_seed(42);
+let hash = hash_builder.hash_one("Some Data");
+```
+### Randomness
+
+To ensure that each map has a unique set of keys aHash needs a source of randomness.
+Normally this is just obtained from the OS. (Or via the `compile-time-rng` flag)
+
+If for some reason (such as fuzzing) an application wishes to supply all random seeds manually, this can be done via:
+[random_state::set_random_source].
+
 "##
 )]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
@@ -157,7 +184,7 @@ where
 /// [AHasher]s in order to hash the keys of the map.
 ///
 /// Generally it is preferable to use [RandomState] instead, so that different
-/// hashmaps will have different keys. However if fixed keys are desireable this
+/// hashmaps will have different keys. However if fixed keys are desirable this
 /// may be used instead.
 ///
 /// # Example

@@ -195,6 +195,16 @@ cfg_if::cfg_if! {
 /// [Hasher]: std::hash::Hasher
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
+///
+/// There are multiple constructors each is documented in more detail below:
+///
+/// | Constructor   | Dynamically random? | Seed |
+/// |---------------|---------------------|------|
+/// |`new`          | Each instance unique|_`RandomSource`_|
+/// |`generate_with`| Each instance unique|`u64` x 4 + static counter|
+/// |`with_seed`    | Fixed per process   |`u64` + static random number|
+/// |`with_seeds`   | Fixed               |`u64` x 4|
+///
 #[derive(Clone)]
 pub struct RandomState {
     pub(crate) k0: u64,
@@ -210,7 +220,11 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
-    /// Use randomly generated keys
+
+    /// Create a new `RandomState` `BuildHasher` using random keys.
+    ///
+    /// NOTE: This method is only available when a source of randomness is available. So
+    /// either the flag `runtime-rng` (on by default) or `compile-time-rng` must be enabled.
     #[inline]
     #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
@@ -219,8 +233,15 @@ impl RandomState {
         Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
     }
 
-    /// Allows for supplying seeds, but each time it is called the resulting state will be different.
-    /// This is done using a static counter, so it can safely be used with a fixed keys.
+    /// Create a new `RandomState` `BuildHasher` based on the provided seeds, but in such a way
+    /// that each time it is called the resulting state will be different and of high quality.
+    /// This allows fixed constant or poor quality seeds to be provided without the problem of different
+    /// `BuildHasher`s being identical or weak.
+    ///
+    /// This is done via permuting the provided values with the value of a static counter and memory address.
+    /// (This makes this method somewhat more expensive than `with_seeds` below which does not do this).
+    ///
+    /// The provided values (k0-k3) do not need to be of high quality but they should not all be the same value.
     #[inline]
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         let src = get_src();
@@ -253,7 +274,11 @@ impl RandomState {
         RandomState { k0, k1, k2, k3 }
     }
 
-    /// Allows for explicitly setting a seed to used.
+    /// Build a `RandomState` from a single key. The provided key does not need to be of high quality,
+    /// but all `RandomState`s created from the same key will produce identical hashers.
+    /// (In contrast to `generate_with` above)
+    ///
+    /// This allows for explicitly setting the seed to be used.
     ///
     /// Note: This method does not require the provided seed to be strong.
     #[inline]
@@ -263,9 +288,13 @@ impl RandomState {
     }
 
     /// Allows for explicitly setting the seeds to used.
+    /// All `RandomState`s created with the same set of keys key will produce identical hashers.
+    /// (In contrast to `generate_with` above)
     ///
-    /// Note: This method is robust against 0s being passed for one or more of the parameters
-    /// or the same value being passed for more than one parameter.
+    /// Note: If DOS resistance is desired one of these should be a decent quality random number.
+    /// If 4 high quality random number are not cheaply available this method is robust against 0s being passed for
+    /// one or more of the parameters or the same value being passed for more than one parameter.
+    /// It is recommended to pass numbers in order from highest to lowest quality (if there is any difference).
     #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
         RandomState {
@@ -276,7 +305,36 @@ impl RandomState {
         }
     }
 
-    /// Calculates the hash of a single value.
+    /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
+    /// For example:
+    #[cfg_attr(
+    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    doc = r##" # Examples
+```
+    use std::hash::BuildHasher;
+    use ahash::RandomState;
+
+    let hash_builder = RandomState::new();
+    let hash = hash_builder.hash_one("Some Data");
+```
+    "##
+    )]
+    /// This is similar to:
+    #[cfg_attr(
+    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    doc = r##" # Examples
+```
+    use std::hash::{BuildHasher, Hash, Hasher};
+    use ahash::RandomState;
+
+    let hash_builder = RandomState::new();
+    let mut hasher = hash_builder.build_hasher();
+    "Some Data".hash(&mut hasher);
+    let hash = hasher.finish();
+```
+    "##
+    )]
+    /// (Note that these two ways to get a hash may not produce the same value for the same data)
     ///
     /// This is intended as a convenience for code which *consumes* hashes, such
     /// as the implementation of a hash table or in unit tests that check
@@ -296,6 +354,12 @@ impl RandomState {
     }
 }
 
+/// Creates an instance of RandomState using keys obtained from the random number generator.
+/// Each instance created in this way will have a unique set of keys. (But the resulting instance
+/// can be used to create many hashers each or which will have the same keys.)
+///
+/// NOTE: This method is only available when a source of randomness is available. So
+/// either the flag `runtime-rng` (on by default) or `compile-time-rng` must be enabled.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
 impl Default for RandomState {
     #[inline]
@@ -343,7 +407,37 @@ impl BuildHasher for RandomState {
         AHasher::from_random_state(self)
     }
 
-    /// Calculates the hash of a single value.
+
+    /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
+    /// For example:
+    #[cfg_attr(
+    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    doc = r##" # Examples
+```
+    use std::hash::BuildHasher;
+    use ahash::RandomState;
+
+    let hash_builder = RandomState::new();
+    let hash = hash_builder.hash_one("Some Data");
+```
+    "##
+    )]
+    /// This is similar to:
+    #[cfg_attr(
+    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    doc = r##" # Examples
+```
+    use std::hash::{BuildHasher, Hash, Hasher};
+    use ahash::RandomState;
+
+    let hash_builder = RandomState::new();
+    let mut hasher = hash_builder.build_hasher();
+    "Some Data".hash(&mut hasher);
+    let hash = hasher.finish();
+```
+    "##
+    )]
+    /// (Note that these two ways to get a hash may not produce the same value for the same data)
     ///
     /// This is intended as a convenience for code which *consumes* hashes, such
     /// as the implementation of a hash table or in unit tests that check
