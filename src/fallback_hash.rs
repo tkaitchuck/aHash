@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::operations::{add_by_64s, folded_multiply};
+use crate::operations::{folded_multiply};
 use crate::operations::read_small;
 use crate::operations::MULTIPLE;
 use crate::random_state::PI;
@@ -92,19 +92,8 @@ impl AHasher {
     /// attacker somehow knew part of (but not all) the contents of the buffer before hand,
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
-    #[cfg(feature = "folded_multiply")]
     fn update(&mut self, new_data: u64) {
         self.buffer = folded_multiply(new_data ^ self.buffer, MULTIPLE);
-    }
-
-    #[inline(always)]
-    #[cfg(not(feature = "folded_multiply"))]
-    fn update(&mut self, new_data: u64) {
-        use crate::operations::INCREMENT;
-
-        self.buffer = (self.buffer ^ new_data).wrapping_mul(self.pad ^ new_data.swap_bytes()); //Changing rather than fixed multiple removes linearity
-        self.buffer ^= self.buffer >> 47; // xorshift some good bits to the bottom
-        self.pad = self.pad.wrapping_add(INCREMENT);
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
@@ -119,22 +108,10 @@ impl AHasher {
     /// can't be changed by the same set of input bits. To cancel this sequence with subsequent input would require
     /// knowing the keys.
     #[inline(always)]
-    #[cfg(feature = "folded_multiply")]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
         let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
         self.buffer = (self.buffer.wrapping_add(self.pad) ^ combined).rotate_left(ROT);
-    }
-
-    #[inline(always)]
-    #[cfg(not(feature = "folded_multiply"))]
-    fn large_update(&mut self, new_data: u128) {
-        use crate::operations::INCREMENT;
-        let  block = add_by_64s(new_data.convert(), self.extra_keys);
-        let b1 = (self.buffer ^ block[0]).wrapping_mul(self.pad ^ block[1].swap_bytes()); //Changing rather than fixed multiple removes linearity
-        let b2 = (self.buffer.swap_bytes() ^ block[1]).wrapping_mul(self.pad ^ block[0].swap_bytes()); //Reversing bytes prevents low impact high order bits.
-        self.buffer = b1 ^ b2;
-        self.pad = self.pad.wrapping_add(INCREMENT);
     }
 
     #[inline]
@@ -212,18 +189,11 @@ impl Hasher for AHasher {
     }
 
     #[inline]
-    #[cfg(feature = "folded_multiply")]
     fn finish(&self) -> u64 {
         let rot = (self.buffer & 63) as u32;
         folded_multiply(self.buffer, self.pad).rotate_left(rot)
     }
 
-    #[inline]
-    #[cfg(not(feature = "folded_multiply"))]
-    fn finish(&self) -> u64 {
-        let rot = (self.buffer & 63) as u32;
-        (self.buffer.wrapping_mul(MULTIPLE) ^ self.pad).rotate_left(rot)
-    }
 }
 
 #[cfg(feature = "specialize")]
@@ -337,7 +307,6 @@ impl Hasher for AHasherStr {
     }
 
     #[inline]
-    #[cfg(feature = "folded_multiply")]
     fn write(&mut self, bytes: &[u8]) {
         if bytes.len() > 8 {
             self.0.write(bytes)
@@ -347,12 +316,6 @@ impl Hasher for AHasherStr {
                                            value[1] ^ self.0.extra_keys[1]);
             self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
         }
-    }
-
-    #[inline]
-    #[cfg(not(feature = "folded_multiply"))]
-    fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
     }
 
     #[inline]

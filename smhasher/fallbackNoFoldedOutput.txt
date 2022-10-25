@@ -1,4 +1,4 @@
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 --- Testing ahash64 "ahash 64bit" GOOD
 
 [[[ Sanity Tests ]]]
@@ -10,58 +10,58 @@ Running AppendedZeroesTest .......... PASS
 [[[ Speed Tests ]]]
 
 Bulk speed test - 262144-byte keys
-Alignment  7 - 18.981 bytes/cycle - 54306.12 MiB/sec @ 3 ghz
-Alignment  6 - 19.062 bytes/cycle - 54536.99 MiB/sec @ 3 ghz
-Alignment  5 - 18.974 bytes/cycle - 54284.96 MiB/sec @ 3 ghz
-Alignment  4 - 19.039 bytes/cycle - 54470.49 MiB/sec @ 3 ghz
-Alignment  3 - 19.129 bytes/cycle - 54729.57 MiB/sec @ 3 ghz
-Alignment  2 - 19.126 bytes/cycle - 54720.48 MiB/sec @ 3 ghz
-Alignment  1 - 18.990 bytes/cycle - 54332.12 MiB/sec @ 3 ghz
-Alignment  0 - 19.801 bytes/cycle - 56652.53 MiB/sec @ 3 ghz
-Average      - 19.138 bytes/cycle - 54754.16 MiB/sec @ 3 ghz
+Alignment  7 - 18.833 bytes/cycle - 53881.77 MiB/sec @ 3 ghz
+Alignment  6 - 18.835 bytes/cycle - 53887.84 MiB/sec @ 3 ghz
+Alignment  5 - 18.835 bytes/cycle - 53888.73 MiB/sec @ 3 ghz
+Alignment  4 - 19.338 bytes/cycle - 55327.26 MiB/sec @ 3 ghz
+Alignment  3 - 19.422 bytes/cycle - 55566.47 MiB/sec @ 3 ghz
+Alignment  2 - 19.475 bytes/cycle - 55717.32 MiB/sec @ 3 ghz
+Alignment  1 - 19.266 bytes/cycle - 55120.73 MiB/sec @ 3 ghz
+Alignment  0 - 19.932 bytes/cycle - 57026.80 MiB/sec @ 3 ghz
+Average      - 19.242 bytes/cycle - 55052.12 MiB/sec @ 3 ghz
 
 Small key speed test -    1-byte keys -    33.00 cycles/hash
 Small key speed test -    2-byte keys -    33.00 cycles/hash
-Small key speed test -    3-byte keys -    31.58 cycles/hash
-Small key speed test -    4-byte keys -    31.46 cycles/hash
-Small key speed test -    5-byte keys -    31.53 cycles/hash
-Small key speed test -    6-byte keys -    32.89 cycles/hash
+Small key speed test -    3-byte keys -    32.02 cycles/hash
+Small key speed test -    4-byte keys -    30.73 cycles/hash
+Small key speed test -    5-byte keys -    30.81 cycles/hash
+Small key speed test -    6-byte keys -    31.95 cycles/hash
 Small key speed test -    7-byte keys -    33.00 cycles/hash
 Small key speed test -    8-byte keys -    33.00 cycles/hash
-Small key speed test -    9-byte keys -    32.00 cycles/hash
-Small key speed test -   10-byte keys -    32.00 cycles/hash
-Small key speed test -   11-byte keys -    31.64 cycles/hash
-Small key speed test -   12-byte keys -    31.31 cycles/hash
-Small key speed test -   13-byte keys -    31.42 cycles/hash
-Small key speed test -   14-byte keys -    31.65 cycles/hash
-Small key speed test -   15-byte keys -    32.00 cycles/hash
-Small key speed test -   16-byte keys -    32.00 cycles/hash
-Small key speed test -   17-byte keys -    33.90 cycles/hash
-Small key speed test -   18-byte keys -    33.66 cycles/hash
-Small key speed test -   19-byte keys -    33.63 cycles/hash
-Small key speed test -   20-byte keys -    34.84 cycles/hash
-Small key speed test -   21-byte keys -    35.00 cycles/hash
-Small key speed test -   22-byte keys -    34.55 cycles/hash
-Small key speed test -   23-byte keys -    33.60 cycles/hash
-Small key speed test -   24-byte keys -    33.68 cycles/hash
-Small key speed test -   25-byte keys -    34.32 cycles/hash
-Small key speed test -   26-byte keys -    35.00 cycles/hash
-Small key speed test -   27-byte keys -    35.00 cycles/hash
-Small key speed test -   28-byte keys -    33.68 cycles/hash
-Small key speed test -   29-byte keys -    33.70 cycles/hash
-Small key speed test -   30-byte keys -    33.89 cycles/hash
-Small key speed test -   31-byte keys -    35.00 cycles/hash
-Average                                    33.127 cycles/hash
+Small key speed test -    9-byte keys -    30.83 cycles/hash
+Small key speed test -   10-byte keys -    30.79 cycles/hash
+Small key speed test -   11-byte keys -    30.86 cycles/hash
+Small key speed test -   12-byte keys -    31.79 cycles/hash
+Small key speed test -   13-byte keys -    32.00 cycles/hash
+Small key speed test -   14-byte keys -    32.31 cycles/hash
+Small key speed test -   15-byte keys -    30.51 cycles/hash
+Small key speed test -   16-byte keys -    30.93 cycles/hash
+Small key speed test -   17-byte keys -    33.07 cycles/hash
+Small key speed test -   18-byte keys -    35.00 cycles/hash
+Small key speed test -   19-byte keys -    35.00 cycles/hash
+Small key speed test -   20-byte keys -    33.93 cycles/hash
+Small key speed test -   21-byte keys -    32.86 cycles/hash
+Small key speed test -   22-byte keys -    32.96 cycles/hash
+Small key speed test -   23-byte keys -    34.30 cycles/hash
+Small key speed test -   24-byte keys -    35.00 cycles/hash
+Small key speed test -   25-byte keys -    35.00 cycles/hash
+Small key speed test -   26-byte keys -    32.65 cycles/hash
+Small key speed test -   27-byte keys -    33.00 cycles/hash
+Small key speed test -   28-byte keys -    33.44 cycles/hash
+Small key speed test -   29-byte keys -    35.00 cycles/hash
+Small key speed test -   30-byte keys -    35.00 cycles/hash
+Small key speed test -   31-byte keys -    34.00 cycles/hash
+Average                                    32.830 cycles/hash
 
 [[[ 'Hashmap' Speed Tests ]]]
 
 std::unordered_map
-Init std HashMapTest:     201.204 cycles/op (102774 inserts, 1% deletions)
-Running std HashMapTest:  130.402 cycles/op (2.4 stdv)
+Init std HashMapTest:     199.037 cycles/op (102774 inserts, 1% deletions)
+Running std HashMapTest:  125.873 cycles/op (2.4 stdv)
 
 greg7mdp/parallel-hashmap
-Init fast HashMapTest:    125.038 cycles/op (102774 inserts, 1% deletions)
-Running fast HashMapTest: 87.416 cycles/op (0.1 stdv)  ....... PASS
+Init fast HashMapTest:    113.297 cycles/op (102774 inserts, 1% deletions)
+Running fast HashMapTest: 85.337 cycles/op (2.7 stdv)  ....... PASS
 
 [[[ Avalanche Tests ]]]
 
@@ -1133,5 +1133,5 @@ Testing 0 internal secrets:
 
 
 Input vcode 0x00000001, Output vcode 0x00000001, Result vcode 0x00000001
-Verification value is 0x00000001 - Testing took 666.859625 seconds
+Verification value is 0x00000001 - Testing took 631.594488 seconds
 -------------------------------------------------------------------------------
