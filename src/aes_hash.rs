@@ -1,8 +1,8 @@
 use crate::convert::*;
 use crate::operations::*;
+use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
-use crate::random_state::PI;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -68,7 +68,6 @@ impl AHasher {
         }
     }
 
-
     #[inline]
     pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
@@ -128,7 +127,11 @@ impl Hasher for AHasher {
     }
 
     #[inline]
-    #[cfg(any(target_pointer_width = "64", target_pointer_width = "32", target_pointer_width = "16"))]
+    #[cfg(any(
+        target_pointer_width = "64",
+        target_pointer_width = "32",
+        target_pointer_width = "16"
+    ))]
     fn write_usize(&mut self, i: usize) {
         self.write_u64(i as u64);
     }
@@ -317,7 +320,7 @@ pub(crate) struct AHasherStr(pub AHasher);
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
-        let result : [u64; 2] = self.0.enc.convert();
+        let result: [u64; 2] = self.0.enc.convert();
         result[0]
     }
 
@@ -428,4 +431,3 @@ mod tests {
         assert_eq!(bytes, 0x6464646464646464);
     }
 }
-
