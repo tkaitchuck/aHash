@@ -239,6 +239,7 @@ where
     ///
     /// In the current implementation, iterating over values takes O(capacity) time
     /// instead of O(len) because it internally visits empty buckets too.
+    #[inline]
     pub fn into_values(self) -> IntoValues<K, V> {
         self.0.into_values()
     }
