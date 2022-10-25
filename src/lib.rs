@@ -8,8 +8,10 @@
 //!
 //! aHash uses the hardware AES instruction on x86 processors to provide a keyed hash function.
 //! aHash is not a cryptographically secure hash.
-//! 
-#![cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##"
+//!
+#![cfg_attr(
+    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    doc = r##"
 # Example
 ```
 use ahash::{AHasher, RandomState};
@@ -18,8 +20,11 @@ use std::collections::HashMap;
 let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
 map.insert(12, 34);
 ```
-"##)]
-#![cfg_attr(feature = "std", doc = r##"
+"##
+)]
+#![cfg_attr(
+    feature = "std",
+    doc = r##"
 For convenience, both new-type wrappers and type aliases are provided. The new type wrappers are called called `AHashMap` and `AHashSet`. These do the same thing with slightly less typing.
 The type aliases are called `ahash::HashMap`, `ahash::HashSet` are also provided and alias the
 std::[HashMap] and std::[HashSet]. Why are there two options? The wrappers are convenient but
@@ -39,7 +44,8 @@ map.insert(12, 34);
 let mut set = ahash::HashSet::with_capacity(10);
 set.insert(10);
 ```
-"##)]
+"##
+)]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
@@ -265,10 +271,10 @@ impl<B: BuildHasher> BuildHasherExt for B {
 #[cfg(test)]
 mod test {
     use crate::convert::Convert;
+    use crate::specialize::CallHasher;
     use crate::*;
     use std::collections::HashMap;
     use std::hash::Hash;
-    use crate::specialize::CallHasher;
 
     #[test]
     fn test_ahash_alias_map_construction() {

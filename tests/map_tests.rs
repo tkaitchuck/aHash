@@ -2,9 +2,9 @@
 
 use std::hash::{BuildHasher, Hash, Hasher};
 
+use ahash::RandomState;
 use criterion::*;
 use fxhash::FxHasher;
-use ahash::RandomState;
 
 fn gen_word_pairs() -> Vec<String> {
     let words: Vec<_> = r#"

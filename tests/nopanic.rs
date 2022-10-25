@@ -25,7 +25,10 @@ struct SimpleBuildHasher {
 }
 
 impl SimpleBuildHasher {
-    fn hash_one<T: Hash>(&self, x: T) -> u64 where Self: Sized {
+    fn hash_one<T: Hash>(&self, x: T) -> u64
+    where
+        Self: Sized,
+    {
         let mut hasher = self.build_hasher();
         x.hash(&mut hasher);
         hasher.finish()
@@ -61,10 +64,7 @@ fn hash_test_random_wrapper(num: i32, string: &str) {
 fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
     let build_hasher1 = RandomState::with_seeds(1, 2, 3, 4);
     let build_hasher2 = RandomState::with_seeds(1, 2, 3, 4);
-    (
-        build_hasher1.hash_one(&num),
-        build_hasher2.hash_one(string.as_bytes())
-    )
+    (build_hasher1.hash_one(&num), build_hasher2.hash_one(string.as_bytes()))
 }
 
 #[inline(never)]

@@ -8,7 +8,12 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 ))]
 fn aeshash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
@@ -16,7 +21,12 @@ fn aeshash<H: Hash>(b: &H) -> u64 {
 }
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 )))]
 fn aeshash<H: Hash>(_b: &H) -> u64 {
     panic!("aes must be enabled")
@@ -24,7 +34,12 @@ fn aeshash<H: Hash>(_b: &H) -> u64 {
 
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 )))]
 fn fallbackhash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
@@ -32,7 +47,12 @@ fn fallbackhash<H: Hash>(b: &H) -> u64 {
 }
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 ))]
 fn fallbackhash<H: Hash>(_b: &H) -> u64 {
     panic!("aes must be disabled")
@@ -148,9 +168,10 @@ fn bench_sip(c: &mut Criterion) {
 
 fn bench_map(c: &mut Criterion) {
     #[cfg(feature = "std")]
-        {
-            let mut group = c.benchmark_group("map");
-            group.bench_function("aHash-alias", |b| b.iter(|| {
+    {
+        let mut group = c.benchmark_group("map");
+        group.bench_function("aHash-alias", |b| {
+            b.iter(|| {
                 let hm: ahash::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
@@ -158,8 +179,10 @@ fn bench_map(c: &mut Criterion) {
                         sum += x;
                     }
                 }
-            }));
-            group.bench_function("aHash-hashBrown", |b| b.iter(|| {
+            })
+        });
+        group.bench_function("aHash-hashBrown", |b| {
+            b.iter(|| {
                 let hm: hashbrown::HashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
@@ -167,8 +190,10 @@ fn bench_map(c: &mut Criterion) {
                         sum += x;
                     }
                 }
-            }));
-            group.bench_function("aHash-hashBrown-explicit", |b| b.iter(|| {
+            })
+        });
+        group.bench_function("aHash-hashBrown-explicit", |b| {
+            b.iter(|| {
                 let hm: hashbrown::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
@@ -176,8 +201,10 @@ fn bench_map(c: &mut Criterion) {
                         sum += x;
                     }
                 }
-            }));
-            group.bench_function("aHash-wrapper", |b| b.iter(|| {
+            })
+        });
+        group.bench_function("aHash-wrapper", |b| {
+            b.iter(|| {
                 let hm: ahash::AHashMap<i32, i32> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
@@ -185,8 +212,10 @@ fn bench_map(c: &mut Criterion) {
                         sum += x;
                     }
                 }
-            }));
-            group.bench_function("aHash-rand", |b| b.iter(|| {
+            })
+        });
+        group.bench_function("aHash-rand", |b| {
+            b.iter(|| {
                 let hm: std::collections::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
@@ -194,37 +223,44 @@ fn bench_map(c: &mut Criterion) {
                         sum += x;
                     }
                 }
-            }));
-            group.bench_function("aHash-default", |b| b.iter(|| {
-                let hm: std::collections::HashMap<i32, i32, BuildHasherDefault<AHasher>> = (0..1_000_000).map(|i| (i, i)).collect();
+            })
+        });
+        group.bench_function("aHash-default", |b| {
+            b.iter(|| {
+                let hm: std::collections::HashMap<i32, i32, BuildHasherDefault<AHasher>> =
+                    (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
                     if let Some(x) = hm.get(&i) {
                         sum += x;
                     }
                 }
-            }));
-        }
+            })
+        });
+    }
 }
 
 criterion_main!(benches);
 
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 ))]
-criterion_group!(
-    benches,
-    bench_ahash,
-    bench_fx,
-    bench_fnv,
-    bench_sea,
-    bench_sip
-);
+criterion_group!(benches, bench_ahash, bench_fx, bench_fnv, bench_sea, bench_sip);
 
 #[cfg(not(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 )))]
 criterion_group!(
     benches,

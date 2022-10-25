@@ -147,7 +147,13 @@ fn assert_each_byte_differs(num: u64, base: u64, alternitives: Vec<u64>) {
     for alternitive in alternitives {
         changed_bits |= base ^ alternitive
     }
-    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x} on num: {:?}", changed_bits, num);
+    assert_eq!(
+        core::u64::MAX,
+        changed_bits,
+        "Bits changed: {:x} on num: {:?}",
+        changed_bits,
+        num
+    );
 }
 
 fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
@@ -273,11 +279,19 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                 let (same_bytes, same_nibbles) = count_same_bytes_and_nibbles(value, long.finish());
                 assert!(
                     same_bytes <= 3,
-                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
+                    "{} bytes of {} -> {:x} vs {:x}",
+                    num,
+                    c,
+                    value,
+                    long.finish()
                 );
                 assert!(
                     same_nibbles <= 8,
-                    "{} bytes of {} -> {:x} vs {:x}", num, c, value, long.finish()
+                    "{} bytes of {} -> {:x} vs {:x}",
+                    num,
+                    c,
+                    value,
+                    long.finish()
                 );
                 let flipped_bits = (value ^ long.finish()).count_ones();
                 assert!(flipped_bits > 10);
@@ -370,7 +384,7 @@ mod fallback_tests {
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
         #[cfg(all(not(feature = "specialize"), feature = "folded_multiply"))]
-            test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
+        test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
     }
@@ -397,7 +411,12 @@ mod fallback_tests {
 ///Basic sanity tests of the cypto properties of aHash.
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd"
+    )
 ))]
 #[cfg(test)]
 mod aes_tests {
@@ -460,7 +479,7 @@ mod aes_tests {
     #[test]
     fn aes_keys_affect_every_byte() {
         #[cfg(not(feature = "specialize"))]
-            test_keys_affect_every_byte(0, AHasher::test_with_keys);
+        test_keys_affect_every_byte(0, AHasher::test_with_keys);
         test_keys_affect_every_byte("", AHasher::test_with_keys);
         test_keys_affect_every_byte((0, 0), AHasher::test_with_keys);
     }

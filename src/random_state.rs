@@ -1,4 +1,3 @@
-
 use core::hash::Hash;
 cfg_if::cfg_if! {
     if #[cfg(any(
@@ -54,7 +53,7 @@ cfg_if::cfg_if! {
         #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use const_random::const_random;
-        
+
             const RAND: [[u64; 4]; 2] = [
                 [
                     const_random!(u64),
@@ -74,9 +73,9 @@ cfg_if::cfg_if! {
         #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use crate::convert::Convert;
-        
+
             static SEEDS: OnceBox<[[u64; 4]; 2]> = OnceBox::new();
-        
+
             SEEDS.get_or_init(|| {
                 let mut result: [u8; 64] = [0; 64];
                 getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
@@ -87,7 +86,7 @@ cfg_if::cfg_if! {
         #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             use const_random::const_random;
-        
+
             const RAND: [[u64; 4]; 2] = [
                 [
                     const_random!(u64),
@@ -106,7 +105,7 @@ cfg_if::cfg_if! {
     } else {
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             &[PI, PI2]
-        }        
+        }
     }
 }
 
@@ -120,9 +119,7 @@ cfg_if::cfg_if! {
 /// A supplier of Randomness used for different hashers.
 /// See [set_random_source].
 pub trait RandomSource {
-
     fn gen_hasher_seed(&self) -> usize;
-
 }
 
 struct DefaultRandomSource {
@@ -271,7 +268,12 @@ impl RandomState {
     /// or the same value being passed for more than one parameter.
     #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState {
-        RandomState { k0: k0 ^ PI2[0], k1: k1 ^ PI2[1], k2: k2 ^ PI2[2], k3: k3 ^ PI2[3] }
+        RandomState {
+            k0: k0 ^ PI2[0],
+            k1: k1 ^ PI2[1],
+            k2: k2 ^ PI2[2],
+            k3: k3 ^ PI2[3],
+        }
     }
 
     /// Calculates the hash of a single value.
@@ -286,7 +288,9 @@ impl RandomState {
     /// [`Hasher`], not to call this method repeatedly and combine the results.
     #[inline]
     pub fn hash_one<T: Hash>(&self, x: T) -> u64
-        where Self: Sized {
+    where
+        Self: Sized,
+    {
         use crate::specialize::CallHasher;
         T::get_hash(&x, self)
     }
@@ -308,7 +312,9 @@ impl BuildHasher for RandomState {
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
-    #[cfg_attr(any(feature = "compile-time-rng", feature = "runtime-rng"), doc = r##" # Examples
+    #[cfg_attr(
+        any(feature = "compile-time-rng", feature = "runtime-rng"),
+        doc = r##" # Examples
 ```
         use ahash::{AHasher, RandomState};
         use std::hash::{Hasher, BuildHasher};
@@ -327,7 +333,8 @@ impl BuildHasher for RandomState {
         different_hasher.write_u32(1234);
         assert_ne!(different_hasher.finish(), hasher_1.finish());
 ```
-    "##)]
+    "##
+    )]
     /// [Hasher]: std::hash::Hasher
     /// [BuildHasher]: std::hash::BuildHasher
     /// [HashMap]: std::collections::HashMap
