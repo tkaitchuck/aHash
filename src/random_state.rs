@@ -212,7 +212,6 @@ impl fmt::Debug for RandomState {
 impl RandomState {
     /// Use randomly generated keys
     #[inline]
-    #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
     pub fn new() -> RandomState {
         let src = get_src();
         let fixed = get_fixed_seeds();
@@ -296,7 +295,6 @@ impl RandomState {
     }
 }
 
-#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
@@ -313,7 +311,7 @@ impl BuildHasher for RandomState {
     /// will generate the same hashes for the same input data.
     ///
     #[cfg_attr(
-        any(feature = "compile-time-rng", feature = "runtime-rng"),
+        feature = "std",
         doc = r##" # Examples
 ```
         use ahash::{AHasher, RandomState};

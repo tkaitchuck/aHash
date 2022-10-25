@@ -10,7 +10,7 @@
 //! aHash is not a cryptographically secure hash.
 //!
 #![cfg_attr(
-    any(feature = "compile-time-rng", feature = "runtime-rng"),
+    feature = "std",
     doc = r##"
 # Example
 ```
