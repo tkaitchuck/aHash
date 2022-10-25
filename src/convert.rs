@@ -7,17 +7,13 @@ macro_rules! convert {
         impl Convert<$b> for $a {
             #[inline(always)]
             fn convert(self) -> $b {
-                unsafe {
-                    core::mem::transmute::<$a, $b>(self)
-                }
+                unsafe { core::mem::transmute::<$a, $b>(self) }
             }
         }
         impl Convert<$a> for $b {
             #[inline(always)]
             fn convert(self) -> $a {
-                unsafe {
-                    core::mem::transmute::<$b, $a>(self)
-                }
+                unsafe { core::mem::transmute::<$b, $a>(self) }
             }
         }
     };

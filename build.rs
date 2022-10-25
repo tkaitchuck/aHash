@@ -20,5 +20,4 @@ fn main() {
     {
         println!("cargo:rustc-cfg=feature=\"folded_multiply\"");
     }
-
 }

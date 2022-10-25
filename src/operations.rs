@@ -1,9 +1,7 @@
 use crate::convert::*;
 
-///These constants come from Kunth's prng (Empirically it works better than those from splitmix32).
+///This constant comes from Kunth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
-#[allow(unused)] //only used by fallback
-pub(crate) const INCREMENT: u64 = 1442695040888963407;
 
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
@@ -114,14 +112,19 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     }
 }
 
-#[cfg(all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd"))]
+#[cfg(all(
+    any(target_arch = "arm", target_arch = "aarch64"),
+    any(target_feature = "aes", target_feature = "crypto"),
+    not(miri),
+    feature = "stdsimd"
+))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "arm")]
-    use core::arch::arm::*;
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::*;
+    #[cfg(target_arch = "arm")]
+    use core::arch::arm::*;
     use core::mem::transmute;
     unsafe {
         let value = transmute(value);
@@ -144,14 +147,19 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     }
 }
 
-#[cfg(all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd"))]
+#[cfg(all(
+    any(target_arch = "arm", target_arch = "aarch64"),
+    any(target_feature = "aes", target_feature = "crypto"),
+    not(miri),
+    feature = "stdsimd"
+))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "arm")]
-    use core::arch::arm::*;
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::*;
+    #[cfg(target_arch = "arm")]
+    use core::arch::arm::*;
     use core::mem::transmute;
     unsafe {
         let value = transmute(value);

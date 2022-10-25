@@ -1,5 +1,5 @@
 use crate::convert::*;
-use crate::operations::{folded_multiply};
+use crate::operations::folded_multiply;
 use crate::operations::read_small;
 use crate::operations::MULTIPLE;
 use crate::random_state::PI;
@@ -151,7 +151,11 @@ impl Hasher for AHasher {
     }
 
     #[inline]
-    #[cfg(any(target_pointer_width = "64", target_pointer_width = "32", target_pointer_width = "16"))]
+    #[cfg(any(
+        target_pointer_width = "64",
+        target_pointer_width = "32",
+        target_pointer_width = "16"
+    ))]
     fn write_usize(&mut self, i: usize) {
         self.write_u64(i as u64);
     }
@@ -193,7 +197,6 @@ impl Hasher for AHasher {
         let rot = (self.buffer & 63) as u32;
         folded_multiply(self.buffer, self.pad).rotate_left(rot)
     }
-
 }
 
 #[cfg(feature = "specialize")]
@@ -312,8 +315,7 @@ impl Hasher for AHasherStr {
             self.0.write(bytes)
         } else {
             let value = read_small(bytes);
-            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer,
-                                           value[1] ^ self.0.extra_keys[1]);
+            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer, value[1] ^ self.0.extra_keys[1]);
             self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
         }
     }
