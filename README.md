@@ -61,12 +61,8 @@ This allows for DOS resistance even if there is no random number generator avail
 This makes the binary non-deterministic. (If non-determinism is a problem see [constrandom's documentation](https://github.com/tkaitchuck/constrandom#deterministic-builds))
 
 If both `runtime-rng` and `compile-time-rng` are enabled the `runtime-rng` will take precedence and `compile-time-rng` will do nothing.
-
-**NOTE:** If both `runtime-rng` and `compile-time-rng` a source of randomness may be provided by the application on startup 
-using the [ahash::random_state::set_random_source](https://docs.rs/ahash/latest/ahash/random_state/fn.set_random_source.html) method.
-If neither flag is set and this is not done, aHash will fall back on using the numeric value of memory addresses as a source of randomness.
-This is somewhat strong if ALSR is turned on (it is by default) but for embedded platforms this will result in weak keys. 
-As a result, it is recommended to use `compile-time-rng` anytime random numbers will not be available at runtime.
+If neither flag is set, seeds can be supplied by the application. [Multiple apis](https://docs.rs/ahash/latest/ahash/random_state/struct.RandomState.html)
+are available to do this.
 
 ## Comparison with other hashers
 
