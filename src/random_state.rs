@@ -363,6 +363,11 @@ impl RandomState {
 /// can be used to create many hashers each or which will have the same keys.)
 ///
 /// This is the same as [RandomState::new()]
+///
+/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
+/// constructors for [RandomState] must be used.
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
 impl Default for RandomState {
     #[inline]
     fn default() -> Self {
