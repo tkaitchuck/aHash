@@ -121,9 +121,12 @@ cfg_if::cfg_if! {
 ///
 /// If [set_random_source] aHash will default to the best available source of randomness.
 /// In order this is:
-/// 1. OS provided random number generator (available if the `runtime-rng` flag is enabled which it is by default)
-/// 2. Strong compile time random numbers used to permute a static "counter". (available if `compile-time-rng` is enabled. __Enabling this is recommended if `runtime-rng` is not possible__)
-/// 3. A static counter that adds the memory address of each [RandomState] created permuted with fixed constants. (Similar to above but with fixed keys)
+/// 1. OS provided random number generator (available if the `runtime-rng` flag is enabled which it is by default) - This should be very strong.
+/// 2. Strong compile time random numbers used to permute a static "counter". (available if `compile-time-rng` is enabled.
+/// __Enabling this is recommended if `runtime-rng` is not possible__)
+/// 3. A static counter that adds the memory address of each [RandomState] created permuted with fixed constants.
+/// (Similar to above but with fixed keys) - This is the weakest option. The strength of this heavily depends on whether or not ASLR is enabled.
+/// (Rust enables ASLR by default)
 pub trait RandomSource {
     fn gen_hasher_seed(&self) -> usize;
 }
@@ -207,7 +210,7 @@ cfg_if::cfg_if! {
 /// | Constructor   | Dynamically random? | Seed |
 /// |---------------|---------------------|------|
 /// |`new`          | Each instance unique|_[RandomSource]_|
-/// |`generate_with`| Each instance unique|`u64` x 4 + static counter|
+/// |`generate_with`| Each instance unique|`u64` x 4 + [RandomSource]|
 /// |`with_seed`    | Fixed per process   |`u64` + static random number|
 /// |`with_seeds`   | Fixed               |`u64` x 4|
 ///
@@ -229,7 +232,8 @@ impl RandomState {
 
     /// Create a new `RandomState` `BuildHasher` using random keys.
     ///
-    /// (Each instance will have a unique set of keys).
+    /// Each instance will have a unique set of keys derived from [RandomSource].
+    ///
     #[inline]
     pub fn new() -> RandomState {
         let src = get_src();

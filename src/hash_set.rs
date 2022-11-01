@@ -1,4 +1,5 @@
 use crate::RandomState;
+use crate::random_state::RandomSource;
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
@@ -14,10 +15,10 @@ use serde::{
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
-pub struct AHashSet<T, S = crate::RandomState>(HashSet<T, S>);
+pub struct AHashSet<T, S = RandomState>(HashSet<T, S>);
 
-impl<T> From<HashSet<T, crate::RandomState>> for AHashSet<T> {
-    fn from(item: HashSet<T, crate::RandomState>) -> Self {
+impl<T> From<HashSet<T, RandomState>> for AHashSet<T> {
+    fn from(item: HashSet<T, RandomState>) -> Self {
         AHashSet(item)
     }
 }
@@ -40,19 +41,23 @@ where
     }
 }
 
-impl<T> Into<HashSet<T, crate::RandomState>> for AHashSet<T> {
-    fn into(self) -> HashSet<T, crate::RandomState> {
+impl<T> Into<HashSet<T, RandomState>> for AHashSet<T> {
+    fn into(self) -> HashSet<T, RandomState> {
         self.0
     }
 }
 
 impl<T> AHashSet<T, RandomState> {
+    /// This crates a hashset using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn new() -> Self {
-        AHashSet(HashSet::with_hasher(RandomState::default()))
+        AHashSet(HashSet::with_hasher(RandomState::new()))
     }
 
+    /// This crates a hashset with the specified capacity using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashSet(HashSet::with_capacity_and_hasher(capacity, RandomState::default()))
+        AHashSet(HashSet::with_capacity_and_hasher(capacity, RandomState::new()))
     }
 }
 
@@ -237,14 +242,17 @@ where
     }
 }
 
-impl<T, S> FromIterator<T> for AHashSet<T, S>
+impl<T> FromIterator<T> for AHashSet<T, RandomState>
 where
     T: Eq + Hash,
-    S: BuildHasher + Default,
 {
+    /// This crates a hashset from the provided iterator using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     #[inline]
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> AHashSet<T, S> {
-        AHashSet(HashSet::from_iter(iter))
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> AHashSet<T> {
+        let mut inner = HashSet::with_hasher(RandomState::new());
+        inner.extend(iter);
+        AHashSet(inner)
     }
 }
 
@@ -286,6 +294,10 @@ where
     }
 }
 
+/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
+/// constructors for [RandomState] must be used.
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
 impl<T> Default for AHashSet<T, RandomState> {
     /// Creates an empty `AHashSet<T, S>` with the `Default` value for the hasher.
     #[inline]

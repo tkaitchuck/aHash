@@ -29,7 +29,7 @@ map.insert(12, 34);
 ### Randomness
 
 The above requires a source of randomness to generate keys for the hashmap. By default this obtained from the OS.
-It is also possible to have it supplied via the `compile-time-rng` flag, or manually.
+It is also possible to have randomness supplied via the `compile-time-rng` flag, or manually.
 
 ### If randomess is not available
 
@@ -44,7 +44,7 @@ use ahash::AHasher;
 let mut m: HashMap<_, _, BuildHasherDefault<AHasher>> = HashMap::default();
  # m.insert(12, 34);
 ```
-It is also possible to [RandomState] directly:
+It is also possible to instantiate [RandomState] directly:
 
 ```
 use ahash::HashMap;
@@ -53,7 +53,7 @@ use ahash::RandomState;
 let mut m = HashMap::with_hasher(RandomState::with_seed(42));
  # m.insert(1, 2);
 ```
-Or:
+Or for uses besides a hashhmap:
 ```
 use std::hash::BuildHasher;
 use ahash::RandomState;
