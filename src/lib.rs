@@ -1,7 +1,5 @@
 //! AHash is a high performance keyed hash function.
 //!
-//! It is a DOS resistant alternative to `FxHash` or a faster alternative to `SipHash`.
-//!
 //! It quickly provides a high quality hash where the result is not predictable without knowing the Key.
 //! AHash works with `HashMap` to hash keys, but without allowing for the possibility that an malicious user can
 //! induce a collision.
@@ -11,14 +9,15 @@
 //! When it is available aHash uses the hardware AES instructions to provide a keyed hash function.
 //! When it is not, aHash falls back on a slightly slower alternative algorithm.
 //!
-//! AHash does not have a fixed standard for its output. This allows it to improve over time.
-//! But this also means that different computers or computers using different versions of ahash will observe different
-//! hash values.
+//! Because aHash does not have a fixed standard for its output, it is able to improve over time.
+//! But this also means that different computers or computers using different versions of ahash may observe different
+//! hash values for the same input.
 #![cfg_attr(
-    feature = "std",
+    all(feature = "std", any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng")),
     doc = r##"
-# Usage
-AHash is a drop in replacement for the default implementation of the Hasher trait. To construct a HashMap using aHash as its hasher do the following:
+# Basic Usage
+AHash provides an implementation of the [Hasher] trait.
+To construct a HashMap using aHash as its hasher do the following:
 ```
 use ahash::{AHasher, RandomState};
 use std::collections::HashMap;
@@ -26,24 +25,61 @@ use std::collections::HashMap;
 let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
 map.insert(12, 34);
 ```
-"##
-)]
-#![cfg_attr(
-    feature = "std",
-    doc = r##"
+
+### Randomness
+
+The above requires a source of randomness to generate keys for the hashmap. By default this obtained from the OS.
+It is also possible to have randomness supplied via the `compile-time-rng` flag, or manually.
+
+### If randomess is not available
+
+[AHasher::default()] can be used to hash using fixed keys. This works with
+[BuildHasherDefault](std::hash::BuildHasherDefault). For example:
+
+```
+use std::hash::BuildHasherDefault;
+use std::collections::HashMap;
+use ahash::AHasher;
+
+let mut m: HashMap<_, _, BuildHasherDefault<AHasher>> = HashMap::default();
+ # m.insert(12, 34);
+```
+It is also possible to instantiate [RandomState] directly:
+
+```
+use ahash::HashMap;
+use ahash::RandomState;
+
+let mut m = HashMap::with_hasher(RandomState::with_seed(42));
+ # m.insert(1, 2);
+```
+Or for uses besides a hashhmap:
+```
+use std::hash::BuildHasher;
+use ahash::RandomState;
+
+let hash_builder = RandomState::with_seed(42);
+let hash = hash_builder.hash_one("Some Data");
+```
+There are several constructors for [RandomState] with different ways to supply seeds.
+
+# Convenience wrappers
+
 For convenience, both new-type wrappers and type aliases are provided.
 
 The new type wrappers are called called `AHashMap` and `AHashSet`.
-These do the same thing with slightly less typing. (For convience `From`, `Into`, and `Deref` are provided).
 ```
 use ahash::AHashMap;
 
 let mut map: AHashMap<i32, i32> = AHashMap::new();
 map.insert(12, 34);
 ```
+This avoids the need to type "RandomState". (For convience `From`, `Into`, and `Deref` are provided).
 
-For even less typing and better interop with existing libraries which require a `std::collection::HashMap` (such as rayon),
-the type aliases [HashMap], [HashSet] are provided. These alias the `std::HashMap` and `std::HashSet` using aHash as the hasher.
+# Aliases
+
+For even less typing and better interop with existing libraries (such as rayon) which require a `std::collection::HashMap` ,
+the type aliases [HashMap], [HashSet] are provided.
 
 ```
 use ahash::{HashMap, HashMapExt};
@@ -52,24 +88,6 @@ let mut map: HashMap<i32, i32> = HashMap::new();
 map.insert(12, 34);
 ```
 Note the import of [HashMapExt]. This is needed for the constructor.
-
-# Directly hashing
-
-Hashers can also be instantiated with `RandomState`. For example:
-```
-use std::hash::BuildHasher;
-use ahash::RandomState;
-
-let hash_builder = RandomState::with_seed(42);
-let hash = hash_builder.hash_one("Some Data");
-```
-### Randomness
-
-To ensure that each map has a unique set of keys aHash needs a source of randomness.
-Normally this is just obtained from the OS. (Or via the `compile-time-rng` flag)
-
-If for some reason (such as fuzzing) an application wishes to supply all random seeds manually, this can be done via:
-[random_state::set_random_source].
 
 "##
 )]

@@ -14,6 +14,7 @@ use serde::{
 };
 
 use crate::RandomState;
+use crate::random_state::RandomSource;
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
@@ -51,12 +52,16 @@ impl<K, V> Into<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
 }
 
 impl<K, V> AHashMap<K, V, RandomState> {
+    /// This crates a hashmap using [RandomState::new] which obtains its keys from [RandomSource].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn new() -> Self {
-        AHashMap(HashMap::with_hasher(RandomState::default()))
+        AHashMap(HashMap::with_hasher(RandomState::new()))
     }
 
+    /// This crates a hashmap with the specified capacity using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::default()))
+        AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::new()))
     }
 }
 
@@ -340,13 +345,16 @@ where
     }
 }
 
-impl<K, V, S> FromIterator<(K, V)> for AHashMap<K, V, S>
+impl<K, V> FromIterator<(K, V)> for AHashMap<K, V, RandomState>
 where
     K: Eq + Hash,
-    S: BuildHasher + Default,
 {
+    /// This crates a hashmap from the provided iterator using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
-        AHashMap(HashMap::from_iter(iter))
+        let mut inner = HashMap::with_hasher(RandomState::new());
+        inner.extend(iter);
+        AHashMap(inner)
     }
 }
 
@@ -397,10 +405,14 @@ where
     }
 }
 
+/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
+/// constructors for [RandomState] must be used.
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
 impl<K, V> Default for AHashMap<K, V, RandomState> {
     #[inline]
     fn default() -> AHashMap<K, V, RandomState> {
-        AHashMap::new()
+        AHashMap(HashMap::default())
     }
 }
 

@@ -36,6 +36,10 @@ runtime-rng = ["getrandom"]
 # If this is disabled and runtime-rng is unavailable constant keys are used.
 compile-time-rng = ["const-random"]
 
+# Do not use any random number generator (either at compile time or runtime)
+# If either runtime-rng or compile-time-rng are enabled this does nothing.
+no-rng = []
+
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
 
