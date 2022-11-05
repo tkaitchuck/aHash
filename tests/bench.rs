@@ -7,25 +7,24 @@ use rand::Rng;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 
-mod ahash_impl {
-    pub(super) const IMPL: &str = if cfg!(any(
-        all(
-            any(target_arch = "x86", target_arch = "x86_64"),
-            target_feature = "aes",
-            not(miri),
-        ),
-        all(
-            any(target_arch = "arm", target_arch = "aarch64"),
-            any(target_feature = "aes", target_feature = "crypto"),
-            not(miri),
-            feature = "stdsimd",
-        ),
-    )) {
-        "aeshash"
-    } else {
-        "fallbackhash"
-    };
-}
+// Needs to be in sync with `src/lib.rs`
+const AHASH_IMPL: &str = if cfg!(any(
+    all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "aes",
+        not(miri),
+    ),
+    all(
+        any(target_arch = "arm", target_arch = "aarch64"),
+        any(target_feature = "aes", target_feature = "crypto"),
+        not(miri),
+        feature = "stdsimd",
+    ),
+)) {
+    "aeshash"
+} else {
+    "fallbackhash"
+};
 
 fn ahash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
@@ -86,7 +85,7 @@ macro_rules! bench_inputs {
 }
 
 fn bench_ahash(c: &mut Criterion) {
-    let mut group = c.benchmark_group(ahash_impl::IMPL);
+    let mut group = c.benchmark_group(AHASH_IMPL);
     bench_inputs!(group, ahash);
 }
 
