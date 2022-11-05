@@ -14,7 +14,6 @@ use serde::{
 };
 
 use crate::RandomState;
-use crate::random_state::RandomSource;
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)

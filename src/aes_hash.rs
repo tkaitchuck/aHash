@@ -47,6 +47,7 @@ impl AHasher {
     ///
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
+    #[allow(dead_code)]
     #[inline]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
