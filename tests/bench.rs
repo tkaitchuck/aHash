@@ -3,59 +3,33 @@
 use ahash::{AHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;
+use rand::Rng;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-))]
-fn aeshash<H: Hash>(b: &H) -> u64 {
-    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
-    build_hasher.hash_one(b)
-}
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-)))]
-fn aeshash<H: Hash>(_b: &H) -> u64 {
-    panic!("aes must be enabled")
+mod ahash_impl {
+    pub(super) const IMPL: &str = if cfg!(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "aes",
+            not(miri),
+        ),
+        all(
+            any(target_arch = "arm", target_arch = "aarch64"),
+            any(target_feature = "aes", target_feature = "crypto"),
+            not(miri),
+            feature = "stdsimd",
+        ),
+    )) {
+        "aeshash"
+    } else {
+        "fallbackhash"
+    };
 }
 
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-)))]
-fn fallbackhash<H: Hash>(b: &H) -> u64 {
+fn ahash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
     build_hasher.hash_one(b)
-}
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-))]
-fn fallbackhash<H: Hash>(_b: &H) -> u64 {
-    panic!("aes must be disabled")
 }
 
 fn fnvhash<H: Hash>(b: &H) -> u64 {
@@ -98,72 +72,42 @@ fn gen_strings() -> Vec<String> {
         .collect()
 }
 
-const U8_VALUE: u8 = 123;
-const U16_VALUE: u16 = 1234;
-const U32_VALUE: u32 = 12345678;
-const U64_VALUE: u64 = 1234567890123456;
-const U128_VALUE: u128 = 12345678901234567890123456789012;
-
-#[cfg(target_feature = "aes")]
-fn bench_ahash(c: &mut Criterion) {
-    let mut group = c.benchmark_group("aeshash");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(aeshash(s))));
+macro_rules! bench_inputs {
+    ($group:ident, $hash:ident) => {
+        let size = BatchSize::NumIterations(100);
+        let mut rng = rand::thread_rng();
+        $group.bench_function("u8", |b| b.iter_batched(|| rng.gen::<u8>(), |v| $hash(&v), size));
+        $group.bench_function("u16", |b| b.iter_batched(|| rng.gen::<u16>(), |v| $hash(&v), size));
+        $group.bench_function("u32", |b| b.iter_batched(|| rng.gen::<u32>(), |v| $hash(&v), size));
+        $group.bench_function("u64", |b| b.iter_batched(|| rng.gen::<u64>(), |v| $hash(&v), size));
+        $group.bench_function("u128", |b| b.iter_batched(|| rng.gen::<u128>(), |v| $hash(&v), size));
+        $group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| $hash(black_box(s))));
+    };
 }
 
-#[cfg(not(target_feature = "aes"))]
-fn bench_fallback(c: &mut Criterion) {
-    let mut group = c.benchmark_group("fallback");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(fallbackhash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(fallbackhash(s))));
+fn bench_ahash(c: &mut Criterion) {
+    let mut group = c.benchmark_group(ahash_impl::IMPL);
+    bench_inputs!(group, ahash);
 }
 
 fn bench_fx(c: &mut Criterion) {
     let mut group = c.benchmark_group("fx");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(fxhash(s))));
+    bench_inputs!(group, fxhash);
 }
 
 fn bench_fnv(c: &mut Criterion) {
     let mut group = c.benchmark_group("fnv");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(fnvhash(s))));
+    bench_inputs!(group, fnvhash);
 }
 
 fn bench_sea(c: &mut Criterion) {
     let mut group = c.benchmark_group("sea");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(seahash(s))));
+    bench_inputs!(group, seahash);
 }
 
 fn bench_sip(c: &mut Criterion) {
     let mut group = c.benchmark_group("sip");
-    group.bench_with_input("u8", &U8_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("u16", &U16_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| black_box(siphash(s))));
+    bench_inputs!(group, siphash);
 }
 
 fn bench_map(c: &mut Criterion) {
@@ -242,32 +186,12 @@ fn bench_map(c: &mut Criterion) {
 
 criterion_main!(benches);
 
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-))]
-criterion_group!(benches, bench_ahash, bench_fx, bench_fnv, bench_sea, bench_sip);
-
-#[cfg(not(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
-)))]
 criterion_group!(
     benches,
-    bench_fallback,
+    bench_ahash,
     bench_fx,
     bench_fnv,
     bench_sea,
     bench_sip,
-    bench_map,
+    bench_map
 );
