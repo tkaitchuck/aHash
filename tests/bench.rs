@@ -73,14 +73,16 @@ fn gen_strings() -> Vec<String> {
 
 macro_rules! bench_inputs {
     ($group:ident, $hash:ident) => {
-        let size = BatchSize::NumIterations(100);
+        // Number of iterations per batch should be high enough to hide timing overhead.
+        let size = BatchSize::NumIterations(2_000);
+
         let mut rng = rand::thread_rng();
         $group.bench_function("u8", |b| b.iter_batched(|| rng.gen::<u8>(), |v| $hash(&v), size));
         $group.bench_function("u16", |b| b.iter_batched(|| rng.gen::<u16>(), |v| $hash(&v), size));
         $group.bench_function("u32", |b| b.iter_batched(|| rng.gen::<u32>(), |v| $hash(&v), size));
         $group.bench_function("u64", |b| b.iter_batched(|| rng.gen::<u64>(), |v| $hash(&v), size));
         $group.bench_function("u128", |b| b.iter_batched(|| rng.gen::<u128>(), |v| $hash(&v), size));
-        $group.bench_with_input("string", &gen_strings(), |b, s| b.iter(|| $hash(black_box(s))));
+        $group.bench_with_input("strings", &gen_strings(), |b, s| b.iter(|| $hash(black_box(s))));
     };
 }
 
