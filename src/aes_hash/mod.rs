@@ -4,6 +4,14 @@ use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
 
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    feature = "vaes",
+    target_feature = "avx512vaes",
+    not(miri)
+))]
+mod vaes;
+
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
 /// Instances of [`AHasher`] represent state that is updated while hashing data.
@@ -81,13 +89,13 @@ impl AHasher {
     }
 
     #[inline(always)]
-    fn hash_in(&mut self, new_value: u128) {
+    pub(crate) fn hash_in(&mut self, new_value: u128) {
         self.enc = aesenc(self.enc, new_value);
         self.sum = shuffle_and_add(self.sum, new_value);
     }
 
     #[inline(always)]
-    fn hash_in_2(&mut self, v1: u128, v2: u128) {
+    pub(crate) fn hash_in_2(&mut self, v1: u128, v2: u128) {
         self.enc = aesenc(self.enc, v1);
         self.sum = shuffle_and_add(self.sum, v1);
         self.enc = aesenc(self.enc, v2);
@@ -161,6 +169,15 @@ impl Hasher for AHasher {
             self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
+                #[cfg(all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    feature = "vaes",
+                    target_feature = "avx512vaes",
+                    not(miri)
+                ))]
+                if data.len() > 128 {
+                    return vaes::hash_batch_128b(&mut data, self);
+                }
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
                     let mut current: [u128; 4] = [self.key; 4];

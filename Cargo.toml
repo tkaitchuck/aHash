@@ -43,6 +43,9 @@ no-rng = []
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
 
+# Use VAES extension if possible. The hash value may be incompatible with NON-VAES targets
+vaes = []
+
 [[bench]]
 name = "ahash"
 path = "tests/bench.rs"
