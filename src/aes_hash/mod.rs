@@ -379,7 +379,6 @@ impl Hasher for AHasherStr {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::convert::Convert;
     use crate::operations::aesenc;
     use crate::RandomState;
