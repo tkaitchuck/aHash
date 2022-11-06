@@ -120,8 +120,8 @@ pub(crate) fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
     current[3] = current[3].aesenc(tail[3]);
     let mut sum: [Avx256; 2] = [duplicated_key, duplicated_key];
     sum[0] = sum[0].add_by_64s(tail[0]);
-    sum[1] = sum[1].add_by_64s(tail[1]);
-    sum[0] = sum[0].shuffle_and_add(tail[2]);
+    sum[0] = sum[0].shuffle_and_add(tail[1]);
+    sum[1] = sum[1].add_by_64s(tail[2]);
     sum[1] = sum[1].shuffle_and_add(tail[3]);
     while data.len() > 128 {
         let (blocks, rest) = data.read_avx256x4();
@@ -135,18 +135,22 @@ pub(crate) fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
         sum[1] = sum[1].shuffle_and_add(blocks[3]);
         *data = rest;
     }
-    let encoded = [current[0].aesenc(current[2]), current[1].aesenc(current[3])];
-    let current = [encoded[0].to_u128x2(), encoded[1].to_u128x2()];
+    let current = [
+        current[0].to_u128x2(),
+        current[1].to_u128x2(),
+        current[2].to_u128x2(),
+        current[3].to_u128x2(),
+    ];
     let sum = [sum[0].to_u128x2(), sum[1].to_u128x2()];
+
     hasher.hash_in_2(
         aesenc(current[0][0], current[0][1]),
         aesenc(current[1][0], current[1][1]),
     );
-    hasher.hash_in(
-        add_by_64s(
-            add_by_64s(sum[0][0].convert(), sum[0][1].convert()),
-            add_by_64s(sum[1][0].convert(), sum[1][1].convert()),
-        )
-            .convert(),
+    hasher.hash_in(add_by_64s(sum[0][0].convert(), sum[0][1].convert()).convert());
+    hasher.hash_in_2(
+        aesenc(current[2][0], current[2][1]),
+        aesenc(current[3][0], current[3][1]),
     );
+    hasher.hash_in(add_by_64s(sum[1][0].convert(), sum[1][1].convert()).convert());
 }

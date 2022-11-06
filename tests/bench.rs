@@ -115,8 +115,12 @@ fn bench_ahash(c: &mut Criterion) {
     group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
     group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
     group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| black_box(aeshash(s))));
-    group.bench_with_input("wider-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| black_box(aeshash(s))));
+    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| {
+        b.iter(|| black_box(aeshash(s)))
+    });
+    group.bench_with_input("wider-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+        b.iter(|| black_box(aeshash(s)))
+    });
 }
 
 #[cfg(not(target_feature = "aes"))]
@@ -137,8 +141,12 @@ fn bench_fx(c: &mut Criterion) {
     group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
     group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
     group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| black_box(fxhash(s))));
-    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| black_box(fxhash(s))));
+    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| {
+        b.iter(|| black_box(fxhash(s)))
+    });
+    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+        b.iter(|| black_box(fxhash(s)))
+    });
 }
 
 fn bench_fnv(c: &mut Criterion) {
@@ -148,8 +156,12 @@ fn bench_fnv(c: &mut Criterion) {
     group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
     group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
     group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| black_box(fnvhash(s))));
-    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| black_box(fnvhash(s))));
+    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| {
+        b.iter(|| black_box(fnvhash(s)))
+    });
+    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+        b.iter(|| black_box(fnvhash(s)))
+    });
 }
 
 fn bench_sea(c: &mut Criterion) {
@@ -159,8 +171,12 @@ fn bench_sea(c: &mut Criterion) {
     group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
     group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
     group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| black_box(seahash(s))));
-    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| black_box(seahash(s))));
+    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| {
+        b.iter(|| black_box(seahash(s)))
+    });
+    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+        b.iter(|| black_box(seahash(s)))
+    });
 }
 
 fn bench_sip(c: &mut Criterion) {
@@ -170,8 +186,12 @@ fn bench_sip(c: &mut Criterion) {
     group.bench_with_input("u32", &U32_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
     group.bench_with_input("u64", &U64_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
     group.bench_with_input("u128", &U128_VALUE, |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| black_box(siphash(s))));
-    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| black_box(siphash(s))));
+    group.bench_with_input("string", &gen_strings(STRING_LENGTHS), |b, s| {
+        b.iter(|| black_box(siphash(s)))
+    });
+    group.bench_with_input("wilder-string", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+        b.iter(|| black_box(siphash(s)))
+    });
 }
 
 #[allow(dead_code)]
