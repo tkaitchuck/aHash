@@ -126,9 +126,9 @@ pub(crate) fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
     while data.len() > 128 {
         let (blocks, rest) = data.read_avx256x4();
         current[0] = current[0].aesenc(blocks[0]);
-        current[1] = current[0].aesenc(blocks[1]);
-        current[2] = current[0].aesenc(blocks[2]);
-        current[3] = current[0].aesenc(blocks[3]);
+        current[1] = current[1].aesenc(blocks[1]);
+        current[2] = current[2].aesenc(blocks[2]);
+        current[3] = current[3].aesenc(blocks[3]);
         sum[0] = sum[0].shuffle_and_add(blocks[0]);
         sum[1] = sum[1].shuffle_and_add(blocks[1]);
         sum[0] = sum[0].shuffle_and_add(blocks[2]);
