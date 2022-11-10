@@ -79,14 +79,7 @@ const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
 cfg-if = "1.0"
 atomic-polyfill = { version="1.0.1", optional=true}
-
-[target."cfg(not(any(target_arch = \"wasm32\", target_abi = \"unknown\")))".dependencies.getrandom]
-version = "0.2.7"
-optional = true
-
-[target."cfg(any(target_arch = \"wasm32\", target_abi = \"unknown\"))".dependencies.getrandom]
-version = "0.2.7"
-features = ["js"]
+getrandom = { version = "0.2.7", optional = true }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
 once_cell = { version = "1.13.1", default-features = false, features = ["unstable", "alloc"] }
