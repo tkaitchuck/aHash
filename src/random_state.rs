@@ -229,7 +229,6 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
-
     /// Create a new `RandomState` `BuildHasher` using random keys.
     ///
     /// Each instance will have a unique set of keys derived from [RandomSource].
@@ -316,8 +315,8 @@ impl RandomState {
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
     use ahash::RandomState;
@@ -329,8 +328,8 @@ impl RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::RandomState;
@@ -418,12 +417,11 @@ impl BuildHasher for RandomState {
         AHasher::from_random_state(self)
     }
 
-
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
     use ahash::RandomState;
@@ -435,8 +433,8 @@ impl BuildHasher for RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::RandomState;

@@ -13,7 +13,10 @@
 //! But this also means that different computers or computers using different versions of ahash may observe different
 //! hash values for the same input.
 #![cfg_attr(
-    all(feature = "std", any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng")),
+    all(
+        feature = "std",
+        any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng")
+    ),
     doc = r##"
 # Basic Usage
 AHash provides an implementation of the [Hasher] trait.
@@ -97,7 +100,8 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
 #![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
 #![cfg_attr(feature = "stdsimd", feature(stdsimd))]
-
+#![cfg_attr(feature = "vaes", feature(link_llvm_intrinsics))]
+#![cfg_attr(feature = "vaes", feature(simd_ffi))]
 #[macro_use]
 mod convert;
 

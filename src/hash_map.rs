@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
-use std::collections::{hash_map, HashMap};
 use std::collections::hash_map::{IntoKeys, IntoValues};
+use std::collections::{hash_map, HashMap};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
 use std::iter::FromIterator;
@@ -14,7 +14,6 @@ use serde::{
 };
 
 use crate::RandomState;
-use crate::random_state::RandomSource;
 
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
