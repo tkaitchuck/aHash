@@ -103,6 +103,7 @@ cfg_if::cfg_if! {
             &RAND
         }
     } else {
+        #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
             &[PI, PI2]
         }
