@@ -50,7 +50,7 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     (same_byte_count, same_nibble_count)
 }
 
-fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>) {
+fn gen_combinations(options: &[u32; 11], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>) {
     if depth == 0 {
         return;
     }
@@ -63,8 +63,9 @@ fn gen_combinations(options: &[u32; 8], depth: u32, so_far: Vec<u32>, combinatio
 }
 
 fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
-    let options: [u32; 8] = [
-        0x00000000, 0x20000000, 0x40000000, 0x60000000, 0x80000000, 0xA0000000, 0xC0000000, 0xE0000000,
+    let options: [u32; 11] = [
+        0x00000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0xF0000000,
+        1, 2, 4, 8, 15
     ];
     let mut combinations = Vec::new();
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
@@ -89,7 +90,7 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
             map.insert(hash, array);
         }
     }
-    assert_eq!(2396744, map.len());
+    assert_eq!(21435887, map.len()); //11^7 + 11^6 ...
 }
 
 fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
@@ -147,7 +148,7 @@ fn assert_each_byte_differs(num: u64, base: u64, alternitives: Vec<u64>) {
     for alternitive in alternitives {
         changed_bits |= base ^ alternitive
     }
-    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x} on num: {:?}", changed_bits, num);
+    assert_eq!(core::u64::MAX, changed_bits, "Bits changed: {:x} on num: {:?}. base {:x}", changed_bits, num, base);
 }
 
 fn test_finish_is_consistent<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
