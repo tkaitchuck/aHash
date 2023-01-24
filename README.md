@@ -1,4 +1,4 @@
-# aHash     ![Build Status](https://img.shields.io/github/workflow/status/tkaitchuck/ahash/Rust) ![Licence](https://img.shields.io/crates/l/ahash) ![Downloads](https://img.shields.io/crates/d/ahash) 
+# aHash     ![Build Status](https://img.shields.io/github/actions/workflow/status/tkaitchuck/aHash/rust.yml?branch=master) ![Licence](https://img.shields.io/crates/l/ahash) ![Downloads](https://img.shields.io/crates/d/ahash) 
 
 AHash is the [fastest](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Speed), 
 [DOS resistant hash](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks) currently available in Rust.
