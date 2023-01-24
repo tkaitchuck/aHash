@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.7.6"
+version = "0.8.2"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -22,16 +22,26 @@ bench = true
 doc = true
 
 [features]
-default = ["std"]
+default = ["std", "runtime-rng"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
 
-# This is an alternitive to runtime key generation which does compile time key generation if getrandom is not available.
-# (If getrandom is available this does nothing.)
-# If this is on (and getrandom is off) it implies the produced binary will not be identical.
-# If this is disabled and gerrandom is unavailable constant keys are used.
+# Runtime random key generation using getrandom.
+runtime-rng = ["getrandom"]
+
+# This is an alternative to runtime key generation which does compile time key generation if runtime-rng is not available.
+# (If runtime-rng is enabled this does nothing.)
+# If this is on (and runtime-rng is off) it implies the produced binary will not be identical.
+# If this is disabled and runtime-rng is unavailable constant keys are used.
 compile-time-rng = ["const-random"]
+
+# Do not use any random number generator (either at compile time or runtime)
+# If either runtime-rng or compile-time-rng are enabled this does nothing.
+no-rng = []
+
+# in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
+atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
 
 [[bench]]
 name = "ahash"
@@ -64,27 +74,26 @@ codegen-units = 1
 [build-dependencies]
 version_check = "0.9.4"
 
-[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
-getrandom = { version = "0.2.3" }
+[dependencies]
 const-random = { version = "0.1.12", optional = true }
 serde = { version = "1.0.117", optional = true }
-
-[target.'cfg(not(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi")))'.dependencies]
-const-random = { version = "0.1.12", optional = true }
-serde = { version = "1.0.117", optional = true }
+cfg-if = "1.0"
+atomic-polyfill = { version="1.0.1", optional=true}
+getrandom = { version = "0.2.7", optional = true }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
-once_cell = { version = "1.8", default-features = false, features = ["alloc"] }
+once_cell = { version = "1.13.1", default-features = false, features = ["unstable", "alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"
-criterion = {version =  "0.3.2"}
+criterion = {version =  "0.3.2", features = ["html_reports"] }
 seahash = "4.0"
 fnv = "1.0.5"
 fxhash = "0.2.1"
 hex = "0.4.2"
-rand = "0.7.3"
+rand = "0.8.5"
 serde_json = "1.0.59"
+hashbrown = "0.12.3"
 
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+aes"]

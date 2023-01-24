@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::collections::hash_map::{IntoKeys, IntoValues};
 use std::collections::{hash_map, HashMap};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
@@ -50,12 +51,16 @@ impl<K, V> Into<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
 }
 
 impl<K, V> AHashMap<K, V, RandomState> {
+    /// This crates a hashmap using [RandomState::new] which obtains its keys from [RandomSource].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn new() -> Self {
-        AHashMap(HashMap::with_hasher(RandomState::default()))
+        AHashMap(HashMap::with_hasher(RandomState::new()))
     }
 
+    /// This crates a hashmap with the specified capacity using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     pub fn with_capacity(capacity: usize) -> Self {
-        AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::default()))
+        AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::new()))
     }
 }
 
@@ -163,8 +168,6 @@ where
     /// types that can be `==` without being identical. See the [module-level
     /// documentation] for more.
     ///
-    /// [module-level documentation]: crate::collections#insert-and-complex-keys
-    ///
     /// # Examples
     ///
     /// ```
@@ -181,6 +184,68 @@ where
     #[inline]
     pub fn insert(&mut self, k: K, v: V) -> Option<V> {
         self.0.insert(k, v)
+    }
+
+    /// Creates a consuming iterator visiting all the keys in arbitrary order.
+    /// The map cannot be used after calling this.
+    /// The iterator element type is `K`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    ///
+    /// let map = HashMap::from([
+    ///     ("a", 1),
+    ///     ("b", 2),
+    ///     ("c", 3),
+    /// ]);
+    ///
+    /// let mut vec: Vec<&str> = map.into_keys().collect();
+    /// // The `IntoKeys` iterator produces keys in arbitrary order, so the
+    /// // keys must be sorted to test them against a sorted array.
+    /// vec.sort_unstable();
+    /// assert_eq!(vec, ["a", "b", "c"]);
+    /// ```
+    ///
+    /// # Performance
+    ///
+    /// In the current implementation, iterating over keys takes O(capacity) time
+    /// instead of O(len) because it internally visits empty buckets too.
+    #[inline]
+    pub fn into_keys(self) -> IntoKeys<K, V> {
+        self.0.into_keys()
+    }
+
+    /// Creates a consuming iterator visiting all the values in arbitrary order.
+    /// The map cannot be used after calling this.
+    /// The iterator element type is `V`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    ///
+    /// let map = HashMap::from([
+    ///     ("a", 1),
+    ///     ("b", 2),
+    ///     ("c", 3),
+    /// ]);
+    ///
+    /// let mut vec: Vec<i32> = map.into_values().collect();
+    /// // The `IntoValues` iterator produces values in arbitrary order, so
+    /// // the values must be sorted to test them against a sorted array.
+    /// vec.sort_unstable();
+    /// assert_eq!(vec, [1, 2, 3]);
+    /// ```
+    ///
+    /// # Performance
+    ///
+    /// In the current implementation, iterating over values takes O(capacity) time
+    /// instead of O(len) because it internally visits empty buckets too.
+    #[inline]
+    pub fn into_values(self) -> IntoValues<K, V> {
+        self.0.into_values()
     }
 
     /// Removes a key from the map, returning the value at the key if the key
@@ -279,13 +344,16 @@ where
     }
 }
 
-impl<K, V, S> FromIterator<(K, V)> for AHashMap<K, V, S>
+impl<K, V> FromIterator<(K, V)> for AHashMap<K, V, RandomState>
 where
     K: Eq + Hash,
-    S: BuildHasher + Default,
 {
+    /// This crates a hashmap from the provided iterator using [RandomState::new].
+    /// See the documentation in [RandomSource] for notes about key strength.
     fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
-        AHashMap(HashMap::from_iter(iter))
+        let mut inner = HashMap::with_hasher(RandomState::new());
+        inner.extend(iter);
+        AHashMap(inner)
     }
 }
 
@@ -336,10 +404,14 @@ where
     }
 }
 
+/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
+/// constructors for [RandomState] must be used.
+#[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
 impl<K, V> Default for AHashMap<K, V, RandomState> {
     #[inline]
     fn default() -> AHashMap<K, V, RandomState> {
-        AHashMap::new()
+        AHashMap(HashMap::default())
     }
 }
 

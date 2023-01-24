@@ -1,10 +1,8 @@
 use crate::convert::*;
-#[cfg(feature = "specialize")]
-use crate::fallback_hash::MULTIPLE;
 use crate::operations::*;
+use crate::random_state::PI;
 use crate::RandomState;
 use core::hash::Hasher;
-use crate::random_state::PI;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -50,7 +48,7 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
-    pub fn new_with_keys(key1: u128, key2: u128) -> Self {
+    pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
         let key1 = key1 ^ pi[0];
         let key2 = key2 ^ pi[1];
@@ -69,7 +67,6 @@ impl AHasher {
             key: key1 ^ key2,
         }
     }
-
 
     #[inline]
     pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
@@ -130,7 +127,11 @@ impl Hasher for AHasher {
     }
 
     #[inline]
-    #[cfg(any(target_pointer_width = "64", target_pointer_width = "32", target_pointer_width = "16"))]
+    #[cfg(any(
+        target_pointer_width = "64",
+        target_pointer_width = "32",
+        target_pointer_width = "16"
+    ))]
     fn write_usize(&mut self, i: usize) {
         self.write_u64(i as u64);
     }
@@ -319,7 +320,7 @@ pub(crate) struct AHasherStr(pub AHasher);
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
-        let result : [u64; 2] = self.0.enc.convert();
+        let result: [u64; 2] = self.0.enc.convert();
         result[0]
     }
 
@@ -430,4 +431,3 @@ mod tests {
         assert_eq!(bytes, 0x6464646464646464);
     }
 }
-
