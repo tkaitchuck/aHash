@@ -1,5 +1,4 @@
 use crate::RandomState;
-use crate::random_state::RandomSource;
 use std::collections::{hash_set, HashSet};
 use std::fmt::{self, Debug};
 use std::hash::{BuildHasher, Hash};
