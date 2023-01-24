@@ -62,7 +62,7 @@ debug-assertions = false
 codegen-units = 1
 
 [build-dependencies]
-version_check = "0.9"
+version_check = "0.9.4"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows", target_os = "macos", target_os = "ios", target_os = "freebsd", target_os = "openbsd", target_os = "netbsd", target_os = "dragonfly", target_os = "solaris", target_os = "illumos", target_os = "fuchsia", target_os = "redox", target_os = "cloudabi", target_os = "haiku", target_os = "vxworks", target_os = "emscripten", target_os = "wasi"))'.dependencies]
 getrandom = { version = "0.2.3" }
