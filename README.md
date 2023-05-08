@@ -53,6 +53,8 @@ map.insert(56, 78);
 The aHash package has the following flags:
 * `std`: This enables features which require the standard library. (On by default) This includes providing the utility classes `AHashMap` and `AHashSet`.
 * `serde`: Enables `serde` support for the utility classes `AHashMap` and `AHashSet`.
+* `specialized-hashers`: Exposes `AHasherU64`, `AHasherFixed`, and `AHasherStr` (as well as `BuildAHasherU64`, `BuildAHasherFixed`, and `BuildAHasherStr`),
+which are specialized versions of `AHasher` for particular types of keys providing higher performance when a particular type of key is used.
 * `runtime-rng`: To obtain a seed for Hashers will obtain randomness from the operating system. (On by default)
 This is done using the [getrandom](https://github.com/rust-random/getrandom) crate.
 * `compile-time-rng`: For OS targets without access to a random number generator, `compile-time-rng` provides an alternative.

@@ -22,7 +22,7 @@ bench = true
 doc = true
 
 [features]
-default = ["std", "runtime-rng"]
+default = ["std", "runtime-rng", "specialized-hashers"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
@@ -42,6 +42,9 @@ no-rng = []
 
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
+
+# expose specialized `AHasherU64`, `AHasherFixed`, and `AHasherStr`
+specialized-hashers = []
 
 [[bench]]
 name = "ahash"
