@@ -71,12 +71,8 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
     let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
     for combination in combinations {
-        let array = unsafe {
-            let (begin, middle, end) = combination.align_to::<u8>();
-            assert_eq!(0, begin.len());
-            assert_eq!(0, end.len());
-            middle.to_vec()
-        };
+        use zerocopy::AsBytes;
+        let array = combination.as_slice().as_bytes().to_vec();
         let mut hasher = gen_hash();
         hasher.write(&array);
         let hash = hasher.finish();
