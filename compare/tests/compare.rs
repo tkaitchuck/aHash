@@ -3,8 +3,8 @@ use criterion::*;
 use farmhash::FarmHasher;
 use fnv::FnvBuildHasher;
 use fxhash::FxBuildHasher;
-use xxhash_rust::xxh3::Xxh3Builder;
 use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
+use xxhash_rust::xxh3::Xxh3Builder;
 
 fn ahash<K: Hash>(k: &K, builder: &RandomState) -> u64 {
     let mut hasher = builder.build_hasher();
@@ -115,13 +115,6 @@ fn compare_wyhash(c: &mut Criterion) {
 fn compare_xxhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
-    let builder = twox_hash::RandomXxHashBuilder64::default();
-    compare_other(c, "compare_xxhash", builder)
-}
-
-fn compare_xxhash2(c: &mut Criterion) {
-    let int: u64 = 1234;
-    let string = create_string(1024);
     let builder = Xxh3Builder::default();
     compare_other(c, "compare_xxhash", builder)
 }
@@ -140,5 +133,4 @@ criterion_group!(
     compare_sip24,
     compare_wyhash,
     compare_xxhash,
-    compare_xxhash2,
 );
