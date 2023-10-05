@@ -1,7 +1,7 @@
 use ahash::RandomState;
 use criterion::*;
 use farmhash::FarmHasher;
-use fnv::{FnvBuildHasher};
+use fnv::FnvBuildHasher;
 use fxhash::FxBuildHasher;
 use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
 
@@ -29,25 +29,21 @@ fn create_string(len: usize) -> String {
 fn compare_ahash(c: &mut Criterion) {
     let builder = RandomState::new();
     let test = "compare_ahash";
-    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+    for num in &[1, 3, 7, 15, 31, 63, 127, 255, 511, 1023] {
         let name = "string".to_owned() + &num.to_string();
         let string = create_string(*num);
         c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
-            bencher.iter(|| {
-                black_box(ahash(s, &builder))
-            });
+            bencher.iter(|| black_box(ahash(s, &builder)));
         });
     }
 }
 
 fn compare_other<B: BuildHasher>(c: &mut Criterion, test: &str, builder: B) {
-    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+    for num in &[1, 3, 7, 15, 31, 63, 127, 255, 511, 1023] {
         let name = "string".to_owned() + &num.to_string();
         let string = create_string(*num);
         c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
-            bencher.iter(|| {
-                black_box(generic_hash(&s, &builder))
-            });
+            bencher.iter(|| black_box(generic_hash(&s, &builder)));
         });
     }
 }
