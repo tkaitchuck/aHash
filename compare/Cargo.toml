@@ -41,3 +41,4 @@ siphasher = "1"
 t1ha = "0.1.0"
 wyhash = "0.5"
 twox-hash = "1.6.0"
+xxhash-rust = {version = "0.8", features = ["xxh3"]}
