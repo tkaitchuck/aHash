@@ -13,7 +13,6 @@ readme = "README.md"
 [features]
 default = ["std"]
 std = ["ahash/std"]
-nightly = ["ahash/specialize"]
 compile-time-rng = ["ahash/compile-time-rng"]
 
 [[bench]]
