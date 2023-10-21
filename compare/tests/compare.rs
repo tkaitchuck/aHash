@@ -1,13 +1,15 @@
-use ahash::{CallHasher, RandomState};
+use ahash::RandomState;
 use criterion::*;
 use farmhash::FarmHasher;
-use fnv::{FnvBuildHasher};
+use fnv::FnvBuildHasher;
 use fxhash::FxBuildHasher;
 use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
+use xxhash_rust::xxh3::Xxh3Builder;
 
 fn ahash<K: Hash>(k: &K, builder: &RandomState) -> u64 {
-    let hasher = builder.build_hasher();
-    k.get_hash(hasher)
+    let mut hasher = builder.build_hasher();
+    k.hash(&mut hasher);
+    hasher.finish()
 }
 
 fn generic_hash<K: Hash, B: BuildHasher>(key: &K, builder: &B) -> u64 {
@@ -28,25 +30,21 @@ fn create_string(len: usize) -> String {
 fn compare_ahash(c: &mut Criterion) {
     let builder = RandomState::new();
     let test = "compare_ahash";
-    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+    for num in &[1, 3, 7, 15, 31, 63, 127, 255, 511, 1023] {
         let name = "string".to_owned() + &num.to_string();
         let string = create_string(*num);
         c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
-            bencher.iter(|| {
-                black_box(ahash(s, &builder))
-            });
+            bencher.iter(|| black_box(ahash(s, &builder)));
         });
     }
 }
 
 fn compare_other<B: BuildHasher>(c: &mut Criterion, test: &str, builder: B) {
-    for num in &[1,3,7,15,31,63,127,255,511,1023] {
+    for num in &[1, 3, 7, 15, 31, 63, 127, 255, 511, 1023] {
         let name = "string".to_owned() + &num.to_string();
         let string = create_string(*num);
         c.bench_with_input(BenchmarkId::new(test, &name), &string, |bencher, s| {
-            bencher.iter(|| {
-                black_box(generic_hash(&s, &builder))
-            });
+            bencher.iter(|| black_box(generic_hash(&s, &builder)));
         });
     }
 }
@@ -117,7 +115,7 @@ fn compare_wyhash(c: &mut Criterion) {
 fn compare_xxhash(c: &mut Criterion) {
     let int: u64 = 1234;
     let string = create_string(1024);
-    let builder = twox_hash::RandomXxHashBuilder64::default();
+    let builder = Xxh3Builder::default();
     compare_other(c, "compare_xxhash", builder)
 }
 
