@@ -164,11 +164,11 @@ impl Hasher for AHasher {
                     let tail = data.read_last_u128x4();
                     let mut current: [u128; 4] = [self.key; 4];
                     current[0] = aesenc(current[0], tail[0]);
-                    current[1] = aesenc(current[1], tail[1]);
+                    current[1] = aesdec(current[1], tail[1]);
                     current[2] = aesenc(current[2], tail[2]);
-                    current[3] = aesenc(current[3], tail[3]);
+                    current[3] = aesdec(current[3], tail[3]);
                     let mut sum: [u128; 2] = [self.key, self.key];
-                    sum[0] = shuffle_and_add(sum[0], tail[0]);
+                    sum[0] = add_by_64s(sum[0].convert(), tail[0].convert()).convert();
                     sum[1] = shuffle_and_add(sum[1], tail[1]);
                     sum[0] = shuffle_and_add(sum[0], tail[2]);
                     sum[1] = shuffle_and_add(sum[1], tail[3]);
