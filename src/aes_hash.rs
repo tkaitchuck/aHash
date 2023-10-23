@@ -96,8 +96,8 @@ impl AHasher {
     #[inline]
     #[cfg(feature = "specialize")]
     fn short_finish(&self) -> u64 {
-        let combined = aesdec(self.sum, self.enc);
-        let result: [u64; 2] = aesenc(combined, combined).convert();
+        let combined = aesenc(self.sum, self.enc);
+        let result: [u64; 2] = aesdec(combined, combined).convert();
         result[0]
     }
 }
@@ -208,9 +208,9 @@ impl Hasher for AHasher {
     }
     #[inline]
     fn finish(&self) -> u64 {
-        let combined = aesdec(self.sum, self.enc);
-        let result: [u64; 2] = aesenc(aesenc(combined, self.key), combined).convert();
-        result[1]
+        let combined = aesenc(self.sum, self.enc);
+        let result: [u64; 2] = aesdec(aesdec(combined, self.key), combined).convert();
+        result[0]
     }
 }
 
@@ -329,15 +329,15 @@ impl Hasher for AHasherStr {
     fn write(&mut self, bytes: &[u8]) {
         if bytes.len() > 8 {
             self.0.write(bytes);
-            self.0.enc = aesdec(self.0.sum, self.0.enc);
-            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = aesenc(self.0.sum, self.0.enc);
+            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
         } else {
             add_in_length(&mut self.0.enc, bytes.len() as u64);
 
             let value = read_small(bytes).convert();
             self.0.sum = shuffle_and_add(self.0.sum, value);
-            self.0.enc = aesdec(self.0.sum, self.0.enc);
-            self.0.enc = aesenc(aesenc(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = aesenc(self.0.sum, self.0.enc);
+            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
         }
     }
 
