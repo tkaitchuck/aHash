@@ -91,7 +91,7 @@ jobs:
           args: --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
