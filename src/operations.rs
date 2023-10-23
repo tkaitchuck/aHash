@@ -123,7 +123,6 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-
     let value = transmute!(value);
     let res = unsafe { vaesmcq_u8(vaeseq_u8(value, transmute!(0u128))) };
     let value: u128 = transmute!(res);
