@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.8.4"
+version = "0.8.5"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
