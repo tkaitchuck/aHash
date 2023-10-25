@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.8.5"
+version = "0.8.6"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -80,7 +80,7 @@ serde = { version = "1.0.117", optional = true }
 cfg-if = "1.0"
 atomic-polyfill = { version="1.0.1", optional=true}
 getrandom = { version = "0.2.7", optional = true }
-zerocopy = { version = "0.7.0", default-features = false, features = ["simd"] }
+zerocopy = { version = "0.7.14", default-features = false, features = ["simd"] }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
 once_cell = { version = "1.13.1", default-features = false, features = ["unstable", "alloc"] }
