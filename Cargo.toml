@@ -14,7 +14,6 @@ build = "./build.rs"
 exclude = ["/smhasher", "/benchmark_tools"]
 rust-version = "1.60.0"
 
-
 [lib]
 name = "ahash"
 path = "src/lib.rs"
