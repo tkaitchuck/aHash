@@ -61,7 +61,8 @@ jobs:
       - name: check nightly
         uses: actions-rs/cargo@v1
         with:
-          command: check -Z msrv-policy
+          command: check
+          args: -Z msrv-policy
       - name: test nightly
         uses: actions-rs/cargo@v1
         with:
