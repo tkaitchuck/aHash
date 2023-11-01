@@ -493,6 +493,125 @@ impl BuildHasherExt for RandomState {
     }
 }
 
+/// A [`BuildHasher`] like [`RandomState`] but which builds an [`AHasherU64`] instead of an [`AHasher`].
+/// 
+/// The recommended way to acquire one is through [`Default`] or [`from_random_state`][BuildAHasherU64::from_random_state],
+/// but if you want a fully-deterministically-seeded version then you can use the specialized [`BuildAHasherU64::with_seeds`].
+#[cfg(feature = "specialized-hashers")]
+#[derive(Clone)]
+pub struct BuildAHasherU64 {
+    k0: u64,
+    k1: u64,
+}
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildAHasherU64 {
+    /// Convert a [`RandomState`] into a [`BuildAHasherU64`]
+    #[inline]
+    pub fn from_random_state(state: RandomState) -> Self {
+        Self {
+            k0: state.k0,
+            k1: state.k1,
+        }
+    }
+
+    /// Allows for explicitly setting the seeds to used.
+    /// All `BuildAHasherU64`s created with the same set of keys key will produce identical hashers.
+    /// (In contrast to other ways of acquiring)
+    ///
+    /// Note: If DOS resistance is desired one of these should be a decent quality random number.
+    /// If 2 high quality random numbers are not cheaply available this method is robust against 0s being passed for
+    /// one or more of the parameters or the same value being passed for more than one parameter.
+    /// It is recommended to pass numbers in order from highest to lowest quality (if there is any difference).
+    #[inline]
+    pub const fn with_seeds(k0: u64, k1: u64) -> Self {
+        Self {
+            k0: k0 ^ PI2[0],
+            k1: k1 ^ PI2[1],
+        }
+    }
+
+    /// Internal. Used by Default.
+    #[inline]
+    pub(crate) fn with_fixed_keys() -> Self {
+        let [k0, k1, _, _] = get_fixed_seeds()[0];
+        Self { k0, k1 }
+    }
+
+}
+
+impl Default for BuildAHasherU64 {
+    #[inline]
+    fn default() -> Self {
+        Self::with_fixed_keys()
+    }
+}
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildHasher for BuildAHasherU64 {
+    type Hasher = AHasherU64;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        AHasherU64 {
+            buffer: self.k0,
+            pad: self.k1,
+        }
+    }
+}
+
+/// A [`BuildHasher`] like [`RandomState`] but which builds an [`AHasherFixed`] instead of an [`AHasher`].
+/// 
+/// Acquire one is through [`Default`] or [`from_random_state`][BuildAHasherFixed::from_random_state].
+#[cfg(feature = "specialized-hashers")]
+#[derive(Default, Clone)]
+pub struct BuildAHasherFixed(RandomState);
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildAHasherFixed {
+    /// Convert a [`RandomState`] into a [`BuildAHasherFixed`]
+    #[inline]
+    pub fn from_random_state(state: RandomState) -> Self {
+        Self(state)
+    }
+}
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildHasher for BuildAHasherFixed {
+    type Hasher = AHasherFixed;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        AHasherFixed(self.0.build_hasher())
+    }
+}
+
+/// A [`BuildHasher`] like [`RandomState`] but which builds an [`AHasherStr`] instead of an [`AHasher`].
+/// 
+/// Acquire one is through [`Default`] or [`from_random_state`][BuildAHasherStr::from_random_state].
+#[cfg(feature = "specialized-hashers")]
+#[derive(Default, Clone)]
+pub struct BuildAHasherStr(RandomState);
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildAHasherStr {
+    /// Convert a [`RandomState`] into a [`BuildAHasherStr`]
+    #[inline]
+    pub fn from_random_state(state: RandomState) -> Self {
+        Self(state)
+    }
+}
+
+#[cfg(feature = "specialized-hashers")]
+impl BuildHasher for BuildAHasherStr {
+    type Hasher = AHasherStr;
+
+    #[inline]
+    fn build_hasher(&self) -> Self::Hasher {
+        AHasherStr(self.0.build_hasher())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
