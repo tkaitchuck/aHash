@@ -95,8 +95,6 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
-#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
-#![cfg_attr(feature = "stdsimd", feature(stdsimd))]
 
 #[macro_use]
 mod convert;
@@ -106,11 +104,8 @@ mod fallback_hash;
 cfg_if::cfg_if! {
     if #[cfg(any(
             all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-            all(any(target_arch = "arm", target_arch = "aarch64"),
-                any(target_feature = "aes", target_feature = "crypto"),
-                not(miri),
-                feature = "stdsimd")
-            ))] {
+            all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+        ))] {
         mod aes_hash;
         pub use crate::aes_hash::AHasher;
     } else {
