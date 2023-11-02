@@ -43,6 +43,9 @@ no-rng = []
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
 
+# Nightly-only support for AES intrinsics on 32-bit ARM
+nightly-arm-aes = []
+
 [[bench]]
 name = "ahash"
 path = "tests/bench.rs"
