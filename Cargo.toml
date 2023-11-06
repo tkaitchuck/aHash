@@ -83,7 +83,7 @@ getrandom = { version = "0.2.7", optional = true }
 zerocopy = { version = "0.7.14", default-features = false, features = ["simd"] }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
-once_cell = { version = "1.13.1", default-features = false, features = ["unstable", "alloc"] }
+once_cell = { version = "1.18.0", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"
