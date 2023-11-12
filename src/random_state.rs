@@ -2,7 +2,8 @@ use core::hash::Hash;
 cfg_if::cfg_if! {
     if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-         all(any(target_arch = "arm", target_arch = "aarch64"), any(target_feature = "aes", target_feature = "crypto"), not(miri), feature = "stdsimd")
+        all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+        all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
     ))] {
         use crate::aes_hash::*;
     } else {
@@ -230,7 +231,6 @@ impl fmt::Debug for RandomState {
 }
 
 impl RandomState {
-
     /// Create a new `RandomState` `BuildHasher` using random keys.
     ///
     /// Each instance will have a unique set of keys derived from [RandomSource].
@@ -317,8 +317,8 @@ impl RandomState {
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
     use ahash::RandomState;
@@ -330,8 +330,8 @@ impl RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::RandomState;
@@ -419,12 +419,11 @@ impl BuildHasher for RandomState {
         AHasher::from_random_state(self)
     }
 
-
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
     use ahash::RandomState;
@@ -436,8 +435,8 @@ impl BuildHasher for RandomState {
     )]
     /// This is similar to:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::RandomState;

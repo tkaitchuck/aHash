@@ -1,5 +1,5 @@
 use core::hash::{Hash, Hasher};
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 fn assert_sufficiently_different(a: u64, b: u64, tolerance: i32) {
     let (same_byte_count, same_nibble_count) = count_same_bytes_and_nibbles(a, b);
@@ -64,8 +64,7 @@ fn gen_combinations(options: &[u32; 11], depth: u32, so_far: Vec<u32>, combinati
 
 fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     let options: [u32; 11] = [
-        0x00000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0xF0000000,
-        1, 2, 4, 8, 15
+        0x00000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0xF0000000, 1, 2, 4, 8, 15,
     ];
     let mut combinations = Vec::new();
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
@@ -342,9 +341,12 @@ fn test_sparse<T: Hasher>(hasher: impl Fn() -> T) {
     let mut buf = [0u8; 256];
     let mut hashes = HashMap::new();
     for idx_1 in 0..256 {
-        for idx_2 in idx_1+1..256 {
+        for idx_2 in idx_1 + 1..256 {
             for value_1 in [1, 2, 4, 8, 16, 32, 64, 128] {
-                for value_2 in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 17, 18, 20, 24, 31, 32, 33, 48, 64, 96, 127, 128, 129, 192, 254, 255] {
+                for value_2 in [
+                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 17, 18, 20, 24, 31, 32, 33, 48, 64, 96, 127, 128, 129,
+                    192, 254, 255,
+                ] {
                     buf[idx_1] = value_1;
                     buf[idx_2] = value_2;
                     let hash_value = hash_with(&buf, &mut hasher());
@@ -437,12 +439,8 @@ mod fallback_tests {
 ///Basic sanity tests of the cypto properties of aHash.
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(
-        any(target_arch = "arm", target_arch = "aarch64"),
-        any(target_feature = "aes", target_feature = "crypto"),
-        not(miri),
-        feature = "stdsimd"
-    )
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
 #[cfg(test)]
 mod aes_tests {
