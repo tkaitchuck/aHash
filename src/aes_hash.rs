@@ -40,9 +40,9 @@ fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
         aesenc(hasher.key, tail[6]),
         aesdec(hasher.key, tail[7]),
     ];
-    let tail : [Vector256;4] = transmute!(tail);
-    let mut current : [Vector256;4] = transmute!(current);
-    let mut sum : [Vector256; 2] = [
+    let tail: [Vector256; 4] = transmute!(tail);
+    let mut current: [Vector256; 4] = transmute!(current);
+    let mut sum: [Vector256; 2] = [
         transmute!([hasher.key, !hasher.key]),
         transmute!([hasher.key, !hasher.key]),
     ];
@@ -52,7 +52,7 @@ fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
     sum[1] = shuffle_and_add_vec256(sum[1], tail[3]);
     while data.len() > 128 {
         let (blocks, rest) = data.read_u128x8();
-        let blocks : [Vector256; 4] = transmute!(blocks);
+        let blocks: [Vector256; 4] = transmute!(blocks);
         current[0] = aesdec_vec256(current[0], blocks[0]);
         current[1] = aesdec_vec256(current[1], blocks[1]);
         current[2] = aesdec_vec256(current[2], blocks[2]);
@@ -63,8 +63,8 @@ fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
         sum[1] = shuffle_and_add_vec256(sum[1], blocks[3]);
         *data = rest;
     }
-    let current : [[u128;2]; 4] = transmute!(current);
-    let sum : [[u128;2]; 2] = transmute!(sum);
+    let current: [[u128; 2]; 4] = transmute!(current);
+    let sum: [[u128; 2]; 2] = transmute!(sum);
     hasher.hash_in_2(
         aesdec(current[0][0], current[0][1]),
         aesdec(current[1][0], current[1][1]),
@@ -217,7 +217,7 @@ impl Hasher for AHasher {
             if data.len() > 32 {
                 if data.len() > 128 {
                     return hash_batch_128b(&mut data, self);
-                } 
+                }
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
                     let mut current: [u128; 4] = [self.key; 4];

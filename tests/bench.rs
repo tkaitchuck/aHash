@@ -84,8 +84,12 @@ macro_rules! bench_inputs {
         $group.bench_function("u32", |b| b.iter_batched(|| rng.gen::<u32>(), |v| $hash(&v), size));
         $group.bench_function("u64", |b| b.iter_batched(|| rng.gen::<u64>(), |v| $hash(&v), size));
         $group.bench_function("u128", |b| b.iter_batched(|| rng.gen::<u128>(), |v| $hash(&v), size));
-        $group.bench_with_input("strings", &gen_strings(STRING_LENGTHS), |b, s| b.iter(|| $hash(black_box(s))));
-        $group.bench_with_input("wide-strings", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| b.iter(|| $hash(black_box(s))));
+        $group.bench_with_input("strings", &gen_strings(STRING_LENGTHS), |b, s| {
+            b.iter(|| $hash(black_box(s)))
+        });
+        $group.bench_with_input("wide-strings", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+            b.iter(|| $hash(black_box(s)))
+        });
     };
 }
 
