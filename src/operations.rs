@@ -279,12 +279,7 @@ mod vaes {
             ))] {
                 unsafe {
                     use core::arch::x86_64::*;
-                    let mask : __m256i = _mm256_set_epi64x(
-                        SHUFFLE_MASK as i64,
-                        (SHUFFLE_MASK >> 64) as i64,
-                        SHUFFLE_MASK as i64,
-                        (SHUFFLE_MASK >> 64) as i64,
-                    );
+                    let mask = convert_u128_to_vec256(SHUFFLE_MASK);
                     _mm256_shuffle_epi8(value, mask)
                 }
             }
@@ -371,10 +366,10 @@ mod vaes {
                 use core::arch::x86_64::*;
                 unsafe {
                     _mm256_set_epi64x(
-                        x as i64,
                         (x >> 64) as i64,
                         x as i64,
                         (x >> 64) as i64,
+                        x as i64,
                     )
                 }
             }
