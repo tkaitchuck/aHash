@@ -202,29 +202,6 @@ mod vaes {
     }
 
     #[inline(always)]
-    pub(crate) fn aesenc_vec256(value: Vector256, xor: Vector256) -> Vector256 {
-        cfg_if::cfg_if! {
-            if #[cfg(all(
-                    any(target_arch = "x86", target_arch = "x86_64"),
-                    target_feature = "vaes",
-                    feature = "vaes",
-                    not(miri)
-                ))] {
-                use core::arch::x86_64::*;
-                unsafe {
-                    _mm256_aesenc_epi128(value, xor)
-                }
-            }
-            else {
-                    [
-                        aesenc(value[0], xor[0]),
-                        aesenc(value[1], xor[1]),
-                    ]
-            }
-        }
-    }
-
-    #[inline(always)]
     pub(crate) fn aesdec_vec256(value: Vector256, xor: Vector256) -> Vector256 {
         cfg_if::cfg_if! {
             if #[cfg(all(
@@ -279,7 +256,7 @@ mod vaes {
             ))] {
                 unsafe {
                     use core::arch::x86_64::*;
-                    let mask = convert_u128_to_vec256(SHUFFLE_MASK);
+                    let mask = convert_u128_to_vec256(SHUFFLE_MASK, SHUFFLE_MASK);
                     _mm256_shuffle_epi8(value, mask)
                 }
             }
@@ -327,35 +304,7 @@ mod vaes {
 
     // We specialize this routine because sometimes the compiler is not able to
     // optimize it properly.
-    pub(crate) fn read_last4_vec256(data: &[u8]) -> [Vector256; 4] {
-        cfg_if::cfg_if! {
-            if #[cfg(all(
-                any(target_arch = "x86", target_arch = "x86_64"),
-                target_feature = "vaes",
-                feature = "vaes",
-                not(miri)
-            ))] {
-                use core::arch::x86_64::*;
-                let (_, arr) = data.split_at(data.len() - 128);
-                let arr = unsafe {
-                   [ _mm256_loadu_si256(arr.as_ptr().cast::<__m256i>()),
-                     _mm256_loadu_si256(arr.as_ptr().add(32).cast::<__m256i>()),
-                     _mm256_loadu_si256(arr.as_ptr().add(64).cast::<__m256i>()),
-                     _mm256_loadu_si256(arr.as_ptr().add(96).cast::<__m256i>()),
-                   ]
-                };
-                arr
-            }
-            else {
-                let arr = data.read_last_u128x8();
-                transmute!(arr)
-            }
-        }
-    }
-
-    // We specialize this routine because sometimes the compiler is not able to
-    // optimize it properly.
-    pub(crate) fn convert_u128_to_vec256(x: u128) -> Vector256 {
+    pub(crate) fn convert_u128_to_vec256(low: u128, high: u128) -> Vector256 {
         cfg_if::cfg_if! {
             if #[cfg(all(
                 any(target_arch = "x86", target_arch = "x86_64"),
@@ -366,15 +315,15 @@ mod vaes {
                 use core::arch::x86_64::*;
                 unsafe {
                     _mm256_set_epi64x(
-                        (x >> 64) as i64,
-                        x as i64,
-                        (x >> 64) as i64,
-                        x as i64,
+                        (high >> 64) as i64,
+                        high as i64,
+                        (low >> 64) as i64,
+                        low as i64,
                     )
                 }
             }
             else {
-                transmute!([x, x])
+                transmute!([low, high])
             }
         }
     }
