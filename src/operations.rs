@@ -180,11 +180,109 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
     }
 }
 
+
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+))]
+mod vaes {
+use super::*;
+#[repr(C, align(32))]
+#[derive(zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes, Copy, Clone)]
+pub(crate) struct Vector256([u128;2]);
+
+pub(crate) fn aesdec_vec256(value: Vector256, xor: Vector256) -> Vector256 {
+    cfg_if::cfg_if!{
+        if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"), 
+                target_feature = "vaes", 
+                feature = "vaes", 
+                not(miri)
+            ))] {
+            use core::arch::x86_64::*;
+            unsafe {
+                transmute!(_mm256_aesdec_epi128(transmute!(value), transmute!(xor)))
+            }
+        }
+        else {
+            Vector256(
+                [
+                    aesdec(value.0[0], xor.0[0]),
+                    aesdec(value.0[1], xor.0[1]),
+                ]
+            )
+        }
+    }
+}
+
+pub(crate) fn add_by_64s_vec256(a: Vector256, b: Vector256) -> Vector256 {
+    cfg_if::cfg_if!{
+        if #[cfg(all(
+            any(target_arch = "x86", target_arch = "x86_64"), 
+            target_feature = "vaes", 
+            feature = "vaes", 
+            not(miri)
+        ))] {
+            use core::arch::x86_64::*;
+            unsafe {
+                transmute!(_mm256_add_epi64(transmute!(a), transmute!(b)))
+            }
+        }
+        else {
+            Vector256(
+                [
+                    add_by_64s(a.0[0], b.0[0]),
+                    add_by_64s(a.0[1], b.0[1]),
+                ]
+            )
+        }
+    }
+}
+
+pub(crate) fn shuffle_vec256(value: Vector256) -> Vector256 {
+    cfg_if::cfg_if!{
+        if #[cfg(all(
+            any(target_arch = "x86", target_arch = "x86_64"), 
+            target_feature = "vaes", 
+            feature = "vaes", 
+            not(miri)
+        ))] {
+            unsafe {
+                use core::arch::x86_64::*;
+                let mask = transmute!([SHUFFLE_MASK, SHUFFLE_MASK]);
+                transmute!(_mm256_shuffle_epi8(transmute!(value.0), mask))
+            }
+        }
+        else {
+            Vector256(
+                [
+                    shuffle(value.0[0]),
+                    shuffle(value.0[1]),
+                ]
+            )
+        }
+    }
+}
+
+pub(crate) fn shuffle_and_add_vec256(base: Vector256, to_add: Vector256) -> Vector256 {
+    add_by_64s_vec256(shuffle_vec256(base), to_add)
+}
+}
+
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+))]
+pub(crate) use vaes::*;
+
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::convert::Convert;
-
+    
     // This is code to search for the shuffle constant
     //
     //thread_local! { static MASK: Cell<u128> = Cell::new(0); }
