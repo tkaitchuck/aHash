@@ -187,10 +187,44 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
 ))]
 mod vaes {
     use super::*;
-    #[repr(C, align(32))]
-    #[derive(zerocopy::AsBytes, zerocopy::FromZeroes, zerocopy::FromBytes, Copy, Clone)]
-    pub(crate) struct Vector256([u128; 2]);
+    cfg_if::cfg_if! {
+        if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+            pub type Vector256 = core::arch::x86_64::__m256i;
+        }
+        else {
+            pub type Vector256 = [u128;2];
+        }
+    }
 
+    #[inline(always)]
+    pub(crate) fn aesenc_vec256(value: Vector256, xor: Vector256) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "vaes",
+                    feature = "vaes",
+                    not(miri)
+                ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    _mm256_aesenc_epi128(value, xor)
+                }
+            }
+            else {
+                    [
+                        aesenc(value[0], xor[0]),
+                        aesenc(value[1], xor[1]),
+                    ]
+            }
+        }
+    }
+
+    #[inline(always)]
     pub(crate) fn aesdec_vec256(value: Vector256, xor: Vector256) -> Vector256 {
         cfg_if::cfg_if! {
             if #[cfg(all(
@@ -201,20 +235,19 @@ mod vaes {
                 ))] {
                 use core::arch::x86_64::*;
                 unsafe {
-                    transmute!(_mm256_aesdec_epi128(transmute!(value), transmute!(xor)))
+                    _mm256_aesdec_epi128(value, xor)
                 }
             }
             else {
-                Vector256(
                     [
-                        aesdec(value.0[0], xor.0[0]),
-                        aesdec(value.0[1], xor.0[1]),
+                        aesdec(value[0], xor[0]),
+                        aesdec(value[1], xor[1]),
                     ]
-                )
             }
         }
     }
 
+    #[inline(always)]
     pub(crate) fn add_by_64s_vec256(a: Vector256, b: Vector256) -> Vector256 {
         cfg_if::cfg_if! {
             if #[cfg(all(
@@ -224,21 +257,18 @@ mod vaes {
                 not(miri)
             ))] {
                 use core::arch::x86_64::*;
-                unsafe {
-                    transmute!(_mm256_add_epi64(transmute!(a), transmute!(b)))
-                }
+                unsafe { _mm256_add_epi64(a, b) }
             }
             else {
-                Vector256(
-                    [
-                        add_by_64s(a.0[0], b.0[0]),
-                        add_by_64s(a.0[1], b.0[1]),
-                    ]
-                )
+                [
+                    transmute!(add_by_64s(transmute!(a[0]), transmute!(b[0]))),
+                    transmute!(add_by_64s(transmute!(a[1]), transmute!(b[1]))),
+                ]
             }
         }
     }
 
+    #[inline(always)]
     pub(crate) fn shuffle_vec256(value: Vector256) -> Vector256 {
         cfg_if::cfg_if! {
             if #[cfg(all(
@@ -249,23 +279,133 @@ mod vaes {
             ))] {
                 unsafe {
                     use core::arch::x86_64::*;
-                    let mask = transmute!([SHUFFLE_MASK, SHUFFLE_MASK]);
-                    transmute!(_mm256_shuffle_epi8(transmute!(value.0), mask))
+                    let mask : __m256i = _mm256_set_epi64x(
+                        SHUFFLE_MASK as i64,
+                        (SHUFFLE_MASK >> 64) as i64,
+                        SHUFFLE_MASK as i64,
+                        (SHUFFLE_MASK >> 64) as i64,
+                    );
+                    _mm256_shuffle_epi8(value, mask)
                 }
             }
             else {
-                Vector256(
+
                     [
-                        shuffle(value.0[0]),
-                        shuffle(value.0[1]),
+                        shuffle(value[0]),
+                        shuffle(value[1]),
                     ]
-                )
             }
         }
     }
 
     pub(crate) fn shuffle_and_add_vec256(base: Vector256, to_add: Vector256) -> Vector256 {
         add_by_64s_vec256(shuffle_vec256(base), to_add)
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn read4_vec256(data: &[u8]) -> ([Vector256; 4], &[u8]) {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                let (arr, rem) = data.split_at(128);
+                let arr = unsafe {
+                   [ _mm256_loadu_si256(arr.as_ptr().cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(32).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(64).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(96).cast::<__m256i>()),
+                   ]
+                };
+                (arr, rem)
+            }
+            else {
+                let (arr, slice) = data.read_u128x8();
+                (transmute!(arr), slice)
+            }
+        }
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn read_last4_vec256(data: &[u8]) -> [Vector256; 4] {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                let (_, arr) = data.split_at(data.len() - 128);
+                let arr = unsafe {
+                   [ _mm256_loadu_si256(arr.as_ptr().cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(32).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(64).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(96).cast::<__m256i>()),
+                   ]
+                };
+                arr
+            }
+            else {
+                let arr = data.read_last_u128x8();
+                transmute!(arr)
+            }
+        }
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn convert_u128_to_vec256(x: u128) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    _mm256_set_epi64x(
+                        x as i64,
+                        (x >> 64) as i64,
+                        x as i64,
+                        (x >> 64) as i64,
+                    )
+                }
+            }
+            else {
+                transmute!([x, x])
+            }
+        }
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn convert_vec256_to_u128(x: Vector256) -> [u128; 2] {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    [
+                        transmute!(_mm256_extracti128_si256(x, 0)),
+                        transmute!(_mm256_extracti128_si256(x, 1)),
+                    ]
+                }
+            }
+            else {
+                x
+            }
+        }
     }
 }
 
