@@ -27,7 +27,6 @@ pub struct AHasher {
     all(target_arch = "aarch64", target_feature = "aes", not(miri)),
     all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
-#[inline(never)]
 fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
     let tail = read_last4_vec256(data);
     let mut current = [
