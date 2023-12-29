@@ -108,13 +108,13 @@ fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
 fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
     let base = hash_with(&0, constructor(0, 0));
     for shift in 0..16 {
-        let mut alternitives = vec![];
+        let mut alternatives = vec![];
         for v in 0..256 {
             let input = (v as u128) << (shift * 8);
             let hasher = constructor(0, 0);
-            alternitives.push(hash_with(&input, hasher));
+            alternatives.push(hash_with(&input, hasher));
         }
-        assert_each_byte_differs(shift, base, alternitives);
+        assert_each_byte_differs(shift, base, alternatives);
     }
 }
 
@@ -122,26 +122,26 @@ fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u128, u128) -> T
 fn test_keys_affect_every_byte<H: Hash, T: Hasher>(item: H, constructor: impl Fn(u128, u128) -> T) {
     let base = hash_with(&item, constructor(0, 0));
     for shift in 0..16 {
-        let mut alternitives1 = vec![];
-        let mut alternitives2 = vec![];
+        let mut alternatives1 = vec![];
+        let mut alternatives2 = vec![];
         for v in 0..256 {
             let input = (v as u128) << (shift * 8);
             let hasher1 = constructor(input, 0);
             let hasher2 = constructor(0, input);
             let h1 = hash_with(&item, hasher1);
             let h2 = hash_with(&item, hasher2);
-            alternitives1.push(h1);
-            alternitives2.push(h2);
+            alternatives1.push(h1);
+            alternatives2.push(h2);
         }
-        assert_each_byte_differs(shift, base, alternitives1);
-        assert_each_byte_differs(shift, base, alternitives2);
+        assert_each_byte_differs(shift, base, alternatives1);
+        assert_each_byte_differs(shift, base, alternatives2);
     }
 }
 
-fn assert_each_byte_differs(num: u64, base: u64, alternitives: Vec<u64>) {
+fn assert_each_byte_differs(num: u64, base: u64, alternatives: Vec<u64>) {
     let mut changed_bits = 0_u64;
-    for alternitive in alternitives {
-        changed_bits |= base ^ alternitive
+    for alternative in alternatives {
+        changed_bits |= base ^ alternative
     }
     assert_eq!(
         core::u64::MAX,

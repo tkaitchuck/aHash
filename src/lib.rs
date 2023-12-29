@@ -77,7 +77,7 @@ use ahash::AHashMap;
 let mut map: AHashMap<i32, i32> = AHashMap::new();
 map.insert(12, 34);
 ```
-This avoids the need to type "RandomState". (For convience `From`, `Into`, and `Deref` are provided).
+This avoids the need to type "RandomState". (For convenience `From`, `Into`, and `Deref` are provided).
 
 # Aliases
 
