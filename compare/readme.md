@@ -25,7 +25,7 @@ Even the fallback algorithm is in the top 5 in terms of throughput, beating out 
 
 aHash is the fastest non-trivial hasher implementation in Rust. Below is a comparison with 10 other popular hashing algorithms.  
 
-![Hasher perfromance](https://docs.google.com/spreadsheets/d/e/2PACX-1vSK7Li2nS-Bur9arAYF9IfT37MP-ohAe1v19lZu5fd9MajI1fSveLAQZyEie4Ea9k5-SWHTff7nL2DW/pubchart?oid=1323618938&format=image)
+![Hasher performance](https://docs.google.com/spreadsheets/d/e/2PACX-1vSK7Li2nS-Bur9arAYF9IfT37MP-ohAe1v19lZu5fd9MajI1fSveLAQZyEie4Ea9k5-SWHTff7nL2DW/pubchart?oid=1323618938&format=image)
 
 ## DOS resistance
 
@@ -120,4 +120,4 @@ Similarly, wyHash is targeted at hashmaps. WyHash is quite fast, but is not DOS 
 
 There are fixed strings which when encountered caused the internal state to reset. This makes wyHash trivial to attack.
 
-AHash outperforms wyHash across all input sizes, regardless of which CPU instructions are available. 
+AHash outperforms wyHash across all input sizes, regardless of which CPU instructions are available.
