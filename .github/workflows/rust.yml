@@ -56,6 +56,12 @@ jobs:
           toolchain: stable
           targets: armv7-unknown-linux-gnueabihf
       - run: cargo check --target armv7-unknown-linux-gnueabihf
+      - name: Install 1.60.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.60.0
+          targets: armv7-unknown-linux-gnueabihf
+      - run: cargo check --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
     runs-on: macos-latest
@@ -64,6 +70,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
+          targets: aarch64-apple-darwin
+      - run: cargo check --target aarch64-apple-darwin
+      - name: Install 1.60.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.60.0
           targets: aarch64-apple-darwin
       - run: cargo check --target aarch64-apple-darwin
   i686-unknown-linux-gnu:
