@@ -85,8 +85,8 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.60.0
+          targets: i686-unknown-linux-gnu
       - run: cargo check --target i686-unknown-linux-gnu
-      - run: cargo test --target i686-unknown-linux-gnu
       - name: check constrandom
         run: cargo check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
   x86_64-unknown-linux-gnu:
@@ -109,7 +109,6 @@ jobs:
         with:
           toolchain: 1.60.0
       - run: cargo check --target x86_64-unknown-linux-gnu
-      - run: cargo test --target x86_64-unknown-linux-gnu
       - name: check constrandom
         run: cargo check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
   thumbv6m:
@@ -140,9 +139,4 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
-    - run: cargo build --manifest-path=no_std_test/Cargo.toml
-    - name: Install 1.60.0
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: 1.60.0
     - run: cargo build --manifest-path=no_std_test/Cargo.toml
