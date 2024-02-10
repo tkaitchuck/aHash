@@ -200,6 +200,32 @@ fn test_ahash_alias_set_construction() {
     set.insert(1);
 }
 
+
+#[cfg(feature = "std")]
+#[test]
+fn test_key_ref() {
+    let mut map = ahash::HashMap::default();
+    map.insert(1, "test");
+    assert_eq!(Some((1, "test")), map.remove_entry(&1));
+
+    let mut map = ahash::HashMap::default();
+    map.insert(&1, "test");
+    assert_eq!(Some((&1, "test")), map.remove_entry(&&1));
+
+    let mut m = ahash::HashSet::<Box<String>>::default();
+    m.insert(Box::from("hello".to_string()));
+    assert!(m.contains(&"hello".to_string()));
+
+    let mut m = ahash::HashSet::<String>::default();
+    m.insert("hello".to_string());
+    assert!(m.contains("hello"));
+
+    let mut m = ahash::HashSet::<Box<[u8]>>::default();
+    m.insert(Box::from(&b"hello"[..]));
+    assert!(m.contains(&b"hello"[..]));
+}
+
+
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
