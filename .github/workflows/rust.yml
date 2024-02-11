@@ -62,6 +62,12 @@ jobs:
           toolchain: 1.60.0
           targets: armv7-unknown-linux-gnueabihf
       - run: cargo +1.60.0 check --target armv7-unknown-linux-gnueabihf
+      - name: Install 1.71.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.71.1
+          targets: armv7-unknown-linux-gnueabihf
+      - run: cargo +1.71.1 check --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
     runs-on: macos-latest
@@ -80,6 +86,12 @@ jobs:
           toolchain: 1.60.0
           targets: aarch64-apple-darwin
       - run: cargo +1.60.0 check --target aarch64-apple-darwin
+      - name: Install 1.71.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.71.1
+          targets: aarch64-apple-darwin
+      - run: cargo +1.71.1 check --target aarch64-apple-darwin
   i686-unknown-linux-gnu:
     name: Linux i686
     runs-on: ubuntu-latest
@@ -103,6 +115,14 @@ jobs:
       - run: cargo +1.60.0 check --target i686-unknown-linux-gnu
       - name: check constrandom
         run: cargo +1.60.0 check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
+      - name: Install 1.71.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.71.1
+          targets: i686-unknown-linux-gnu
+      - run: cargo +1.71.1 check --target i686-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo +1.71.1 check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
   x86_64-unknown-linux-gnu:
     name: Linux x86_64
     runs-on: ubuntu-latest
@@ -125,6 +145,13 @@ jobs:
       - run: cargo +1.60.0 check --target x86_64-unknown-linux-gnu
       - name: check constrandom
         run: cargo +1.60.0 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+      - name: Install 1.71.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.71.1
+      - run: cargo +1.71.1 check --target x86_64-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo +1.71.1 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
   thumbv6m:
     name: thumbv6m
     runs-on: ubuntu-latest
