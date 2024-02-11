@@ -117,10 +117,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install 1.60.0
+      - name: Install 1.72.0
         uses: dtolnay/rust-toolchain@master
         with:
-            toolchain: 1.60.0
+            toolchain: 1.72.0
       - name: check
         run: cargo check
   no_std:
