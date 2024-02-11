@@ -57,6 +57,7 @@ The aHash package has the following flags:
 This is done using the [getrandom](https://github.com/rust-random/getrandom) crate.
 * `compile-time-rng`: For OS targets without access to a random number generator, `compile-time-rng` provides an alternative.
 If `getrandom` is unavailable and `compile-time-rng` is enabled, aHash will generate random numbers at compile time and embed them in the binary.
+* `nightly-arm-aes`: To use AES instructions on 32-bit ARM, which requires nightly. This is not needed on AArch64.
 This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
 This makes the binary non-deterministic. (If non-determinism is a problem see [constrandom's documentation](https://github.com/tkaitchuck/constrandom#deterministic-builds))
 

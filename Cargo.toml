@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.8.6"
+version = "0.8.7"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -12,6 +12,7 @@ edition = "2018"
 readme = "README.md"
 build = "./build.rs"
 exclude = ["/smhasher", "/benchmark_tools"]
+rust-version = "1.60.0"
 
 [lib]
 name = "ahash"
@@ -42,6 +43,9 @@ no-rng = []
 
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
+
+# Nightly-only support for AES intrinsics on 32-bit ARM
+nightly-arm-aes = []
 
 [[bench]]
 name = "ahash"
@@ -75,15 +79,15 @@ codegen-units = 1
 version_check = "0.9.4"
 
 [dependencies]
-const-random = { version = "0.1.12", optional = true }
+const-random = { version = "0.1.17", optional = true }
 serde = { version = "1.0.117", optional = true }
 cfg-if = "1.0"
 atomic-polyfill = { version="1.0.1", optional=true}
 getrandom = { version = "0.2.7", optional = true }
-zerocopy = { version = "0.7.14", default-features = false, features = ["simd"] }
+zerocopy = { version = "0.7.31", default-features = false, features = ["simd"] }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
-once_cell = { version = "1.13.1", default-features = false, features = ["unstable", "alloc"] }
+once_cell = { version = "1.18.0", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 no-panic = "0.1.10"
