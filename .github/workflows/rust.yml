@@ -56,6 +56,12 @@ jobs:
           toolchain: stable
           targets: armv7-unknown-linux-gnueabihf
       - run: cargo check --target armv7-unknown-linux-gnueabihf
+      - name: Install 1.72.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.72.0
+          targets: armv7-unknown-linux-gnueabihf
+      - run: cargo +1.72.0 check --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
     runs-on: macos-latest
@@ -66,6 +72,14 @@ jobs:
           toolchain: stable
           targets: aarch64-apple-darwin
       - run: cargo check --target aarch64-apple-darwin
+      - run: cargo test
+      - run: cargo test --no-default-features --features compile-time-rng
+      - name: Install 1.72.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.72.0
+          targets: aarch64-apple-darwin
+      - run: cargo +1.72.0 check --target aarch64-apple-darwin
   i686-unknown-linux-gnu:
     name: Linux i686
     runs-on: ubuntu-latest
@@ -79,8 +93,18 @@ jobs:
         run: sudo apt-get install -y gcc-multilib libc6-i386 libc6-dev-i386
       - run: cargo check --target i686-unknown-linux-gnu
       - run: cargo test --target i686-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
+      - name: Install 1.72.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.72.0
+          targets: i686-unknown-linux-gnu
+      - run: cargo +1.72.0 check --target i686-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo +1.72.0 check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
   x86_64-unknown-linux-gnu:
-    name: Linux x86_64 - nightly
+    name: Linux x86_64
     runs-on: ubuntu-latest
     env:
         RUSTFLAGS: -C target-cpu=skylake -C target-feature=+aes
@@ -92,6 +116,15 @@ jobs:
           targets: x86_64-unknown-linux-gnu
       - run: cargo check --target x86_64-unknown-linux-gnu
       - run: cargo test --target x86_64-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+      - name: Install 1.72.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.72.0
+      - run: cargo +1.72.0 check --target x86_64-unknown-linux-gnu
+      - name: check constrandom
+        run: cargo +1.72.0 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
   thumbv6m:
     name: thumbv6m
     runs-on: ubuntu-latest
@@ -112,17 +145,6 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
       - run: cargo check --target wasm32-unknown-unknown --no-default-features
-  msrv:
-    name: MSRV
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install 1.72.0
-        uses: dtolnay/rust-toolchain@master
-        with:
-            toolchain: 1.72.0
-      - name: check
-        run: cargo check
   no_std:
     name: no-std build
     runs-on: ubuntu-latest
