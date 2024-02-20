@@ -1,4 +1,5 @@
 use crate::convert::*;
+#[allow(unused)]
 use zerocopy::transmute;
 
 ///This constant comes from Kunth's prng (Empirically it works better than those from splitmix32).
