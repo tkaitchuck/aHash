@@ -225,6 +225,56 @@ fn test_key_ref() {
     assert!(m.contains(&b"hello"[..]));
 }
 
+#[cfg(feature = "std")]
+#[test]
+fn test_byte_dist() {
+    use rand::{SeedableRng, Rng, RngCore};
+    use pcg_mwc::Mwc256XXA64;
+
+    let mut r = Mwc256XXA64::seed_from_u64(0xe786_c22b_119c_1479);
+    let mut lowest = 2.541;
+    let mut highest = 2.541;
+    for _round in 0..100 {
+        let mut table: [bool; 256 * 8] = [false; 256 * 8];
+        let hasher = RandomState::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
+        for i in 0..128 {
+            let mut keys: [u8; 8] = hasher.hash_one(i as u64).to_ne_bytes();
+            //let mut keys = r.next_u64().to_ne_bytes(); //This is a control to test assert sensitivity.
+            for idx in 0..8 {
+                while table[idx * 256 + keys[idx] as usize] {
+                    keys[idx] = keys[idx].wrapping_add(1);
+                }
+                table[idx * 256 + keys[idx] as usize] = true;
+            }
+        }
+
+        for idx in 0..8 {
+            let mut len = 0;
+            let mut total_len = 0;
+            let mut num_seq = 0;
+            for i in 0..256 {
+                if table[idx * 256 + i] {
+                    len += 1;
+                } else if len != 0 {
+                    num_seq += 1;
+                    total_len += len;
+                    len = 0;
+                }
+            }
+            let mean = total_len as f32 / num_seq as f32;
+            println!("Mean sequence length = {}", mean);
+            if mean > highest {
+                highest = mean;
+            }
+            if mean < lowest {
+                lowest = mean;
+            }
+        }
+    }
+    assert!(lowest > 1.9, "Lowest = {}", lowest);
+    assert!(highest < 3.9, "Highest = {}", highest);
+}
+
 
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;

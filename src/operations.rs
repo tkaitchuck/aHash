@@ -184,7 +184,6 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::convert::Convert;
 
     // This is code to search for the shuffle constant
     //
