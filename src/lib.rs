@@ -319,7 +319,6 @@ mod test {
     use crate::specialize::CallHasher;
     use crate::*;
     use std::collections::HashMap;
-    use std::hash::Hash;
 
     #[test]
     fn test_ahash_alias_map_construction() {

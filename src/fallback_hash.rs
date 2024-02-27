@@ -237,6 +237,7 @@ impl Hasher for AHasherU64 {
     #[inline]
     fn write_u64(&mut self, i: u64) {
         self.buffer = folded_multiply(i ^ self.buffer, MULTIPLE);
+        self.pad = self.pad.wrapping_add(i);
     }
 
     #[inline]
@@ -341,7 +342,6 @@ impl Hasher for AHasherStr {
 
 #[cfg(test)]
 mod tests {
-    use crate::convert::Convert;
     use crate::fallback_hash::*;
 
     #[test]
