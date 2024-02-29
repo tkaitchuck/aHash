@@ -8,17 +8,16 @@ extern crate alloc;
 extern crate std as alloc;
 
 #[cfg(feature = "specialize")]
-use crate::BuildHasherExt;
-#[cfg(feature = "specialize")]
 use alloc::string::String;
 #[cfg(feature = "specialize")]
 use alloc::vec::Vec;
+use crate::RandomState;
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
 /// for a specific type. So this may be faster for primitive types.
-pub(crate) trait CallHasher {
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64;
+pub(crate) trait CallHasher<T> {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64;
 }
 
 #[cfg(not(feature = "specialize"))]
@@ -32,9 +31,9 @@ impl<T> CallHasher for T {
 }
 
 #[cfg(feature = "specialize")]
-impl<T> CallHasher for T {
+impl<T> CallHasher<T> for T {
     #[inline]
-    default fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    default fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64 {
         let mut hasher = build_hasher.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
@@ -44,9 +43,9 @@ impl<T> CallHasher for T {
 macro_rules! call_hasher_impl {
     ($typ:ty) => {
         #[cfg(feature = "specialize")]
-        impl CallHasher for $typ {
+        impl CallHasher<$typ> for $typ {
             #[inline]
-            fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+            fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<$typ>) -> u64 {
                 build_hasher.hash_as_u64(value)
             }
         }
@@ -62,65 +61,49 @@ call_hasher_impl!(i32);
 call_hasher_impl!(i64);
 
 #[cfg(feature = "specialize")]
-impl CallHasher for u128 {
+impl CallHasher<u128> for u128 {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<u128>) -> u64 {
         build_hasher.hash_as_fixed_length(value)
     }
 }
 
 #[cfg(feature = "specialize")]
-impl CallHasher for i128 {
+impl CallHasher<i128> for i128 {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<i128>) -> u64 {
         build_hasher.hash_as_fixed_length(value)
     }
 }
 
 #[cfg(feature = "specialize")]
-impl CallHasher for usize {
+impl CallHasher<usize> for usize {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<usize>) -> u64 {
         build_hasher.hash_as_fixed_length(value)
     }
 }
 
 #[cfg(feature = "specialize")]
-impl CallHasher for isize {
+impl CallHasher<isize> for isize {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<isize>) -> u64 {
         build_hasher.hash_as_fixed_length(value)
     }
 }
 
 #[cfg(feature = "specialize")]
-impl CallHasher for [u8] {
+impl CallHasher<Vec<u8>> for Vec<u8> {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
-        build_hasher.hash_as_str(value)
-    }
-}
-
-#[cfg(feature = "specialize")]
-impl CallHasher for Vec<u8> {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
-        build_hasher.hash_as_str(value)
-    }
-}
-
-#[cfg(feature = "specialize")]
-impl CallHasher for str {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<Vec<u8>>) -> u64 {
         build_hasher.hash_as_str(value)
     }
 }
 
 #[cfg(all(feature = "specialize"))]
-impl CallHasher for String {
+impl CallHasher<String> for String {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<String>) -> u64 {
         build_hasher.hash_as_str(value)
     }
 }

@@ -11,11 +11,6 @@ cfg_if::cfg_if! {
     }
 }
 cfg_if::cfg_if! {
-    if #[cfg(feature = "specialize")]{
-        use crate::BuildHasherExt;
-    }
-}
-cfg_if::cfg_if! {
     if #[cfg(feature = "std")] {
         extern crate std as alloc;
     } else {
@@ -316,6 +311,31 @@ impl <T> RandomState<T> {
             _h: PhantomData,
         }
     }
+
+
+    #[inline]
+    pub(crate) fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherU64 {
+            buffer: self.k0,
+            pad: self.k1,
+        };
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherFixed(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherStr(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
 }
 
 /// Creates an instance of RandomState using keys obtained from the random number generator.
@@ -421,41 +441,14 @@ impl <T> BuildHasher for RandomState<T> {
     }
 }
 
-#[cfg(feature = "specialize")]
-impl <T> BuildHasherExt for RandomState<T> {
-    #[inline]
-    fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherU64 {
-            buffer: self.k0,
-            pad: self.k1,
-        };
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherFixed(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherStr(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn test_unique() {
-        let a = RandomState::generate_with(1, 2, 3, 4);
-        let b = RandomState::generate_with(1, 2, 3, 4);
+        let a = RandomState::<()>::generate_with(1, 2, 3, 4);
+        let b = RandomState::<()>::generate_with(1, 2, 3, 4);
         assert_ne!(a.build_hasher().finish(), b.build_hasher().finish());
     }
 
