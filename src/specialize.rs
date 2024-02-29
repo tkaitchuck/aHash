@@ -22,10 +22,7 @@ pub(crate) trait CallHasher {
 }
 
 #[cfg(not(feature = "specialize"))]
-impl<T> CallHasher for T
-where
-    T: Hash + ?Sized,
-{
+impl<T> CallHasher for T {
     #[inline]
     fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
         let mut hasher = build_hasher.build_hasher();
@@ -35,10 +32,7 @@ where
 }
 
 #[cfg(feature = "specialize")]
-impl<T> CallHasher for T
-where
-    T: Hash + ?Sized,
-{
+impl<T> CallHasher for T {
     #[inline]
     default fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
         let mut hasher = build_hasher.build_hasher();

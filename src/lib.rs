@@ -129,10 +129,10 @@ cfg_if::cfg_if! {
         /// [Hasher]: std::hash::Hasher
         /// [HashMap]: std::collections::HashMap
         /// Type alias for [HashMap]<K, V, ahash::RandomState>
-        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
+        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState<K>>;
 
         /// Type alias for [HashSet]<K, ahash::RandomState>
-        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
+        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState<K>>;
     }
 }
 
@@ -244,7 +244,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        RandomState::with_fixed_keys().build_hasher()
+        RandomState::<()>::with_fixed_keys().build_hasher()
     }
 }
 
@@ -342,7 +342,7 @@ mod test {
 
     #[test]
     fn test_builder() {
-        let mut map = HashMap::<u32, u64, RandomState>::default();
+        let mut map = HashMap::<u32, u64, RandomState<u32>>::default();
         map.insert(1, 3);
     }
 
@@ -374,7 +374,7 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher_build = RandomState::with_seeds(0, 0, 0, 0);
+        let hasher_build = RandomState::<&str>::with_seeds(0, 0, 0, 0);
 
         let h1 = str::get_hash("foo", &hasher_build);
         let h2 = str::get_hash("bar", &hasher_build);

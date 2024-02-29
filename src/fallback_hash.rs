@@ -54,7 +54,7 @@ impl AHasher {
 
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher {
+    pub(crate) fn from_random_state<T>(rand_state: &RandomState<T>) -> AHasher {
         AHasher {
             buffer: rand_state.k0,
             pad: rand_state.k1,

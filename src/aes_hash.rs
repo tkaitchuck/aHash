@@ -69,7 +69,7 @@ impl AHasher {
     }
 
     #[inline]
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
+    pub(crate) fn from_random_state<T>(rand_state: &RandomState<T>) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
         let key2 = [rand_state.k2, rand_state.k3].convert();
         Self {
