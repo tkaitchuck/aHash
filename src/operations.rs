@@ -364,9 +364,11 @@ mod test {
 
     #[test]
     fn test_add_length() {
-        let mut enc = (u64::MAX as u128) << 64 | 50;
+        let enc : [u64; 2] = [50, u64::MAX];
+        let mut enc : u128 = enc.convert();
         add_in_length(&mut enc, u64::MAX);
-        assert_eq!(enc >> 64, u64::MAX as u128);
-        assert_eq!(enc as u64, 49);
+        let enc : [u64; 2] = enc.convert();
+        assert_eq!(enc[1], u64::MAX);
+        assert_eq!(enc[0], 49);
     }
 }
