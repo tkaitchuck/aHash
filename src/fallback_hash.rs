@@ -72,7 +72,7 @@ impl AHasher {
     ///
     /// This version avoids this vulnerability while still only using a single multiply. It takes advantage
     /// of the fact that when a 64 bit multiply is performed the upper 64 bits are usually computed and thrown
-    /// away. Instead it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
+    /// away. Instead, it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
     /// (The compiler is smart enough to turn this into a 64 bit multiplication in the assembly)
     /// Then the upper bits are xored with the lower bits to produce a single 64 bit result.
     ///
@@ -85,11 +85,11 @@ impl AHasher {
     /// This is impervious to attack because every bit buffer at the end is dependent on every bit in
     /// `new_data ^ buffer`. For example suppose two inputs differed in only the 5th bit. Then when the
     /// multiplication is performed the `result` will differ in bits 5-69. More specifically it will differ by
-    /// 2^5 * MULTIPLE. However in the next step bits 65-128 are turned into a separate 64 bit value. So the
+    /// 2^5 * MULTIPLE. However, in the next step bits 65-128 are turned into a separate 64 bit value. So the
     /// differing bits will be in the lower 6 bits of this value. The two intermediate values that differ in
     /// bits 5-63 and in bits 0-5 respectively get added together. Producing an output that differs in every
-    /// bit. The addition carries in the multiplication and at the end additionally mean that the even if an
-    /// attacker somehow knew part of (but not all) the contents of the buffer before hand,
+    /// bit. The addition carries in the multiplication and at the end additionally mean that even if an
+    /// attacker somehow knew part of (but not all) the contents of the buffer beforehand,
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
@@ -97,12 +97,12 @@ impl AHasher {
     }
 
     /// Similar to the above this function performs an update using a "folded multiply".
-    /// However it takes in 128 bits of data instead of 64. Both halves must be masked.
+    /// However, it takes in 128 bits of data instead of 64. Both halves must be masked.
     ///
     /// This makes it impossible for an attacker to place a single bit difference between
     /// two blocks so as to cancel each other.
     ///
-    /// However this is not sufficient. to prevent (a,b) from hashing the same as (b,a) the buffer itself must
+    /// However, this is not sufficient. to prevent (a,b) from hashing the same as (b,a) the buffer itself must
     /// be updated between calls in a way that does not commute. To achieve this XOR and Rotate are used.
     /// Add followed by xor is not the same as xor followed by add, and rotate ensures that the same out bits
     /// can't be changed by the same set of input bits. To cancel this sequence with subsequent input would require
@@ -142,7 +142,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.update(i as u64);
+        self.update(i);
     }
 
     #[inline]
