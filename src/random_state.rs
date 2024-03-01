@@ -370,7 +370,7 @@ impl <T> BuildHasher for RandomState<T> {
         use ahash::{AHasher, RandomState};
         use std::hash::{Hasher, BuildHasher};
     
-        let build_hasher = RandomState::new();
+        let build_hasher = RandomState::<u32>::new();
         let mut hasher_1 = build_hasher.build_hasher();
         let mut hasher_2 = build_hasher.build_hasher();
     
@@ -379,7 +379,7 @@ impl <T> BuildHasher for RandomState<T> {
     
         assert_eq!(hasher_1.finish(), hasher_2.finish());
     
-        let other_build_hasher = RandomState::new();
+        let other_build_hasher = RandomState::<u32>::new();
         let mut different_hasher = other_build_hasher.build_hasher();
         different_hasher.write_u32(1234);
         assert_ne!(different_hasher.finish(), hasher_1.finish());
@@ -403,7 +403,7 @@ impl <T> BuildHasher for RandomState<T> {
     use std::hash::BuildHasher;
     use ahash::RandomState;
 
-    let hash_builder = RandomState::new();
+    let hash_builder = RandomState::<String>::new();
     let hash = hash_builder.hash_one("Some Data");
 ```
     "##
@@ -416,7 +416,7 @@ impl <T> BuildHasher for RandomState<T> {
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::RandomState;
 
-    let hash_builder = RandomState::new();
+    let hash_builder = RandomState::<String>::new();
     let mut hasher = hash_builder.build_hasher();
     "Some Data".hash(&mut hasher);
     let hash = hasher.finish();

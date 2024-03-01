@@ -370,7 +370,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+        let mut hasher = RandomState::<()>::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);

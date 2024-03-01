@@ -5,7 +5,7 @@ use criterion::*;
 use fxhash::FxHasher;
 use rand::Rng;
 use std::collections::hash_map::DefaultHasher;
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
 
 // Needs to be in sync with `src/lib.rs`
 const AHASH_IMPL: &str = if cfg!(any(
@@ -28,7 +28,7 @@ const AHASH_IMPL: &str = if cfg!(any(
 };
 
 fn ahash<H: Hash>(b: &H) -> u64 {
-    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+    let build_hasher = RandomState::<H>::default();
     build_hasher.hash_one(b)
 }
 
@@ -140,7 +140,7 @@ fn bench_map(c: &mut Criterion) {
         });
         group.bench_function("aHash-hashBrown-explicit", |b| {
             b.iter(|| {
-                let hm: hashbrown::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
+                let hm: hashbrown::HashMap<i32, i32, RandomState<i32>> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
                     if let Some(x) = hm.get(&i) {
@@ -162,7 +162,7 @@ fn bench_map(c: &mut Criterion) {
         });
         group.bench_function("aHash-rand", |b| {
             b.iter(|| {
-                let hm: std::collections::HashMap<i32, i32, RandomState> = (0..1_000_000).map(|i| (i, i)).collect();
+                let hm: std::collections::HashMap<i32, i32, RandomState<i32>> = (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
                     if let Some(x) = hm.get(&i) {

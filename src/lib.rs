@@ -25,7 +25,7 @@ To construct a HashMap using aHash as its hasher do the following:
 use ahash::{AHasher, RandomState};
 use std::collections::HashMap;
 
-let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
+let mut map: HashMap<i32, i32, RandomState<i32>> = HashMap::default();
 map.insert(12, 34);
 ```
 
@@ -61,7 +61,7 @@ Or for uses besides a hashhmap:
 use std::hash::BuildHasher;
 use ahash::RandomState;
 
-let hash_builder = RandomState::with_seed(42);
+let hash_builder = RandomState::<String>::with_seed(42);
 let hash = hash_builder.hash_one("Some Data");
 ```
 There are several constructors for [RandomState] with different ways to supply seeds.
@@ -317,14 +317,15 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher_build = RandomState::<&str>::with_seeds(0, 0, 0, 0);
+        let hasher_build = RandomState::<String>::with_seeds(0, 0, 0, 0);
 
-        let h1 = str::get_hash("foo", &hasher_build);
-        let h2 = str::get_hash("bar", &hasher_build);
+        let h1 = String::get_hash("foo", &hasher_build);
+        let h2 = String::get_hash("bar", &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);
 
+        let hasher_build = RandomState::<u64>::with_seeds(0, 0, 0, 0);
         let h1 = u64::get_hash(&3_u64, &hasher_build);
         let h2 = u64::get_hash(&4_u64, &hasher_build);
         assert_ne!(h1, 0);
