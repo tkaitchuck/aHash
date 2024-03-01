@@ -393,4 +393,23 @@ mod test {
     fn test_ahasher_construction() {
         let _ = AHasher::new_with_keys(1234, 5678);
     }
+
+    #[test]
+    fn test_specialize_reference_hash() {
+        let hasher_build = RandomState::with_seeds(0, 0, 0, 0);
+        let h1 = hasher_build.hash_one(1u64);
+        let h2 = hasher_build.hash_one(&1u64);
+
+        assert_eq!(h1, h2);
+
+        let h1 = u64::get_hash(&1_u64, &hasher_build);
+        let h2 = <&u64>::get_hash(&&1_u64, &hasher_build);
+
+        assert_eq!(h1, h2);
+
+        let h1 = hasher_build.hash_one(1u128);
+        let h2 = hasher_build.hash_one(&1u128);
+
+        assert_eq!(h1, h2);
+    }
 }
