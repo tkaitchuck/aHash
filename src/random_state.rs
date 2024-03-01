@@ -202,6 +202,40 @@ cfg_if::cfg_if! {
 /// [BuildHasher]: std::hash::BuildHasher
 /// [HashMap]: std::collections::HashMap
 ///
+/// # Type parameter
+/// `RandomState<T>` takes a type parameter `T`. This type is used to determine which hashing 
+/// algorithm will be used. Normally this is the type of the items to be hashed.
+/// However, it is also possible hash other types provided their implementation of [Hash] is
+/// functionally the same as the `T`'s implementation of [Hash]. 
+/// (Or if one derefs into the other). 
+/// 
+/// For example, it is possible to use a `RandomState<String>` to hash not only `String`s but also 
+/// `&str`s or `&[u8]`s: 
+/// ```
+/// use std::hash::BuildHasher;
+/// use ahash::RandomState;
+/// 
+/// let state = RandomState::<String>::new();
+/// let v1 = state.hash_one("foo");
+/// let v2 = state.hash_one("foo".as_bytes());
+/// assert_eq!(v1, v2);
+/// ```
+/// This is convenient because it avoids the need to declare lifetimes.
+/// 
+/// Similarly, it is possible to use a `RandomState<u64>` to hash a `&u64` or a `Box<u64>` etc.
+/// 
+/// If you wish to hash items of heterogeneous types use `RandomState<()>`. This will use a generic 
+/// algorithm which will work for any type.
+/// ```
+/// use std::hash::BuildHasher;
+/// use ahash::RandomState;
+/// 
+/// let state = RandomState::<()>::new();
+/// let foo_hash = state.hash_one("foo");
+/// let num_hash = state.hash_one(1234);
+/// ```
+///
+/// # Constructors
 /// There are multiple constructors each is documented in more detail below:
 ///
 /// | Constructor   | Dynamically random? | Seed |

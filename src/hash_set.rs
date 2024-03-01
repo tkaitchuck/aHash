@@ -49,12 +49,16 @@ impl<T> Into<HashSet<T, RandomState<T>>> for AHashSet<T> {
 impl<T> AHashSet<T, RandomState<T>> {
     /// This crates a hashset using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
+    /// 
+    /// [RandomSource]: crate::random_state::RandomSource
     pub fn new() -> Self {
         AHashSet(HashSet::with_hasher(RandomState::new()))
     }
 
     /// This crates a hashset with the specified capacity using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
+    /// 
+    /// [RandomSource]: crate::random_state::RandomSource
     pub fn with_capacity(capacity: usize) -> Self {
         AHashSet(HashSet::with_capacity_and_hasher(capacity, RandomState::new()))
     }
@@ -247,6 +251,8 @@ where
 {
     /// This crates a hashset from the provided iterator using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
+    /// 
+    /// [RandomSource]: crate::random_state::RandomSource
     #[inline]
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> AHashSet<T> {
         let mut inner = HashSet::with_hasher(RandomState::new());
