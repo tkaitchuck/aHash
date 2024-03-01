@@ -40,7 +40,7 @@ impl<T> CallHasher<T> for T {
     }
 }
 
-macro_rules! call_hasher_impl {
+macro_rules! call_hasher_impl_u64 {
     ($typ:ty) => {
         #[cfg(feature = "specialize")]
         impl CallHasher<$typ> for $typ {
@@ -51,46 +51,31 @@ macro_rules! call_hasher_impl {
         }
     };
 }
-call_hasher_impl!(u8);
-call_hasher_impl!(u16);
-call_hasher_impl!(u32);
-call_hasher_impl!(u64);
-call_hasher_impl!(i8);
-call_hasher_impl!(i16);
-call_hasher_impl!(i32);
-call_hasher_impl!(i64);
+call_hasher_impl_u64!(u8);
+call_hasher_impl_u64!(u16);
+call_hasher_impl_u64!(u32);
+call_hasher_impl_u64!(u64);
+call_hasher_impl_u64!(i8);
+call_hasher_impl_u64!(i16);
+call_hasher_impl_u64!(i32);
+call_hasher_impl_u64!(i64);
 
-#[cfg(feature = "specialize")]
-impl CallHasher<u128> for u128 {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<u128>) -> u64 {
-        build_hasher.hash_as_fixed_length(value)
-    }
+macro_rules! call_hasher_impl_fixed_length{
+    ($typ:ty) => {
+        #[cfg(feature = "specialize")]
+        impl CallHasher<$typ> for $typ {
+            #[inline]
+            fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<$typ>) -> u64 {
+                build_hasher.hash_as_fixed_length(value)
+            }
+        }
+    };
 }
 
-#[cfg(feature = "specialize")]
-impl CallHasher<i128> for i128 {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<i128>) -> u64 {
-        build_hasher.hash_as_fixed_length(value)
-    }
-}
-
-#[cfg(feature = "specialize")]
-impl CallHasher<usize> for usize {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<usize>) -> u64 {
-        build_hasher.hash_as_fixed_length(value)
-    }
-}
-
-#[cfg(feature = "specialize")]
-impl CallHasher<isize> for isize {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<isize>) -> u64 {
-        build_hasher.hash_as_fixed_length(value)
-    }
-}
+call_hasher_impl_fixed_length!(u128);
+call_hasher_impl_fixed_length!(i128);
+call_hasher_impl_fixed_length!(usize);
+call_hasher_impl_fixed_length!(isize);
 
 #[cfg(feature = "specialize")]
 impl CallHasher<Vec<u8>> for Vec<u8> {
