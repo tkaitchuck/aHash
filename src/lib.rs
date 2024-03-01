@@ -95,7 +95,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 "##
 )]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
-#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
+#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal, unused_imports)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
 #![cfg_attr(feature = "nightly-arm-aes", feature(stdarch_arm_neon_intrinsics))]

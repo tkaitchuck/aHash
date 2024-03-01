@@ -230,7 +230,7 @@ fn test_key_ref() {
 #[cfg(feature = "std")]
 #[test]
 fn test_byte_dist() {
-    use rand::{SeedableRng, Rng, RngCore};
+    use rand::{SeedableRng, Rng};
     use pcg_mwc::Mwc256XXA64;
 
     let mut r = Mwc256XXA64::seed_from_u64(0xe786_c22b_119c_1479);
