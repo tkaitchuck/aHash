@@ -169,7 +169,7 @@ mod test {
             build_hasher.hash_one(&"test".to_string())
         );
         assert_eq!(
-            build_hasher.hash_one(&"test"),
+            build_hasher.hash_one(&"test".as_bytes()),
             build_hasher.hash_one("test".as_bytes())
         );
 
@@ -205,8 +205,21 @@ mod test {
             build_hasher.hash_one(&"test".to_string())
         );
         assert_eq!(
-            build_hasher.hash_one(&&"test"),
-            build_hasher.hash_one(&"test".to_string().into_bytes())
+            build_hasher.hash_one(&&"test".as_bytes()),
+            build_hasher.hash_one(&"test".as_bytes())
+        );
+        
+        assert_eq!(
+            build_hasher.hash_one(Box::new("test")),
+            build_hasher.hash_one("test")
+        );
+        assert_eq!(
+            build_hasher.hash_one(Box::new("test")),
+            build_hasher.hash_one("test".to_string())
+        );
+        assert_eq!(
+            build_hasher.hash_one(Box::new("test".as_bytes())),
+            build_hasher.hash_one(&"test".as_bytes())
         );
     }
 }

@@ -210,14 +210,14 @@ cfg_if::cfg_if! {
 /// (Or if one derefs into the other). 
 /// 
 /// For example, it is possible to use a `RandomState<String>` to hash not only `String`s but also 
-/// `&str`s or `&[u8]`s: 
+/// `&str`s, `Box<str>`s, or `&Box<String>`: 
 /// ```
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;
 /// 
 /// let state = RandomState::<String>::new();
 /// let v1 = state.hash_one("foo");
-/// let v2 = state.hash_one("foo".as_bytes());
+/// let v2 = state.hash_one(&Box::new("foo"));
 /// assert_eq!(v1, v2);
 /// ```
 /// This is convenient because it avoids the need to declare lifetimes.
