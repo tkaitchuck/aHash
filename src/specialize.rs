@@ -21,9 +21,9 @@ pub(crate) trait CallHasher<T> {
 }
 
 #[cfg(not(feature = "specialize"))]
-impl<T> CallHasher for T {
+impl<T> CallHasher<T> for T {
     #[inline]
-    fn get_hash<H: Hash + ?Sized, B: BuildHasher>(value: &H, build_hasher: &B) -> u64 {
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64 {
         let mut hasher = build_hasher.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()

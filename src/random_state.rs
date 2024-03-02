@@ -29,7 +29,7 @@ use core::any::{Any, TypeId};
 use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 pub(crate) const PI: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
