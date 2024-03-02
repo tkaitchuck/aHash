@@ -100,6 +100,20 @@ impl AHasher {
         let result: [u64; 2] = aesdec(combined, combined).convert();
         result[0]
     }
+    
+    #[inline]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
+    fn final_mix(&self) -> u128 {
+        let sum = aesenc(self.sum, self.key);
+        aesdec(aesdec(sum, self.enc), sum)
+    }
+
+    #[inline]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    fn final_mix(&self) -> u128 {
+        let combined = aesenc(self.sum, self.enc);
+        aesdec(aesdec(combined, self.key), combined)
+    }
 }
 
 /// Provides [Hasher] methods to hash all of the primitive types.
@@ -206,10 +220,10 @@ impl Hasher for AHasher {
             }
         }
     }
+
     #[inline]
     fn finish(&self) -> u64 {
-        let combined = aesenc(self.sum, self.enc);
-        let result: [u64; 2] = aesdec(aesdec(combined, self.key), combined).convert();
+        let result: [u64; 2] = self.final_mix().convert();
         result[0]
     }
 }
@@ -330,15 +344,13 @@ impl Hasher for AHasherStr {
     fn write(&mut self, bytes: &[u8]) {
         if bytes.len() > 8 {
             self.0.write(bytes);
-            self.0.enc = aesenc(self.0.sum, self.0.enc);
-            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = self.0.final_mix();
         } else {
             add_in_length(&mut self.0.enc, bytes.len() as u64);
 
             let value = read_small(bytes).convert();
             self.0.sum = shuffle_and_add(self.0.sum, value);
-            self.0.enc = aesenc(self.0.sum, self.0.enc);
-            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = self.0.final_mix();
         }
     }
 
