@@ -348,6 +348,7 @@ impl <T> RandomState<T> {
 
 
     #[inline]
+    #[cfg(feature = "specialize")]
     pub(crate) fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherU64 {
             buffer: self.k0,
@@ -358,6 +359,7 @@ impl <T> RandomState<T> {
     }
 
     #[inline]
+    #[cfg(feature = "specialize")]
     pub(crate) fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherFixed(self.build_hasher());
         value.hash(&mut hasher);
@@ -365,6 +367,7 @@ impl <T> RandomState<T> {
     }
 
     #[inline]
+    #[cfg(feature = "specialize")]
     pub(crate) fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherStr(self.build_hasher());
         value.hash(&mut hasher);
