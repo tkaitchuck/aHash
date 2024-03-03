@@ -8,8 +8,8 @@ extern crate no_panic;
 #[no_panic]
 fn hash_test_final(num: i32, string: &str) -> (u64, u64) {
     use core::hash::Hasher;
-    let mut hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
-    let mut hasher2 = RandomState::with_seeds(3, 4, 5, 6).build_hasher();
+    let mut hasher1 = RandomState::<()>::with_seeds(1, 2, 3, 4).build_hasher();
+    let mut hasher2 = RandomState::<()>::with_seeds(3, 4, 5, 6).build_hasher();
     hasher1.write_i32(num);
     hasher2.write(string.as_bytes());
     (hasher1.finish(), hasher2.finish())
@@ -46,8 +46,8 @@ impl BuildHasher for SimpleBuildHasher {
 #[inline(never)]
 #[no_panic]
 fn hash_test_specialize(num: i32, string: &str) -> (u64, u64) {
-    let hasher1 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
-    let hasher2 = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+    let hasher1 = RandomState::<i32>::with_seeds(1, 2, 3, 4).build_hasher();
+    let hasher2 = RandomState::<String>::with_seeds(1, 2, 3, 4).build_hasher();
     (
         SimpleBuildHasher { hasher: hasher1 }.hash_one(num),
         SimpleBuildHasher { hasher: hasher2 }.hash_one(string.as_bytes()),
@@ -62,8 +62,8 @@ fn hash_test_random_wrapper(num: i32, string: &str) {
 #[inline(never)]
 #[no_panic]
 fn hash_test_random(num: i32, string: &str) -> (u64, u64) {
-    let build_hasher1 = RandomState::with_seeds(1, 2, 3, 4);
-    let build_hasher2 = RandomState::with_seeds(1, 2, 3, 4);
+    let build_hasher1 = RandomState::<()>::with_seeds(1, 2, 3, 4);
+    let build_hasher2 = RandomState::<()>::with_seeds(1, 2, 3, 4);
     (build_hasher1.hash_one(&num), build_hasher2.hash_one(string.as_bytes()))
 }
 

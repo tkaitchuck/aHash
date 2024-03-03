@@ -25,7 +25,7 @@ To construct a HashMap using aHash as its hasher do the following:
 use ahash::{AHasher, RandomState};
 use std::collections::HashMap;
 
-let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
+let mut map: HashMap<i32, i32, RandomState<i32>> = HashMap::default();
 map.insert(12, 34);
 ```
 
@@ -61,7 +61,7 @@ Or for uses besides a hashhmap:
 use std::hash::BuildHasher;
 use ahash::RandomState;
 
-let hash_builder = RandomState::with_seed(42);
+let hash_builder = RandomState::<String>::with_seed(42);
 let hash = hash_builder.hash_one("Some Data");
 ```
 There are several constructors for [RandomState] with different ways to supply seeds.
@@ -95,7 +95,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 "##
 )]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
-#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
+#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal, unused_imports)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
 
@@ -128,10 +128,10 @@ cfg_if::cfg_if! {
         /// [Hasher]: std::hash::Hasher
         /// [HashMap]: std::collections::HashMap
         /// Type alias for [HashMap]<K, V, ahash::RandomState>
-        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState>;
+        pub type HashMap<K, V> = std::collections::HashMap<K, V, crate::RandomState<K>>;
 
         /// Type alias for [HashSet]<K, ahash::RandomState>
-        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState>;
+        pub type HashSet<K> = std::collections::HashSet<K, crate::RandomState<K>>;
     }
 }
 
@@ -243,64 +243,7 @@ impl Default for AHasher {
     /// ```
     #[inline]
     fn default() -> AHasher {
-        RandomState::with_fixed_keys().build_hasher()
-    }
-}
-
-/// Used for specialization. (Sealed)
-pub(crate) trait BuildHasherExt: BuildHasher {
-    #[doc(hidden)]
-    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64;
-
-    #[doc(hidden)]
-    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64;
-
-    #[doc(hidden)]
-    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64;
-}
-
-impl<B: BuildHasher> BuildHasherExt for B {
-    #[inline]
-    #[cfg(feature = "specialize")]
-    default fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-    #[inline]
-    #[cfg(not(feature = "specialize"))]
-    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-    #[inline]
-    #[cfg(feature = "specialize")]
-    default fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-    #[inline]
-    #[cfg(not(feature = "specialize"))]
-    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-    #[inline]
-    #[cfg(feature = "specialize")]
-    default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-    #[inline]
-    #[cfg(not(feature = "specialize"))]
-    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = self.build_hasher();
-        value.hash(&mut hasher);
-        hasher.finish()
+        RandomState::<()>::with_fixed_keys().build_hasher()
     }
 }
 
@@ -341,7 +284,7 @@ mod test {
 
     #[test]
     fn test_builder() {
-        let mut map = HashMap::<u32, u64, RandomState>::default();
+        let mut map = HashMap::<u32, u64, RandomState<u32>>::default();
         map.insert(1, 3);
     }
 
@@ -373,14 +316,15 @@ mod test {
 
     #[test]
     fn test_non_zero_specialized() {
-        let hasher_build = RandomState::with_seeds(0, 0, 0, 0);
+        let hasher_build = RandomState::<String>::with_seeds(0, 0, 0, 0);
 
-        let h1 = str::get_hash("foo", &hasher_build);
-        let h2 = str::get_hash("bar", &hasher_build);
+        let h1 = String::get_hash("foo", &hasher_build);
+        let h2 = String::get_hash("bar", &hasher_build);
         assert_ne!(h1, 0);
         assert_ne!(h2, 0);
         assert_ne!(h1, h2);
 
+        let hasher_build = RandomState::<u64>::with_seeds(0, 0, 0, 0);
         let h1 = u64::get_hash(&3_u64, &hasher_build);
         let h2 = u64::get_hash(&4_u64, &hasher_build);
         assert_ne!(h1, 0);
@@ -395,20 +339,28 @@ mod test {
 
     #[test]
     fn test_specialize_reference_hash() {
-        let hasher_build = RandomState::with_seeds(0, 0, 0, 0);
+        let hasher_build = RandomState::default();
         let h1 = hasher_build.hash_one(1u64);
         let h2 = hasher_build.hash_one(&1u64);
+        let h3 = hasher_build.hash_one(&&1u64);
 
         assert_eq!(h1, h2);
+        assert_eq!(h1, h3);
 
         let h1 = u64::get_hash(&1_u64, &hasher_build);
-        let h2 = <&u64>::get_hash(&&1_u64, &hasher_build);
+        let h2 = u64::get_hash(&&1_u64, &hasher_build);
+        let h3 = u64::get_hash(&&&1_u64, &hasher_build);
 
         assert_eq!(h1, h2);
+        assert_eq!(h1, h3);
 
+        let hasher_build = RandomState::<u128>::default();
+        
         let h1 = hasher_build.hash_one(1u128);
         let h2 = hasher_build.hash_one(&1u128);
+        let h3 = hasher_build.hash_one(&&1u128);
 
         assert_eq!(h1, h2);
+        assert_eq!(h1, h3);
     }
 }
