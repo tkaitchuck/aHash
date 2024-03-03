@@ -48,6 +48,7 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
+    #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
         let key1 = key1 ^ pi[0];
@@ -69,7 +70,7 @@ impl AHasher {
     }
 
     #[inline]
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
+    pub(crate) fn from_random_state<T>(rand_state: &RandomState<T>) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
         let key2 = [rand_state.k2, rand_state.k3].convert();
         Self {
@@ -368,7 +369,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+        let mut hasher = RandomState::<()>::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);
