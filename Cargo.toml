@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.8.8"
+version = "0.8.10"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -100,6 +100,7 @@ rand = "0.8.5"
 pcg-mwc = "0.2.1"
 serde_json = "1.0.59"
 hashbrown = "0.14.3"
+smallvec = "1.13.1"
 
 [package.metadata.docs.rs]
 rustc-args = ["-C", "target-feature=+aes"]

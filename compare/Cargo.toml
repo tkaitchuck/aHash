@@ -29,6 +29,9 @@ codegen-units = 1
 
 [dependencies]
 ahash = { path = "../", default-features = false }
+pcg-mwc = "0.2.1"
+rand = "0.8.5"
+rand_core = "0.6.4"
 
 [dev-dependencies]
 criterion = "0.3.3"
