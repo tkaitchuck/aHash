@@ -470,8 +470,8 @@ impl BuildHasherExt for RandomState {
     #[inline]
     fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = AHasherU64 {
-            buffer: self.k0,
-            pad: self.k1,
+            buffer: self.k1,
+            pad: self.k0,
         };
         value.hash(&mut hasher);
         hasher.finish()

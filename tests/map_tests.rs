@@ -237,7 +237,7 @@ fn test_byte_dist() {
         let mut table: [bool; 256 * 8] = [false; 256 * 8];
         let hasher = RandomState::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
         for i in 0..128 {
-            let mut keys: [u8; 8] = hasher.hash_one(i as u64).to_ne_bytes();
+            let mut keys: [u8; 8] = hasher.hash_one((i as u64) << 30).to_ne_bytes();
             //let mut keys = r.next_u64().to_ne_bytes(); //This is a control to test assert sensitivity.
             for idx in 0..8 {
                 while table[idx * 256 + keys[idx] as usize] {
