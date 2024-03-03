@@ -278,7 +278,7 @@ fn test_byte_dist() {
 
 fn ahash_vec(b: &Vec<String>) -> u64 {
     let mut total: u64 = 0;
-    let state = RandomState::<String>::default();
+    let state = RandomState::<String>::with_seeds(0, 0, 0, 0);
     for item in b {
         let mut hasher = state.build_hasher();
         item.hash(&mut hasher);

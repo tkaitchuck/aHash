@@ -210,7 +210,7 @@ cfg_if::cfg_if! {
 /// (Or if one derefs into the other). 
 /// 
 /// For example, it is possible to use a `RandomState<String>` to hash not only `String`s but also 
-/// `&str`s, `Box<str>`s, or `&Box<String>`: 
+/// `&str`s, `Box<str>`s, or `&Box<String>`:
 /// ```
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;

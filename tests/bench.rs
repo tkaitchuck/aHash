@@ -26,7 +26,7 @@ const AHASH_IMPL: &str = if cfg!(any(
 };
 
 fn ahash<H: Hash>(b: &H) -> u64 {
-    let build_hasher = RandomState::<H>::default();
+    let build_hasher = RandomState::<H>::with_seeds(0, 0, 0, 0);
     build_hasher.hash_one(b)
 }
 
