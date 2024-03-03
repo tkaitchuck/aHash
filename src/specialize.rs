@@ -85,10 +85,26 @@ impl CallHasher<Vec<u8>> for Vec<u8> {
     }
 }
 
+#[cfg(feature = "specialize")]
+impl <'a> CallHasher<&'a [u8]> for &'a [u8] {
+    #[inline]
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<&'a [u8]>) -> u64 {
+        build_hasher.hash_as_str(value)
+    }
+}
+
 #[cfg(all(feature = "specialize"))]
 impl CallHasher<String> for String {
     #[inline]
     fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<String>) -> u64 {
+        build_hasher.hash_as_str(value)
+    }
+}
+    
+#[cfg(feature = "specialize")]
+impl <'a> CallHasher<&'a str> for &'a str {
+    #[inline]
+    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<&'a str>) -> u64 {
         build_hasher.hash_as_str(value)
     }
 }
