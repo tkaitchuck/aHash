@@ -226,8 +226,7 @@ pub(crate) struct AHasherU64 {
 impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
-        let rot = (self.pad & 63) as u32;
-        self.buffer.rotate_left(rot)
+        folded_multiply(self.buffer, self.pad)
     }
 
     #[inline]
@@ -253,7 +252,6 @@ impl Hasher for AHasherU64 {
     #[inline]
     fn write_u64(&mut self, i: u64) {
         self.buffer = folded_multiply(i ^ self.buffer, MULTIPLE);
-        self.pad = self.pad.wrapping_add(i);
     }
 
     #[inline]
