@@ -12,13 +12,8 @@ const AHASH_IMPL: &str = if cfg!(any(
         target_feature = "aes",
         not(miri),
     ),
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-    all(
-        feature = "nightly-arm-aes",
-        target_arch = "arm",
-        target_feature = "aes",
-        not(miri)
-    ),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(target_arch = "arm", target_feature = "aes", not(miri)),
 )) {
     "aeshash"
 } else {
