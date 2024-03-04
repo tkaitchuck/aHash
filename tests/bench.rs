@@ -56,10 +56,11 @@ fn seahash<H: Hash>(b: &H) -> u64 {
     hasher.finish()
 }
 
-const STRING_LENGTHS: [u32; 12] = [1, 3, 4, 7, 8, 15, 16, 24, 33, 68, 132, 1024];
+const STRING_LENGTHS: &'static [u32; 12] = &[1, 3, 4, 7, 8, 15, 16, 24, 33, 68, 132, 1024];
+const WIDER_STRINGS_LENGTHS: &'static [u32] = &[1, 64, 1024, 4096, 5261, 16384, 19997];
 
-fn gen_strings() -> Vec<String> {
-    STRING_LENGTHS
+fn gen_strings(lengths: &[u32]) -> Vec<String> {
+    lengths
         .iter()
         .map(|len| {
             let mut string = String::default();
@@ -83,7 +84,12 @@ macro_rules! bench_inputs {
         $group.bench_function("u32", |b| b.iter_batched(|| rng.gen::<u32>(), |v| $hash(&v), size));
         $group.bench_function("u64", |b| b.iter_batched(|| rng.gen::<u64>(), |v| $hash(&v), size));
         $group.bench_function("u128", |b| b.iter_batched(|| rng.gen::<u128>(), |v| $hash(&v), size));
-        $group.bench_with_input("strings", &gen_strings(), |b, s| b.iter(|| $hash(black_box(s))));
+        $group.bench_with_input("strings", &gen_strings(STRING_LENGTHS), |b, s| {
+            b.iter(|| $hash(black_box(s)))
+        });
+        $group.bench_with_input("wide-strings", &gen_strings(WIDER_STRINGS_LENGTHS), |b, s| {
+            b.iter(|| $hash(black_box(s)))
+        });
     };
 }
 
