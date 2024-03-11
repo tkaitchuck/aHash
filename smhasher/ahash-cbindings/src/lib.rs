@@ -1,6 +1,5 @@
 use ahash::*;
 use core::slice;
-use std::hash::{BuildHasher};
 
 #[no_mangle]
 pub extern "C" fn ahash64(buf: *const (), len: usize, seed: u64) -> u64 {

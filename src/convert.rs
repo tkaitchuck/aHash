@@ -19,6 +19,7 @@ macro_rules! convert {
     };
 }
 
+convert!([u128; 8], [u8; 128]);
 convert!([u128; 4], [u64; 8]);
 convert!([u128; 4], [u32; 16]);
 convert!([u128; 4], [u16; 32]);
@@ -79,12 +80,14 @@ pub(crate) trait ReadFromSlice {
     fn read_u128(&self) -> (u128, &[u8]);
     fn read_u128x2(&self) -> ([u128; 2], &[u8]);
     fn read_u128x4(&self) -> ([u128; 4], &[u8]);
+    fn read_u128x8(&self) -> ([u128; 8], &[u8]);
     fn read_last_u16(&self) -> u16;
     fn read_last_u32(&self) -> u32;
     fn read_last_u64(&self) -> u64;
     fn read_last_u128(&self) -> u128;
     fn read_last_u128x2(&self) -> [u128; 2];
     fn read_last_u128x4(&self) -> [u128; 4];
+    fn read_last_u128x8(&self) -> [u128; 8];
 }
 
 impl ReadFromSlice for [u8] {
@@ -125,6 +128,12 @@ impl ReadFromSlice for [u8] {
     }
 
     #[inline(always)]
+    fn read_u128x8(&self) -> ([u128; 8], &[u8]) {
+        let (value, rest) = self.split_at(128);
+        (as_array!(value, 128).convert(), rest)
+    }
+
+    #[inline(always)]
     fn read_last_u16(&self) -> u16 {
         let (_, value) = self.split_at(self.len() - 2);
         as_array!(value, 2).convert()
@@ -158,5 +167,10 @@ impl ReadFromSlice for [u8] {
     fn read_last_u128x4(&self) -> [u128; 4] {
         let (_, value) = self.split_at(self.len() - 64);
         as_array!(value, 64).convert()
+    }
+
+    fn read_last_u128x8(&self) -> [u128; 8] {
+        let (_, value) = self.split_at(self.len() - 128);
+        as_array!(value, 128).convert()
     }
 }
