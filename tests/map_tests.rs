@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
-
 use std::hash::{BuildHasher, Hash, Hasher};
 
 use ahash::RandomState;
@@ -167,14 +165,16 @@ fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+    let build_hasher = RandomState::<String>::with_seed(1);
     test_hash_common_words(&build_hasher);
+    let build_hasher = RandomState::<i32>::with_seed(1);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&build_hasher, &sequence, 32);
     let sequence: Vec<_> = (0..2560000).collect();
     check_for_collisions(&build_hasher, &sequence, 256);
     let sequence: Vec<_> = (0..320000).map(|i| i * 1024).collect();
     check_for_collisions(&build_hasher, &sequence, 32);
+    let build_hasher = RandomState::<i64>::with_seed(1);
     let sequence: Vec<_> = (0..2560000_u64).map(|i| i * 1024).collect();
     check_for_collisions(&build_hasher, &sequence, 256);
 }
@@ -228,7 +228,7 @@ fn test_key_ref() {
 #[cfg(feature = "std")]
 #[test]
 fn test_byte_dist() {
-    use rand::{SeedableRng, Rng, RngCore};
+    use rand::{SeedableRng, Rng};
     use pcg_mwc::Mwc256XXA64;
 
     let mut r = Mwc256XXA64::seed_from_u64(0xe786_c22b_119c_1479);
@@ -236,7 +236,7 @@ fn test_byte_dist() {
     let mut highest = 2.541;
     for _round in 0..100 {
         let mut table: [bool; 256 * 8] = [false; 256 * 8];
-        let hasher = RandomState::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
+        let hasher = RandomState::<u64>::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
         for i in 0..128 {
             let mut keys: [u8; 8] = hasher.hash_one((i as u64) << 30).to_ne_bytes();
             //let mut keys = r.next_u64().to_ne_bytes(); //This is a control to test assert sensitivity.
@@ -276,17 +276,18 @@ fn test_byte_dist() {
 }
 
 
-fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
+fn ahash_vec(b: &Vec<String>) -> u64 {
     let mut total: u64 = 0;
+    let state = RandomState::<String>::with_seeds(0, 0, 0, 0);
     for item in b {
-        let mut hasher = RandomState::with_seeds(12, 34, 56, 78).build_hasher();
+        let mut hasher = state.build_hasher();
         item.hash(&mut hasher);
         total = total.wrapping_add(hasher.finish());
     }
     total
 }
 
-fn fxhash_vec<H: Hash>(b: &Vec<H>) -> u64 {
+fn fxhash_vec(b: &Vec<String>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
         let mut hasher = FxHasher::default();

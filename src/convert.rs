@@ -72,6 +72,7 @@ macro_rules! as_array {
     }};
 }
 
+#[allow(dead_code)]
 pub(crate) trait ReadFromSlice {
     fn read_u16(&self) -> (u16, &[u8]);
     fn read_u32(&self) -> (u32, &[u8]);

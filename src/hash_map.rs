@@ -18,10 +18,10 @@ use crate::RandomState;
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
-pub struct AHashMap<K, V, S = crate::RandomState>(HashMap<K, V, S>);
+pub struct AHashMap<K, V, S = crate::RandomState<K>>(HashMap<K, V, S>);
 
-impl<K, V> From<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
-    fn from(item: HashMap<K, V, crate::RandomState>) -> Self {
+impl<K, V> From<HashMap<K, V, crate::RandomState<K>>> for AHashMap<K, V> {
+    fn from(item: HashMap<K, V, crate::RandomState<K>>) -> Self {
         AHashMap(item)
     }
 }
@@ -44,21 +44,25 @@ where
     }
 }
 
-impl<K, V> Into<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {
-    fn into(self) -> HashMap<K, V, crate::RandomState> {
+impl<K, V> Into<HashMap<K, V, crate::RandomState<K>>> for AHashMap<K, V> {
+    fn into(self) -> HashMap<K, V, crate::RandomState<K>> {
         self.0
     }
 }
 
-impl<K, V> AHashMap<K, V, RandomState> {
+impl<K, V> AHashMap<K, V, RandomState<K>> {
     /// This crates a hashmap using [RandomState::new] which obtains its keys from [RandomSource].
     /// See the documentation in [RandomSource] for notes about key strength.
+    /// 
+    /// [RandomSource]: crate::random_state::RandomSource
     pub fn new() -> Self {
         AHashMap(HashMap::with_hasher(RandomState::new()))
     }
 
     /// This crates a hashmap with the specified capacity using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
+    ///
+    /// [RandomSource]: crate::random_state::RandomSource
     pub fn with_capacity(capacity: usize) -> Self {
         AHashMap(HashMap::with_capacity_and_hasher(capacity, RandomState::new()))
     }
@@ -344,12 +348,14 @@ where
     }
 }
 
-impl<K, V> FromIterator<(K, V)> for AHashMap<K, V, RandomState>
+impl<K, V> FromIterator<(K, V)> for AHashMap<K, V, RandomState<K>>
 where
     K: Eq + Hash,
 {
     /// This crates a hashmap from the provided iterator using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
+    ///
+    /// [RandomSource]: crate::random_state::RandomSource
     fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
         let mut inner = HashMap::with_hasher(RandomState::new());
         inner.extend(iter);
@@ -408,9 +414,9 @@ where
 /// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
 /// constructors for [RandomState] must be used.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
-impl<K, V> Default for AHashMap<K, V, RandomState> {
+impl<K, V> Default for AHashMap<K, V, RandomState<K>> {
     #[inline]
-    fn default() -> AHashMap<K, V, RandomState> {
+    fn default() -> AHashMap<K, V, RandomState<K>> {
         AHashMap(HashMap::default())
     }
 }

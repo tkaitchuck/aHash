@@ -1,6 +1,6 @@
 [package]
 name = "ahash"
-version = "0.8.10"
+version = "0.9.0"
 authors = ["Tom Kaitchuck <Tom.Kaitchuck@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A non-cryptographic hash function using AES-NI for high performance"
@@ -12,7 +12,7 @@ edition = "2018"
 readme = "README.md"
 build = "./build.rs"
 exclude = ["/smhasher", "/benchmark_tools"]
-rust-version = "1.63.0"
+rust-version = "1.72.0"
 
 [lib]
 name = "ahash"
@@ -43,9 +43,6 @@ no-rng = []
 
 # in case this is being used on an architecture lacking core::sync::atomic::AtomicUsize and friends
 atomic-polyfill = [ "dep:atomic-polyfill", "once_cell/atomic-polyfill"]
-
-# Nightly-only support for AES intrinsics on 32-bit ARM
-nightly-arm-aes = []
 
 [[bench]]
 name = "ahash"

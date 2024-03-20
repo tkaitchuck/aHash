@@ -48,6 +48,7 @@ impl AHasher {
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
     #[inline]
+    #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
         let key1 = key1 ^ pi[0];
@@ -69,7 +70,7 @@ impl AHasher {
     }
 
     #[inline]
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> Self {
+    pub(crate) fn from_random_state<T>(rand_state: &RandomState<T>) -> Self {
         let key1 = [rand_state.k0, rand_state.k1].convert();
         let key2 = [rand_state.k2, rand_state.k3].convert();
         Self {
@@ -99,6 +100,20 @@ impl AHasher {
         let combined = aesenc(self.sum, self.enc);
         let result: [u64; 2] = aesdec(combined, combined).convert();
         result[0]
+    }
+    
+    #[inline]
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
+    fn final_mix(&self) -> u128 {
+        let sum = aesenc(self.sum, self.key);
+        aesdec(aesdec(sum, self.enc), sum)
+    }
+
+    #[inline]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    fn final_mix(&self) -> u128 {
+        let combined = aesenc(self.sum, self.enc);
+        aesdec(aesdec(combined, self.key), combined)
     }
 }
 
@@ -206,10 +221,10 @@ impl Hasher for AHasher {
             }
         }
     }
+
     #[inline]
     fn finish(&self) -> u64 {
-        let combined = aesenc(self.sum, self.enc);
-        let result: [u64; 2] = aesdec(aesdec(combined, self.key), combined).convert();
+        let result: [u64; 2] = self.final_mix().convert();
         result[0]
     }
 }
@@ -254,13 +269,26 @@ impl Hasher for AHasherU64 {
     }
 
     #[inline]
-    fn write_u128(&mut self, _i: u128) {
-        unreachable!("Specialized hasher was called with a different type of object")
+    fn write_u128(&mut self, i: u128) {
+        let i: [u64; 2] = i.convert();
+        self.buffer = folded_multiply(i[0] ^ self.buffer, MULTIPLE);
+        self.pad = folded_multiply(i[1] ^ self.pad, MULTIPLE);
     }
 
     #[inline]
-    fn write_usize(&mut self, _i: usize) {
-        unreachable!("Specialized hasher was called with a different type of object")
+    #[cfg(any(
+    target_pointer_width = "64",
+    target_pointer_width = "32",
+    target_pointer_width = "16"
+    ))]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "128")]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u128(i as u128);
     }
 }
 
@@ -328,15 +356,13 @@ impl Hasher for AHasherStr {
     fn write(&mut self, bytes: &[u8]) {
         if bytes.len() > 8 {
             self.0.write(bytes);
-            self.0.enc = aesenc(self.0.sum, self.0.enc);
-            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = self.0.final_mix();
         } else {
             add_in_length(&mut self.0.enc, bytes.len() as u64);
 
             let value = read_small(bytes).convert();
             self.0.sum = shuffle_and_add(self.0.sum, value);
-            self.0.enc = aesenc(self.0.sum, self.0.enc);
-            self.0.enc = aesdec(aesdec(self.0.enc, self.0.key), self.0.enc);
+            self.0.enc = self.0.final_mix();
         }
     }
 
@@ -344,19 +370,29 @@ impl Hasher for AHasherStr {
     fn write_u8(&mut self, _i: u8) {}
 
     #[inline]
-    fn write_u16(&mut self, _i: u16) {}
+    fn write_u16(&mut self, i: u16) {
+        self.0.write_u16(i)
+    }
 
     #[inline]
-    fn write_u32(&mut self, _i: u32) {}
+    fn write_u32(&mut self, i: u32) {
+        self.0.write_u32(i)
+    }
 
     #[inline]
-    fn write_u64(&mut self, _i: u64) {}
+    fn write_u64(&mut self, i: u64) {
+        self.0.write_u64(i)
+    }
 
     #[inline]
-    fn write_u128(&mut self, _i: u128) {}
+    fn write_u128(&mut self, i: u128) {
+        self.0.write_u128(i)
+    }
 
     #[inline]
-    fn write_usize(&mut self, _i: usize) {}
+    fn write_usize(&mut self, i: usize) {
+        self.0.write_usize(i)
+    }
 }
 
 #[cfg(test)]
@@ -368,7 +404,7 @@ mod tests {
     use std::hash::{BuildHasher, Hasher};
     #[test]
     fn test_sanity() {
-        let mut hasher = RandomState::with_seeds(1, 2, 3, 4).build_hasher();
+        let mut hasher = RandomState::<()>::with_seeds(1, 2, 3, 4).build_hasher();
         hasher.write_u64(0);
         let h1 = hasher.finish();
         hasher.write(&[1, 0, 0, 0, 0, 0, 0, 0]);
