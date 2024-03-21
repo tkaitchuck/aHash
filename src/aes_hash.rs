@@ -60,7 +60,7 @@ impl AHasher {
         }
     }
 
-    #[allow(unused)] // False positive
+    #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
         Self {
             enc: key1,

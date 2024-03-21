@@ -41,7 +41,8 @@ impl AHasher {
         }
     }
 
-    #[allow(unused)] // False positive
+    #[inline]
+    #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
         let key1: [u64; 2] = key1.convert();
         let key2: [u64; 2] = key2.convert();
