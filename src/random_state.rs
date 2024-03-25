@@ -261,7 +261,7 @@ pub struct RandomState<T> {
 /// In general [RandomState] should be preferred unless there is a need for reduced memory use.
 #[derive(Clone)]
 pub struct SmallState<T> {
-    key: usize,
+    key: u64,
     _h: PhantomData<T>,
 }
 
@@ -286,7 +286,8 @@ impl <T> RandomState<T> {
     pub fn new() -> RandomState<T> {
         let src = get_src();
         let fixed = get_fixed_seeds();
-        Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
+        let mixed = Self::pre_mix_key(&fixed[0], src.gen_hasher_seed());
+        Self::from_keys(&fixed[0], &fixed[1], mixed)
     }
 
     /// Create a new `RandomState` `BuildHasher` based on the provided seeds, but in such a way
@@ -302,14 +303,21 @@ impl <T> RandomState<T> {
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState<T> {
         let src = get_src();
         let fixed = get_fixed_seeds();
-        RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], src.gen_hasher_seed())
+        let mixed = Self::pre_mix_key(&fixed[0], src.gen_hasher_seed());
+        RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], mixed)
     }
 
-    fn from_keys(a: &[u64; 4], b: &[u64; 4], c: usize) -> RandomState<T> {
-        let &[k0, k1, k2, k3] = a;
-        let combined = folded_multiply(k0 ^ c as u64, k1);
-        let c1 = combined.wrapping_add(k2);
-        let c2 = combined.wrapping_add(k3);
+    #[inline]
+    fn pre_mix_key(a: &[u64; 4], c: usize) -> u64 {
+        let &[k0, k1, _k2, _k3] = a;
+        folded_multiply(k0 ^ c as u64, k1)
+    }
+
+    #[inline]
+    fn from_keys(a: &[u64; 4], b: &[u64; 4], pre_mixed_key: u64) -> RandomState<T> {
+        let &[_k0, _k1, k2, k3] = a;
+        let c1 = pre_mixed_key.wrapping_add(k2);
+        let c2 = pre_mixed_key.wrapping_add(k3);
         RandomState {
             k0: folded_multiply(c1 ^ b[0], b[2]),
             k1: folded_multiply(c1 ^ b[1], b[3]),
@@ -318,8 +326,7 @@ impl <T> RandomState<T> {
             _h: PhantomData::default(),
         }
     }
-
-
+    
     /// Internal. Used by Default.
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState<T> {
@@ -337,7 +344,8 @@ impl <T> RandomState<T> {
     #[inline]
     pub fn with_seed(key: usize) -> RandomState<T> {
         let fixed = get_fixed_seeds();
-        RandomState::from_keys(&fixed[0], &fixed[1], key)
+        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], key);
+        RandomState::from_keys(&fixed[0], &fixed[1], mixed)
     }
 
     /// Allows for explicitly setting the seeds to used.
@@ -395,8 +403,10 @@ impl <T> SmallState<T> {
     ///
     #[inline]
     pub fn new() -> SmallState<T> {
+        let fixed = get_fixed_seeds();
+        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], get_src().gen_hasher_seed());
         SmallState {
-            key: get_src().gen_hasher_seed(),
+            key: mixed,
             _h: Default::default(),
         }
     }
@@ -410,8 +420,10 @@ impl <T> SmallState<T> {
     /// Note: This method does not require the provided seed to be strong.
     #[inline]
     pub fn with_seed(key: usize) -> SmallState<T> {
+        let fixed = get_fixed_seeds();
+        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], key);
         SmallState {
-            key,
+            key: mixed,
             _h: Default::default(),
         }
     }
