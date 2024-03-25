@@ -30,6 +30,8 @@ use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 use core::marker::PhantomData;
+use crate::convert::Convert;
+use crate::operations::{folded_multiply};
 
 pub(crate) const PI: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
@@ -255,8 +257,8 @@ pub struct RandomState<T> {
 }
 
 /// Provides a Hasher factory similar to [RandomState] that uses less memory at the cost
-/// of a slower `build_hasher` function. In general [RandomState] should be 
-/// preferred unless there is a need for reduced memory use. 
+/// of a slower `build_hasher` function. (Which is generally called once per item hashed)
+/// In general [RandomState] should be preferred unless there is a need for reduced memory use.
 #[derive(Clone)]
 pub struct SmallState<T> {
     key: usize,
@@ -305,22 +307,18 @@ impl <T> RandomState<T> {
 
     fn from_keys(a: &[u64; 4], b: &[u64; 4], c: usize) -> RandomState<T> {
         let &[k0, k1, k2, k3] = a;
-        let mut hasher = AHasher::from_random_state(&RandomState { k0, k1, k2, k3, _h: PhantomData::<T> });
-        hasher.write_usize(c);
-        let mix = |l: u64, r: u64| {
-            let mut h = hasher.clone();
-            h.write_u64(l);
-            h.write_u64(r);
-            h.finish()
-        };
+        let combined = folded_multiply(k0 ^ c as u64, k1);
+        let c1 = combined.wrapping_add(k2);
+        let c2 = combined.wrapping_add(k3);
         RandomState {
-            k0: mix(b[0], b[2]),
-            k1: mix(b[1], b[3]),
-            k2: mix(b[2], b[1]),
-            k3: mix(b[3], b[0]),
+            k0: folded_multiply(c1 ^ b[0], b[2]),
+            k1: folded_multiply(c1 ^ b[1], b[3]),
+            k2: folded_multiply(c2 ^ b[2], b[1]),
+            k3: folded_multiply(c2 ^ b[3], b[0]),
             _h: PhantomData::default(),
         }
     }
+
 
     /// Internal. Used by Default.
     #[inline]
@@ -399,6 +397,21 @@ impl <T> SmallState<T> {
     pub fn new() -> SmallState<T> {
         SmallState {
             key: get_src().gen_hasher_seed(),
+            _h: Default::default(),
+        }
+    }
+
+    /// Build a `SmallState` from a single key. The provided key does not need to be of high quality,
+    /// but all `SmallState`s created from the same key will produce identical hashers.
+    /// (In contrast to `new` above)
+    ///
+    /// This allows for explicitly setting the seed to be used.
+    ///
+    /// Note: This method does not require the provided seed to be strong.
+    #[inline]
+    pub fn with_seed(key: usize) -> SmallState<T> {
+        SmallState {
+            key,
             _h: Default::default(),
         }
     }
@@ -534,16 +547,16 @@ impl <T> BuildHasher for SmallState<T> {
 ```
         use ahash::{AHasher, SmallState};
         use std::hash::{Hasher, BuildHasher};
-    
+
         let build_hasher = SmallState::<u32>::new();
         let mut hasher_1 = build_hasher.build_hasher();
         let mut hasher_2 = build_hasher.build_hasher();
-    
+
         hasher_1.write_u32(1234);
         hasher_2.write_u32(1234);
-    
+
         assert_eq!(hasher_1.finish(), hasher_2.finish());
-    
+
         let other_build_hasher = SmallState::<u32>::new();
         let mut different_hasher = other_build_hasher.build_hasher();
         different_hasher.write_u32(1234);
