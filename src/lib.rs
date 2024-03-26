@@ -143,6 +143,7 @@ pub mod random_state;
 mod specialize;
 
 pub use crate::random_state::RandomState;
+pub use crate::random_state::SmallState;
 
 use core::hash::BuildHasher;
 use core::hash::Hash;
