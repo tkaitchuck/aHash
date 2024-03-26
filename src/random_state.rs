@@ -316,13 +316,13 @@ impl <T> RandomState<T> {
     #[inline]
     fn from_keys(a: &[u64; 4], b: &[u64; 4], pre_mixed_key: u64) -> RandomState<T> {
         let &[_k0, _k1, k2, k3] = a;
-        let c1 = pre_mixed_key.wrapping_add(k2);
-        let c2 = pre_mixed_key.wrapping_add(k3);
+        let c1 = folded_multiply(pre_mixed_key, k2);
+        let c2 = folded_multiply(pre_mixed_key, k3);
         RandomState {
-            k0: folded_multiply(c1 ^ b[0], b[2]),
-            k1: folded_multiply(c1 ^ b[1], b[3]),
-            k2: folded_multiply(c2 ^ b[2], b[1]),
-            k3: folded_multiply(c2 ^ b[3], b[0]),
+            k0: (c1 ^ b[0]).wrapping_add(b[2]),
+            k1: (c1 ^ b[1]).wrapping_add(b[3]),
+            k2: (c2 ^ b[2]).wrapping_add(b[1]),
+            k3: (c2 ^ b[3]).wrapping_add(b[0]),
             _h: PhantomData::default(),
         }
     }
