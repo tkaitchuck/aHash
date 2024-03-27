@@ -7,7 +7,7 @@ pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 
 /// This is a constant with a lot of special properties found by automated search.
 /// See the unit tests below. (Below are alternative values)
-#[cfg(all(target_feature = "ssse3", not(miri)))]
+#[allow(dead_code)]
 const SHUFFLE_MASK: u128 = 0x020a0700_0c01030e_050f0d08_06090b04_u128;
 //const SHUFFLE_MASK: u128 = 0x000d0702_0a040301_05080f0c_0e0b0609_u128;
 //const SHUFFLE_MASK: u128 = 0x040A0700_030E0106_0D050F08_020B0C09_u128;
@@ -51,17 +51,19 @@ pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
 
 #[inline(always)]
 pub(crate) fn shuffle(a: u128) -> u128 {
-    #[cfg(all(target_feature = "ssse3", not(miri)))]
-    {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-        unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(SHUFFLE_MASK))) }
-    }
-    #[cfg(not(all(target_feature = "ssse3", not(miri))))]
-    {
-        a.swap_bytes()
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_feature = "ssse3", not(miri)))] {
+            #[cfg(target_arch = "x86")]
+            use core::arch::x86::*;
+            #[cfg(target_arch = "x86_64")]
+            use core::arch::x86_64::*;
+            unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(SHUFFLE_MASK))) }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            use core::arch::aarch64::vqtbl1q_s8;
+            unsafe { transmute!(vqtbl1q_s8(transmute!(a), transmute!(SHUFFLE_MASK))) }
+        } else {
+            a.swap_bytes()
+        }
     }
 }
 
@@ -79,22 +81,25 @@ pub(crate) fn shuffle_and_add(base: u128, to_add: u128) -> u128 {
     add_by_64s(shuffled, to_add.convert()).convert()
 }
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))]
 #[inline(always)]
 pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
-    unsafe {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-        transmute!(_mm_add_epi64(transmute!(a), transmute!(b)))
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe {
+                #[cfg(target_arch = "x86")]
+                use core::arch::x86::*;
+                #[cfg(target_arch = "x86_64")]
+                use core::arch::x86_64::*;
+                transmute!(_mm_add_epi64(transmute!(a), transmute!(b)))
+            }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            use core::arch::aarch64::vaddq_u64;
+            unsafe { transmute!(vaddq_u64(transmute!(a), transmute!(b))) }
+        } else {
+            [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
+        }
     }
-}
 
-#[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri))))]
-#[inline(always)]
-pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
-    [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
@@ -122,7 +127,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-    unsafe { transmute!(vaeseq_u8(transmute!(value), transmute!(xor))) }
+    unsafe { transmute!(vaesmcq_u8(vaeseq_u8(transmute!(value), transmute!(xor)))) }
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
@@ -150,7 +155,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-    unsafe { transmute!(vaesdq_u8(transmute!(value), transmute!(xor))) }
+    unsafe { transmute!(vaesimcq_u8(vaesdq_u8(transmute!(value), transmute!(xor)))) }
 }
 
 #[allow(unused)]
