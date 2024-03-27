@@ -127,7 +127,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-    unsafe { transmute!(vaeseq_u8(transmute!(value), transmute!(xor))) }
+    unsafe { transmute!(vaesmcq_u8(vaeseq_u8(transmute!(value), transmute!(xor)))) }
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
@@ -155,7 +155,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-    unsafe { transmute!(vaesdq_u8(transmute!(value), transmute!(xor))) }
+    unsafe { transmute!(vaesimcq_u8(vaesdq_u8(transmute!(value), transmute!(xor)))) }
 }
 
 #[allow(unused)]

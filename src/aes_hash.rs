@@ -101,16 +101,8 @@ impl AHasher {
         let result: [u64; 2] = aesdec(combined, combined).convert();
         result[0]
     }
-    
-    #[inline]
-    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
-    fn final_mix(&self) -> u128 {
-        let sum = aesenc(self.sum, self.key);
-        aesdec(aesdec(sum, self.enc), sum)
-    }
 
     #[inline]
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn final_mix(&self) -> u128 {
         let combined = aesenc(self.sum, self.enc);
         aesdec(aesdec(combined, self.key), combined)
