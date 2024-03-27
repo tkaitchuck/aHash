@@ -251,8 +251,8 @@ impl Default for AHasher {
 // #[inline(never)]
 // #[doc(hidden)]
 // pub fn hash_test(input: &[u8]) -> u64 {
-//     let a = RandomState::with_seeds(11, 22, 33, 44);
-//     <[u8]>::get_hash(input, &a)
+//     let a = RandomState::<&[u8]>::with_seeds(11, 22, 33, 44);
+//     a.hash_one(input)
 // }
 
 #[cfg(feature = "std")]
