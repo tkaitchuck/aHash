@@ -64,7 +64,7 @@ jobs:
       - run: cargo +1.72.0 check --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -72,17 +72,17 @@ jobs:
           toolchain: stable
           targets: aarch64-apple-darwin
       - run: cargo check --target aarch64-apple-darwin
-#      - run: cargo test
-#      - run: cargo test --no-default-features --features compile-time-rng
-#      - name: Install 1.72.0
-#        uses: dtolnay/rust-toolchain@master
-#        with:
-#          toolchain: 1.72.0
-#          targets: aarch64-apple-darwin
-#      - run: cargo +1.72.0 check --target aarch64-apple-darwin
+      - run: cargo test
+      - run: cargo test --no-default-features --features compile-time-rng
+      - name: Install 1.72.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.72.0
+          targets: aarch64-apple-darwin
+      - run: cargo +1.72.0 check --target aarch64-apple-darwin
   aarch64-debug:
     name: Debug Apple
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v2
       - name: Setup upterm session
