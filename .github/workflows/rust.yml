@@ -80,13 +80,13 @@ jobs:
           toolchain: 1.72.0
           targets: aarch64-apple-darwin
       - run: cargo +1.72.0 check --target aarch64-apple-darwin
-  aarch64-debug:
-    name: Debug Apple
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+#  aarch64-debug:
+#    name: Debug Apple
+#    runs-on: macos-14
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Setup upterm session
+#        uses: lhotari/action-upterm@v1
   i686-unknown-linux-gnu:
     name: Linux i686
     runs-on: ubuntu-latest
