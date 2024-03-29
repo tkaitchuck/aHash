@@ -106,7 +106,7 @@ fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
 }
 
 fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
-    let base = hash_with(&0, constructor(0, 0));
+    let base = hash_with(&0_u128, constructor(0, 0));
     for shift in 0..16 {
         let mut alternatives = vec![];
         for v in 0..256 {
@@ -257,7 +257,6 @@ fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
     let compare_value = hash(&0u128, &hasher);
     for pos in 0..size {
         let test_value = hash(&(1u128 << pos), &hasher);
-        dbg!(compare_value, test_value);
         assert_sufficiently_different(compare_value, test_value, 2);
     }
 }
@@ -330,10 +329,14 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
 fn test_length_extension<T: Hasher>(hasher: impl Fn(u128, u128) -> T) {
     for key in 0..256 {
         let h1 = hasher(key, key);
-        let v1 = hash_with(&[0_u8, 0, 0, 0, 0, 0, 0, 0], h1);
-        let h2 = hasher(key, key);
-        let v2 = hash_with(&[1_u8, 0, 0, 0, 0, 0, 0, 0, 0], h2);
-        assert_ne!(v1, v2);
+        let v1 = vec![0_u8; 1];
+        let o1 = hash_with(&v1, h1);
+        for len in 2..256 {
+            let h2 = hasher(key, key);
+            let v2 = vec![0; len];
+            let o2 = hash_with(&v2, h2);
+            assert_ne!(o1, o2);
+        }
     }
 }
 
@@ -371,6 +374,8 @@ mod fallback_tests {
 
     #[test]
     fn fallback_single_bit_flip() {
+        #[cfg(feature = "specialize")]
+        test_single_bit_flip(|| AHasherFixed(AHasher::new_with_keys(0, 0)));
         test_single_bit_flip(|| AHasher::new_with_keys(0, 0))
     }
 
@@ -381,16 +386,22 @@ mod fallback_tests {
 
     #[test]
     fn fallback_all_bytes_matter() {
+        #[cfg(feature = "specialize")]
+        test_all_bytes_matter(|| AHasherStr(AHasher::new_with_keys(0, 0)));
         test_all_bytes_matter(|| AHasher::new_with_keys(0, 0));
     }
 
     #[test]
     fn fallback_test_no_pair_collisions() {
+        #[cfg(feature = "specialize")]
+        test_no_pair_collisions(|| AHasherFixed(AHasher::new_with_keys(0, 0)));
         test_no_pair_collisions(|| AHasher::new_with_keys(0, 0));
     }
 
     #[test]
     fn fallback_test_no_full_collisions() {
+        #[cfg(feature = "specialize")]
+        test_no_full_collisions(|| AHasherStr(AHasher::new_with_keys(0, 0)));
         test_no_full_collisions(|| AHasher::new_with_keys(0, 0));
     }
 
@@ -401,6 +412,8 @@ mod fallback_tests {
 
     #[test]
     fn fallback_input_affect_every_byte() {
+        #[cfg(feature = "specialize")]
+        test_input_affect_every_byte(|a, b| AHasherFixed(AHasher::new_with_keys(a, b)));
         test_input_affect_every_byte(AHasher::new_with_keys);
     }
 
@@ -415,6 +428,8 @@ mod fallback_tests {
 
     #[test]
     fn fallback_finish_is_consistant() {
+        #[cfg(feature = "specialize")]
+        test_finish_is_consistent(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
         test_finish_is_consistent(AHasher::test_with_keys)
     }
 
@@ -424,10 +439,19 @@ mod fallback_tests {
         test_padding_doesnot_collide(|| AHasher::new_with_keys(0, 2));
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 0));
         test_padding_doesnot_collide(|| AHasher::new_with_keys(2, 2));
+        #[cfg(feature = "specialize")]
+        {
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::new_with_keys(0, 0)));
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::new_with_keys(0, 2)));
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::new_with_keys(2, 0)));
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::new_with_keys(2, 2)));
+        }
     }
 
     #[test]
     fn fallback_length_extension() {
+        #[cfg(feature = "specialize")]
+        test_length_extension(|a, b| AHasherStr(AHasher::new_with_keys(a, b)));
         test_length_extension(|a, b| AHasher::new_with_keys(a, b));
     }
 
@@ -435,6 +459,11 @@ mod fallback_tests {
     fn test_no_sparse_collisions() {
         test_sparse(|| AHasher::new_with_keys(0, 0));
         test_sparse(|| AHasher::new_with_keys(1, 2));
+        #[cfg(feature = "specialize")]
+        {
+            test_sparse(|| AHasherStr(AHasher::new_with_keys(0, 0)));
+            test_sparse(|| AHasherStr(AHasher::new_with_keys(1, 2)));
+        }
     }
 }
 
@@ -449,7 +478,7 @@ mod aes_tests {
     use crate::aes_hash::*;
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
-
+   
     //This encrypts to 0.
     const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363;
     //This decrypts to 0.
@@ -466,40 +495,77 @@ mod aes_tests {
 
     #[test]
     fn aes_single_bit_flip() {
+        test_single_bit_flip(|| AHasher::test_with_keys(0, 0));
         test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_single_bit_flip(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        #[cfg(feature = "specialize")]
+        {
+            test_single_bit_flip(|| AHasherFixed(AHasher::test_with_keys(0, 0)));
+            test_single_bit_flip(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
+            test_single_bit_flip(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
+        }
     }
 
     #[test]
     fn aes_single_key_bit_flip() {
-        test_single_key_bit_flip(AHasher::test_with_keys)
+        test_single_key_bit_flip(AHasher::test_with_keys);
+        #[cfg(feature = "specialize")]
+        {
+            test_single_key_bit_flip(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
+        }
     }
 
     #[test]
     fn aes_all_bytes_matter() {
+        test_all_bytes_matter(|| AHasher::test_with_keys(0, 0));
         test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_all_bytes_matter(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        #[cfg(feature = "specialize")]
+        {
+            test_all_bytes_matter(|| AHasherStr(AHasher::test_with_keys(0, 0)));
+            test_all_bytes_matter(|| AHasherStr(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
+            test_all_bytes_matter(|| AHasherStr(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
+        }
     }
 
     #[test]
     fn aes_test_no_pair_collisions() {
+        test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        #[cfg(feature = "specialize")]
+        {
+            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(0, 0)));
+            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
+            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
+        }
     }
 
     #[test]
     fn ase_test_no_full_collisions() {
         test_no_full_collisions(|| AHasher::test_with_keys(12345, 67890));
+        #[cfg(feature = "specialize")]
+        {
+            test_no_full_collisions(|| AHasherStr(AHasher::test_with_keys(12345, 67890)));
+        }
     }
 
     #[test]
     fn aes_keys_change_output() {
         test_keys_change_output(AHasher::test_with_keys);
+        #[cfg(feature = "specialize")]
+        {
+            test_keys_change_output(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
+        }
     }
 
     #[test]
     fn aes_input_affect_every_byte() {
         test_input_affect_every_byte(AHasher::test_with_keys);
+        #[cfg(feature = "specialize")]
+        {
+            test_input_affect_every_byte(|a, b| AHasherFixed(AHasher::test_with_keys(a, b)));
+        }
     }
 
     #[test]
@@ -512,23 +578,43 @@ mod aes_tests {
 
     #[test]
     fn aes_finish_is_consistant() {
-        test_finish_is_consistent(AHasher::test_with_keys)
+        test_finish_is_consistent(AHasher::test_with_keys);
+        #[cfg(feature = "specialize")]
+        {
+            test_finish_is_consistent(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
+        }
     }
 
     #[test]
     fn aes_padding_doesnot_collide() {
+        test_padding_doesnot_collide(|| AHasher::test_with_keys(0, 0));
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_padding_doesnot_collide(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
+        #[cfg(feature = "specialize")]
+        {
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::test_with_keys(0, 0)));
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
+            test_padding_doesnot_collide(|| AHasherStr(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
+        }
     }
 
     #[test]
     fn aes_length_extension() {
         test_length_extension(|a, b| AHasher::test_with_keys(a, b));
+        #[cfg(feature = "specialize")]
+        {
+            test_length_extension(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
+        }
     }
 
     #[test]
     fn aes_no_sparse_collisions() {
         test_sparse(|| AHasher::test_with_keys(0, 0));
         test_sparse(|| AHasher::test_with_keys(1, 2));
+        #[cfg(feature = "specialize")]
+        {
+            test_sparse(|| AHasherStr(AHasher::test_with_keys(0, 0)));
+            test_sparse(|| AHasherStr(AHasher::test_with_keys(1, 2)));
+        }
     }
 }

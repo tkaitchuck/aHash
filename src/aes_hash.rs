@@ -97,9 +97,9 @@ impl AHasher {
     #[inline]
     #[cfg(feature = "specialize")]
     fn short_finish(&self) -> u64 {
-        let combined = aesenc(self.sum, self.enc);
-        let result: [u64; 2] = aesdec(combined, combined).convert();
-        result[0]
+        let combined = aesdec(self.enc, self.sum);
+        let result: [u64; 2] = aesdec(combined, self.key).convert();
+        result[0] ^ result[1]
     }
 
     #[inline]
