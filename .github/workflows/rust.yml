@@ -80,7 +80,7 @@ jobs:
           toolchain: 1.72.0
           targets: aarch64-apple-darwin
       - run: cargo +1.72.0 check --target aarch64-apple-darwin
-  nightly:
+  aarch64-nightly:
     name: Aarch64 nightly
     runs-on: macos-14
     env:
