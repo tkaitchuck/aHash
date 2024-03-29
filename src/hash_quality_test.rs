@@ -413,7 +413,7 @@ mod fallback_tests {
     #[test]
     fn fallback_input_affect_every_byte() {
         #[cfg(feature = "specialize")]
-        test_keys_change_output(|a, b| AHasherFixed(AHasher::new_with_keys(a, b)));
+        test_input_affect_every_byte(|a, b| AHasherFixed(AHasher::new_with_keys(a, b)));
         test_input_affect_every_byte(AHasher::new_with_keys);
     }
 
@@ -555,7 +555,7 @@ mod aes_tests {
         test_keys_change_output(AHasher::test_with_keys);
         #[cfg(feature = "specialize")]
         {
-            test_keys_change_output(|a, b| AHasherFixed(AHasher::test_with_keys(a, b)));
+            test_keys_change_output(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
         }
     }
 
