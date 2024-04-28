@@ -24,7 +24,7 @@ cfg_if::cfg_if! {
 }
 
 #[cfg(feature = "atomic-polyfill")]
-use atomic_polyfill as atomic;
+use portable_atomic as atomic;
 #[cfg(not(feature = "atomic-polyfill"))]
 use core::sync::atomic;
 
