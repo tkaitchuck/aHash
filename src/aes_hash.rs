@@ -22,6 +22,55 @@ pub struct AHasher {
     key: u128,
 }
 
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+))]
+fn hash_batch_128b(data: &mut &[u8], hasher: &mut AHasher) {
+    let tail = read_last4_vec256(data);
+    let mut current = [
+        aesenc_vec256(convert_u128_to_vec256(hasher.key), tail[0]),
+        aesdec_vec256(convert_u128_to_vec256(hasher.key), tail[1]),
+        aesenc_vec256(convert_u128_to_vec256(hasher.key), tail[2]),
+        aesdec_vec256(convert_u128_to_vec256(hasher.key), tail[3]),
+    ];
+    let mut sum: [Vector256; 2] = [convert_u128_to_vec256(hasher.key), convert_u128_to_vec256(!hasher.key)];
+    sum[0] = add_by_64s_vec256(sum[0], tail[0]);
+    sum[1] = add_by_64s_vec256(sum[1], tail[1]);
+    sum[0] = shuffle_and_add_vec256(sum[0], tail[2]);
+    sum[1] = shuffle_and_add_vec256(sum[1], tail[3]);
+    while data.len() > 128 {
+        let (blocks, rest) = read4_vec256(data);
+        current[0] = aesdec_vec256(current[0], blocks[0]);
+        current[1] = aesdec_vec256(current[1], blocks[1]);
+        current[2] = aesdec_vec256(current[2], blocks[2]);
+        current[3] = aesdec_vec256(current[3], blocks[3]);
+        sum[0] = shuffle_and_add_vec256(sum[0], blocks[0]);
+        sum[1] = shuffle_and_add_vec256(sum[1], blocks[1]);
+        sum[0] = shuffle_and_add_vec256(sum[0], blocks[2]);
+        sum[1] = shuffle_and_add_vec256(sum[1], blocks[3]);
+        *data = rest;
+    }
+    let current = [
+        convert_vec256_to_u128(current[0]),
+        convert_vec256_to_u128(current[1]),
+        convert_vec256_to_u128(current[2]),
+        convert_vec256_to_u128(current[3]),
+    ];
+    let sum = [convert_vec256_to_u128(sum[0]), convert_vec256_to_u128(sum[1])];
+    hasher.hash_in_2(
+        aesenc(current[0][0], current[0][1]),
+        aesenc(current[1][0], current[1][1]),
+    );
+    hasher.hash_in(add_by_64s(sum[0][0].convert(), sum[0][1].convert()).convert());
+    hasher.hash_in_2(
+        aesenc(current[2][0], current[2][1]),
+        aesenc(current[3][0], current[3][1]),
+    );
+    hasher.hash_in(add_by_64s(sum[1][0].convert(), sum[1][1].convert()).convert());
+}
+
 impl AHasher {
     /// Creates a new hasher keyed to the provided keys.
     ///
@@ -47,6 +96,7 @@ impl AHasher {
     ///
     /// println!("Hash is {:x}!", hasher.finish());
     /// ```
+    #[allow(unused)]
     #[inline]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
@@ -160,6 +210,9 @@ impl Hasher for AHasher {
             self.hash_in(value.convert());
         } else {
             if data.len() > 32 {
+                if data.len() > 128 {
+                    return hash_batch_128b(&mut data, self);
+                }
                 if data.len() > 64 {
                     let tail = data.read_last_u128x4();
                     let mut current: [u128; 4] = [self.key; 4];
