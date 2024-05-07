@@ -214,14 +214,16 @@ impl Hasher for AHasher {
     }
 }
 
-#[cfg(feature = "specialize")]
-pub(crate) struct AHasherU64 {
+/// A specialized hasher for only primitives <= 64 bits.
+/// 
+/// Can be built with [`BuildAHasherU64`][crate::BuildAHasherU64]
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
+pub struct AHasherU64 {
     pub(crate) buffer: u64,
     pub(crate) pad: u64,
 }
 
-/// A specialized hasher for only primitives under 64 bits.
-#[cfg(feature = "specialize")]
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
 impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
@@ -264,11 +266,13 @@ impl Hasher for AHasherU64 {
     }
 }
 
-#[cfg(feature = "specialize")]
-pub(crate) struct AHasherFixed(pub AHasher);
-
 /// A specialized hasher for fixed size primitives larger than 64 bits.
-#[cfg(feature = "specialize")]
+/// 
+/// Can be built with [`BuildAHasherFixed`][crate::BuildAHasherFixed]
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
+pub struct AHasherFixed(pub(crate) AHasher);
+
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
 impl Hasher for AHasherFixed {
     #[inline]
     fn finish(&self) -> u64 {
@@ -311,12 +315,15 @@ impl Hasher for AHasherFixed {
     }
 }
 
-#[cfg(feature = "specialize")]
-pub(crate) struct AHasherStr(pub AHasher);
+/// A specialized hasher for strings.
+/// 
+/// Note that other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
+/// 
+/// Can be built with [`BuildAHasherStr`][crate::BuildAHasherStr]
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
+pub struct AHasherStr(pub(crate) AHasher);
 
-/// A specialized hasher for strings
-/// Note that the other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
-#[cfg(feature = "specialize")]
+#[cfg(any(feature = "specialize", feature = "specialized-hashers"))]
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {

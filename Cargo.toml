@@ -23,7 +23,7 @@ bench = true
 doc = true
 
 [features]
-default = ["std", "runtime-rng"]
+default = ["std", "runtime-rng", "specialized-hashers"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
 std = []
@@ -46,6 +46,9 @@ atomic-polyfill = [ "dep:portable-atomic", "once_cell/critical-section"]
 
 # Nightly-only support for AES intrinsics on 32-bit ARM
 nightly-arm-aes = []
+
+# expose specialized `AHasherU64`, `AHasherFixed`, and `AHasherStr`
+specialized-hashers = []
 
 [[bench]]
 name = "ahash"

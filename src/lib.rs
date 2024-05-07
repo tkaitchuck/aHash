@@ -144,6 +144,12 @@ pub mod random_state;
 mod specialize;
 
 pub use crate::random_state::RandomState;
+#[cfg(feature = "specialized-hashers")]
+pub use crate::random_state::BuildAHasherU64;
+#[cfg(feature = "specialized-hashers")]
+pub use crate::random_state::BuildAHasherFixed;
+#[cfg(feature = "specialized-hashers")]
+pub use crate::random_state::BuildAHasherStr;
 
 use core::hash::BuildHasher;
 use core::hash::Hash;
