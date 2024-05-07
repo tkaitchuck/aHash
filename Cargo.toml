@@ -47,6 +47,9 @@ atomic-polyfill = [ "dep:portable-atomic", "once_cell/critical-section"]
 # Nightly-only support for AES intrinsics on 32-bit ARM
 nightly-arm-aes = []
 
+# Nightly-only support for VAES intrinsics with 256 SIMD registers
+vaes = []
+
 [[bench]]
 name = "ahash"
 path = "tests/bench.rs"

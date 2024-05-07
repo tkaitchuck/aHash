@@ -99,6 +99,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(feature = "specialize", feature(min_specialization))]
 #![cfg_attr(feature = "nightly-arm-aes", feature(stdarch_arm_neon_intrinsics))]
+#![cfg_attr(feature = "vaes", feature(stdsimd))]
 
 #[macro_use]
 mod convert;

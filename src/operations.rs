@@ -181,6 +181,186 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
     }
 }
 
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+))]
+mod vaes {
+    use super::*;
+    cfg_if::cfg_if! {
+        if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+            pub type Vector256 = core::arch::x86_64::__m256i;
+        }
+        else {
+            pub type Vector256 = [u128;2];
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn aesdec_vec256(value: Vector256, xor: Vector256) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                    any(target_arch = "x86", target_arch = "x86_64"),
+                    target_feature = "vaes",
+                    feature = "vaes",
+                    not(miri)
+                ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    _mm256_aesdec_epi128(value, xor)
+                }
+            }
+            else {
+                    [
+                        aesdec(value[0], xor[0]),
+                        aesdec(value[1], xor[1]),
+                    ]
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn add_by_64s_vec256(a: Vector256, b: Vector256) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                unsafe { _mm256_add_epi64(a, b) }
+            }
+            else {
+                [
+                    transmute!(add_by_64s(transmute!(a[0]), transmute!(b[0]))),
+                    transmute!(add_by_64s(transmute!(a[1]), transmute!(b[1]))),
+                ]
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn shuffle_vec256(value: Vector256) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                unsafe {
+                    use core::arch::x86_64::*;
+                    let mask = convert_u128_to_vec256(SHUFFLE_MASK, SHUFFLE_MASK);
+                    _mm256_shuffle_epi8(value, mask)
+                }
+            }
+            else {
+
+                    [
+                        shuffle(value[0]),
+                        shuffle(value[1]),
+                    ]
+            }
+        }
+    }
+
+    pub(crate) fn shuffle_and_add_vec256(base: Vector256, to_add: Vector256) -> Vector256 {
+        add_by_64s_vec256(shuffle_vec256(base), to_add)
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn read4_vec256(data: &[u8]) -> ([Vector256; 4], &[u8]) {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                let (arr, rem) = data.split_at(128);
+                let arr = unsafe {
+                   [ _mm256_loadu_si256(arr.as_ptr().cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(32).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(64).cast::<__m256i>()),
+                     _mm256_loadu_si256(arr.as_ptr().add(96).cast::<__m256i>()),
+                   ]
+                };
+                (arr, rem)
+            }
+            else {
+                let (arr, slice) = data.read_u128x8();
+                (transmute!(arr), slice)
+            }
+        }
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn convert_u128_to_vec256(low: u128, high: u128) -> Vector256 {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    _mm256_set_epi64x(
+                        (high >> 64) as i64,
+                        high as i64,
+                        (low >> 64) as i64,
+                        low as i64,
+                    )
+                }
+            }
+            else {
+                transmute!([low, high])
+            }
+        }
+    }
+
+    // We specialize this routine because sometimes the compiler is not able to
+    // optimize it properly.
+    pub(crate) fn convert_vec256_to_u128(x: Vector256) -> [u128; 2] {
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                any(target_arch = "x86", target_arch = "x86_64"),
+                target_feature = "vaes",
+                feature = "vaes",
+                not(miri)
+            ))] {
+                use core::arch::x86_64::*;
+                unsafe {
+                    [
+                        transmute!(_mm256_extracti128_si256(x, 0)),
+                        transmute!(_mm256_extracti128_si256(x, 1)),
+                    ]
+                }
+            }
+            else {
+                x
+            }
+        }
+    }
+}
+
+#[cfg(any(
+    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
+    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+))]
+pub(crate) use vaes::*;
+
 #[cfg(test)]
 mod test {
     use super::*;
