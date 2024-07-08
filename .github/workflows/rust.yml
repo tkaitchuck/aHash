@@ -46,6 +46,8 @@ jobs:
         run: cargo check --features serde
       - name: test serde
         run: cargo test --features serde
+      - name: check specialize
+        run: cargo check --features nightly-specialize
   linux_arm7:
     name: Linux ARMv7
     runs-on: ubuntu-latest

@@ -4,9 +4,6 @@ use std::env;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    if let Some(true) = version_check::supports_feature("specialize") {
-        println!("cargo:rustc-cfg=feature=\"specialize\"");
-    }
     let arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH was not set");
     if arch.eq_ignore_ascii_case("x86_64")
         || arch.eq_ignore_ascii_case("aarch64")

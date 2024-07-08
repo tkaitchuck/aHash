@@ -47,6 +47,9 @@ atomic-polyfill = [ "dep:portable-atomic", "once_cell/critical-section"]
 # Nightly-only support for AES intrinsics on 32-bit ARM
 nightly-arm-aes = []
 
+# Nightly-only support for impls that work with `min_specialization`
+nightly-specialize = []
+
 [[bench]]
 name = "ahash"
 path = "tests/bench.rs"
@@ -74,9 +77,6 @@ debug = false
 lto = 'fat'
 debug-assertions = false
 codegen-units = 1
-
-[build-dependencies]
-version_check = "0.9.4"
 
 [dependencies]
 const-random = { version = "0.1.17", optional = true }

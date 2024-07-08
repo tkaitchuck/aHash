@@ -97,7 +97,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-#![cfg_attr(feature = "specialize", feature(min_specialization))]
+#![cfg_attr(feature = "nightly-specialize", feature(min_specialization))]
 #![cfg_attr(feature = "nightly-arm-aes", feature(stdarch_arm_neon_intrinsics))]
 
 #[macro_use]
@@ -262,42 +262,42 @@ pub(crate) trait BuildHasherExt: BuildHasher {
 
 impl<B: BuildHasher> BuildHasherExt for B {
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(feature = "nightly-specialize")]
     default fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
-    #[cfg(not(feature = "specialize"))]
+    #[cfg(not(feature = "nightly-specialize"))]
     fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(feature = "nightly-specialize")]
     default fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
-    #[cfg(not(feature = "specialize"))]
+    #[cfg(not(feature = "nightly-specialize"))]
     fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(feature = "nightly-specialize")]
     default fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
     #[inline]
-    #[cfg(not(feature = "specialize"))]
+    #[cfg(not(feature = "nightly-specialize"))]
     fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = self.build_hasher();
         value.hash(&mut hasher);
