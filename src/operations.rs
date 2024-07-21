@@ -99,7 +99,23 @@ pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
             [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
         }
     }
+}
 
+#[inline(always)]
+pub(crate) fn xor(a: u128, b: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe {
+                #[cfg(target_arch = "x86")]
+                use core::arch::x86::*;
+                #[cfg(target_arch = "x86_64")]
+                use core::arch::x86_64::*;
+                transmute!(_mm_xor_si128(transmute!(a), transmute!(b)))
+            }
+        } else {
+            a ^ b
+        }
+    }
 }
 
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]

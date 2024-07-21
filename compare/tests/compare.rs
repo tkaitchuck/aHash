@@ -6,10 +6,10 @@ use fxhash::FxBuildHasher;
 use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
 use xxhash_rust::xxh3::Xxh3Builder;
 
-fn ahash<K: Hash>(k: &K, builder: &RandomState) -> u64 {
-    let mut hasher = builder.build_hasher();
-    k.hash(&mut hasher);
-    hasher.finish()
+fn ahash<K: Hash>(k: &K, builder: &RandomState<String>) -> u64 {
+    builder.hash_one(k)
+    // k.hash(&mut hasher);
+    // hasher.finish()
 }
 
 fn generic_hash<K: Hash, B: BuildHasher>(key: &K, builder: &B) -> u64 {

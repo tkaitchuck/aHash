@@ -51,12 +51,12 @@ impl AHasher {
     #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
         let pi: [u128; 2] = PI.convert();
-        let key1 = key1 ^ pi[0];
-        let key2 = key2 ^ pi[1];
+        let key1 = xor(key1, pi[0]);
+        let key2 = xor(key2, pi[1]);
         Self {
             enc: key1,
             sum: key2,
-            key: key1 ^ key2,
+            key: xor(key1, key2),
         }
     }
 
@@ -65,7 +65,7 @@ impl AHasher {
         Self {
             enc: key1,
             sum: key2,
-            key: key1 ^ key2,
+            key: xor(key1, key2),
         }
     }
 
@@ -76,7 +76,7 @@ impl AHasher {
         Self {
             enc: key1,
             sum: key2,
-            key: key1 ^ key2,
+            key: xor(key1, key2),
         }
     }
 

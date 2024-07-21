@@ -1,6 +1,7 @@
 use std::io::Error;
 use std::fs::File;
 use std::io::Write;
+use std::hash::BuildHasher;
 use pcg_mwc::Mwc256XXA64;
 use ahash::RandomState;
 use std::io::BufWriter;
@@ -16,11 +17,11 @@ fn main() -> Result<(), Error> {
     let path = Path::new("hash_output");
 
     let mut file = BufWriter::new(File::create(path)?);
-    let hasher = RandomState::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
+    let hasher = RandomState::<String>::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
     let start = Instant::now();
     let mut sum: u64 = 0;
-    for i in 0..i32::MAX {
-        let value = hasher.hash_one(i as u64);
+    for i in 0..5*1024*1024*1024_u64 {
+        let value = hasher.hash_one(i);
         sum = sum.wrapping_add(value);
         let value: [u8; 8] = value.to_ne_bytes();
         file.write_all(&value)?;
