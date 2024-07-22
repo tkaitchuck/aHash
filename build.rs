@@ -4,6 +4,8 @@ use std::env;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rustc-check-cfg=cfg(fuzzing)");
+    println!("cargo:rustc-check-cfg=cfg(feature, values(\"folded_multiply\", \"specialize\"))");
     if let Some(true) = version_check::supports_feature("specialize") {
         println!("cargo:rustc-cfg=feature=\"specialize\"");
     }

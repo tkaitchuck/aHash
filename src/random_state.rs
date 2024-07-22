@@ -537,7 +537,6 @@ impl <T> BuildHasher for RandomState<T> {
     /// implementation of [`Hash`].  The way to create a combined hash of
     /// multiple values is to call [`Hash::hash`] multiple times using the same
     /// [`Hasher`], not to call this method repeatedly and combine the results.
-    #[cfg(feature = "specialize")]
     #[inline]
     fn hash_one<V: Hash>(&self, x: V) -> u64 {
         use crate::specialize::CallHasher;
@@ -624,7 +623,6 @@ impl <T> BuildHasher for SmallState<T> {
     /// implementation of [`Hash`].  The way to create a combined hash of
     /// multiple values is to call [`Hash::hash`] multiple times using the same
     /// [`Hasher`], not to call this method repeatedly and combine the results.
-    #[cfg(feature = "specialize")]
     #[inline]
     fn hash_one<V: Hash>(&self, x: V) -> u64 {
         use crate::specialize::CallHasher;
