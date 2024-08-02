@@ -12,7 +12,8 @@ edition = "2018"
 readme = "README.md"
 build = "./build.rs"
 exclude = ["/smhasher", "/benchmark_tools"]
-rust-version = "1.60.0"
+rust-version = "1.77.0"
+
 
 [lib]
 name = "ahash"

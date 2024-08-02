@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "specialize", feature(build_hasher_simple_hash_one))]
-
 use ahash::{AHasher, RandomState};
 use criterion::*;
 use fxhash::FxHasher;
