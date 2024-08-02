@@ -58,6 +58,15 @@ fn seahash<H: Hash>(b: &H) -> u64 {
 
 const STRING_LENGTHS: [u32; 12] = [1, 3, 4, 7, 8, 15, 16, 24, 33, 68, 132, 1024];
 
+fn gen_8k() -> String {
+    let mut string = String::default();
+    for pos in 0..8196 {
+        let c = (48 + (pos % 10) as u8) as char;
+        string.push(c);
+    }
+    string
+}
+
 fn gen_strings() -> Vec<String> {
     STRING_LENGTHS
         .iter()
@@ -84,6 +93,7 @@ macro_rules! bench_inputs {
         $group.bench_function("u64", |b| b.iter_batched(|| rng.gen::<u64>(), |v| $hash(&v), size));
         $group.bench_function("u128", |b| b.iter_batched(|| rng.gen::<u128>(), |v| $hash(&v), size));
         $group.bench_with_input("strings", &gen_strings(), |b, s| b.iter(|| $hash(black_box(s))));
+        $group.bench_function("8k", |b| b.iter_batched(|| gen_8k(), |v| $hash(&v), criterion::BatchSize::NumIterations(100)));
     };
 }
 
