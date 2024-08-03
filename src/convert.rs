@@ -2,6 +2,9 @@ pub(crate) trait Convert<To> {
     fn convert(self) -> To;
 }
 
+pub type U256 = [u128; 2];
+pub type U512 = [u128; 4];
+
 macro_rules! convert {
     ($a:ty, $b:ty) => {
         impl Convert<$b> for $a {
@@ -19,6 +22,10 @@ macro_rules! convert {
     };
 }
 
+convert!([U256; 2], [U512; 1]);
+convert!([u128; 4], [U512; 1]);
+convert!([u128; 4], [U256; 2]);
+convert!([u128; 2], [U256; 1]);
 convert!([u128; 4], [u64; 8]);
 convert!([u128; 4], [u32; 16]);
 convert!([u128; 4], [u16; 32]);
