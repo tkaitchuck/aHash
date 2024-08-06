@@ -1,0 +1,19 @@
+[package]
+name = "test-block"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+panic = 'abort'
+
+[profile.test]
+panic = 'abort'
+
+[profile.dev]
+panic = 'abort'
+
+[dependencies]
+ahash = { path = "../", default-features = false }
+spin = "0.9.8"
+talc = "4.4.1"
+panic-abort = "0.3.2"
