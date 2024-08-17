@@ -10,11 +10,6 @@ fn main() {
         println!("cargo:rustc-cfg=build_hasher_hash_one");
     }
 
-    println!("cargo:rustc-check-cfg=cfg(specialize)");
-    if let Some(true) = version_check::supports_feature("specialize") {
-        println!("cargo:rustc-cfg=specialize");
-    }
-
     let arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH was not set");
     println!("cargo:rustc-check-cfg=cfg(folded_multiply)");
     if arch.eq_ignore_ascii_case("x86_64")

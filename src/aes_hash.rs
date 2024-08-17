@@ -94,7 +94,6 @@ impl AHasher {
     }
 
     #[inline]
-    #[cfg(specialize)]
     fn short_finish(&self) -> u64 {
         let combined = aesenc(self.sum, self.enc);
         let result: [u64; 2] = aesdec(combined, combined).convert();
@@ -214,14 +213,12 @@ impl Hasher for AHasher {
     }
 }
 
-#[cfg(specialize)]
 pub(crate) struct AHasherU64 {
     pub(crate) buffer: u64,
     pub(crate) pad: u64,
 }
 
 /// A specialized hasher for only primitives under 64 bits.
-#[cfg(specialize)]
 impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
@@ -264,11 +261,9 @@ impl Hasher for AHasherU64 {
     }
 }
 
-#[cfg(specialize)]
 pub(crate) struct AHasherFixed(pub AHasher);
 
 /// A specialized hasher for fixed size primitives larger than 64 bits.
-#[cfg(specialize)]
 impl Hasher for AHasherFixed {
     #[inline]
     fn finish(&self) -> u64 {
@@ -311,12 +306,10 @@ impl Hasher for AHasherFixed {
     }
 }
 
-#[cfg(specialize)]
 pub(crate) struct AHasherStr(pub AHasher);
 
 /// A specialized hasher for strings
 /// Note that the other types don't panic because the hash impl for String tacks on an unneeded call. (As does vec)
-#[cfg(specialize)]
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
