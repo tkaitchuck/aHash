@@ -1,5 +1,3 @@
-#![cfg_attr(specialize, feature(build_hasher_simple_hash_one))]
-
 use std::hash::{BuildHasher, Hash, Hasher};
 
 use ahash::RandomState;
@@ -151,13 +149,13 @@ fn check_for_collisions<H: Hash, B: BuildHasher>(build_hasher: &B, items: &[H], 
     );
 }
 
-#[cfg(specialize)]
+#[cfg(build_hasher_hash_one)]
 #[allow(unused)] // False positive
 fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
     build_hasher.hash_one(b)
 }
 
-#[cfg(not(specialize))]
+#[cfg(not(build_hasher_hash_one))]
 #[allow(unused)] // False positive
 fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
     let mut hasher = build_hasher.build_hasher();
