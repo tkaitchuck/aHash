@@ -18,6 +18,7 @@ use crate::RandomState;
 /// A [`HashMap`](std::collections::HashMap) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct AHashMap<K, V, S = crate::RandomState>(HashMap<K, V, S>);
 
 impl<K, V> From<HashMap<K, V, crate::RandomState>> for AHashMap<K, V> {

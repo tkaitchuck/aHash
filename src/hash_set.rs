@@ -14,6 +14,7 @@ use serde::{
 /// A [`HashSet`](std::collections::HashSet) using [`RandomState`](crate::RandomState) to hash the items.
 /// (Requires the `std` feature to be enabled.)
 #[derive(Clone)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct AHashSet<T, S = RandomState>(HashSet<T, S>);
 
 impl<T> From<HashSet<T, RandomState>> for AHashSet<T> {
