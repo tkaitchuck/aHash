@@ -16,6 +16,7 @@ use core::hash::Hasher;
 /// start with the same data.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct AHasher {
     enc: u128,
     sum: u128,
