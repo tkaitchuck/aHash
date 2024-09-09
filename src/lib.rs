@@ -34,7 +34,7 @@ map.insert(12, 34);
 The above requires a source of randomness to generate keys for the hashmap. By default this obtained from the OS.
 It is also possible to have randomness supplied via the `compile-time-rng` flag, or manually.
 
-### If randomess is not available
+### If randomness is not available
 
 [AHasher::default()] can be used to hash using fixed keys. This works with
 [BuildHasherDefault](std::hash::BuildHasherDefault). For example:
