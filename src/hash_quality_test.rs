@@ -70,7 +70,7 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
     let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
     for combination in combinations {
-        use zerocopy::AsBytes;
+        use zerocopy::IntoBytes;
         let array = combination.as_slice().as_bytes().to_vec();
         let mut hasher = gen_hash();
         hasher.write(&array);
