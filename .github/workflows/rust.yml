@@ -13,15 +13,17 @@ jobs:
             toolchain: stable
             components: clippy
       - name: check nostd
+        run: cargo check --no-default-features,zerocopy
+      - name: check nostd dist
         run: cargo check --no-default-features
       - name: test nostd
-        run: cargo test --no-default-features
+        run: cargo test --no-default-features,zerocopy
       - name: check constrandom
-        run: cargo check --no-default-features --features compile-time-rng
+        run: cargo check --no-default-features --features compile-time-rng,zerocopy
       - name: test constrandom
-        run: cargo test --no-default-features --features compile-time-rng
+        run: cargo test --no-default-features --features compile-time-rng,zerocopy
       - name: check fixed-seed
-        run: cargo check --no-default-features --features std
+        run: cargo check --no-default-features --features std,zerocopy
       - name: check
         run: cargo check
       - name: test
@@ -41,11 +43,11 @@ jobs:
       - name: check nightly
         run: cargo check -Z msrv-policy
       - name: test nightly
-        run: cargo test
+        run: cargo test --features=zerocopy
       - name: check serde
-        run: cargo check --features serde
+        run: cargo check --features serde,zerocopy
       - name: test serde
-        run: cargo test --features serde
+        run: cargo test --features serde,zerocopy
   linux_arm7:
     name: Linux ARMv7
     runs-on: ubuntu-latest
@@ -71,9 +73,9 @@ jobs:
         with:
           toolchain: stable
           targets: aarch64-apple-darwin
-      - run: cargo check --target aarch64-apple-darwin
-      - run: cargo test
-      - run: cargo test --no-default-features --features compile-time-rng
+      - run: cargo check --target aarch64-apple-darwin --features=zerocopy
+      - run: cargo test --features=zerocopy
+      - run: cargo test --no-default-features --features compile-time-rng,zerocopy
       - name: Install 1.72.0
         uses: dtolnay/rust-toolchain@master
         with:
@@ -94,7 +96,7 @@ jobs:
       - run: cargo check --target i686-unknown-linux-gnu
       - run: cargo test --target i686-unknown-linux-gnu
       - name: check constrandom
-        run: cargo check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
+        run: cargo check --no-default-features --features compile-time-rng,zerocopy --target i686-unknown-linux-gnu
       - name: Install 1.72.0
         uses: dtolnay/rust-toolchain@master
         with:
@@ -102,7 +104,7 @@ jobs:
           targets: i686-unknown-linux-gnu
       - run: cargo +1.72.0 check --target i686-unknown-linux-gnu
       - name: check constrandom
-        run: cargo +1.72.0 check --no-default-features --features compile-time-rng --target i686-unknown-linux-gnu
+        run: cargo +1.72.0 check --no-default-features --features compile-time-rng,zerocopy --target i686-unknown-linux-gnu
   x86_64-unknown-linux-gnu:
     name: Linux x86_64
     runs-on: ubuntu-latest
@@ -117,14 +119,14 @@ jobs:
       - run: cargo check --target x86_64-unknown-linux-gnu
       - run: cargo test --target x86_64-unknown-linux-gnu
       - name: check constrandom
-        run: cargo check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+        run: cargo check --no-default-features --features compile-time-rng,zerocopy --target x86_64-unknown-linux-gnu
       - name: Install 1.72.0
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.72.0
       - run: cargo +1.72.0 check --target x86_64-unknown-linux-gnu
       - name: check constrandom
-        run: cargo +1.72.0 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+        run: cargo +1.72.0 check --no-default-features --features compile-time-rng,zerocopy --target x86_64-unknown-linux-gnu
   thumbv6m:
     name: thumbv6m
     runs-on: ubuntu-latest
@@ -134,7 +136,7 @@ jobs:
         with:
           toolchain: stable
           targets: thumbv6m-none-eabi
-      - run: cargo check --target thumbv6m-none-eabi --no-default-features
+      - run: cargo check --target thumbv6m-none-eabi --no-default-features --features=zerocopy
   wasm32-unknown-unknown:
     name: wasm
     runs-on: ubuntu-latest
@@ -144,7 +146,7 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-      - run: cargo check --target wasm32-unknown-unknown --no-default-features
+      - run: cargo check --target wasm32-unknown-unknown --no-default-features --features=zerocopy
   no_std:
     name: no-std build
     runs-on: ubuntu-latest
