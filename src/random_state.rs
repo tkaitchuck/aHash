@@ -79,7 +79,7 @@ cfg_if::cfg_if! {
 
             SEEDS.get_or_init(|| {
                 let mut result: [u8; 64] = [0; 64];
-                getrandom::fill(&mut result).expect("getrandom::getrandom() failed.");
+                getrandom::fill(&mut result).expect("getrandom::fill() failed.");
                 Box::new(result.convert())
             })
         }
