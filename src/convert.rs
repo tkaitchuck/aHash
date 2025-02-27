@@ -19,17 +19,34 @@ macro_rules! convert {
     };
 }
 
+macro_rules! convert_primitive_bytes {
+    ($a:ty, $b:ty) => {
+        impl Convert<$b> for $a {
+            #[inline(always)]
+            fn convert(self) -> $b {
+                self.to_ne_bytes()
+            }
+        }
+        impl Convert<$a> for $b {
+            #[inline(always)]
+            fn convert(self) -> $a {
+                <$a>::from_ne_bytes(self)
+            }
+        }
+    };
+}
+
 convert!([u128; 4], [u8; 64]);
 convert!([u128; 2], [u64; 4]);
 convert!([u128; 2], [u8; 32]);
 convert!(u128, [u64; 2]);
-convert!(u128, [u8; 16]);
+convert_primitive_bytes!(u128, [u8; 16]);
 convert!([u64; 2], [u32; 4]);
 #[cfg(test)]
 convert!([u64; 2], [u8; 16]);
-convert!(u64, [u8; 8]);
-convert!(u32, [u8; 4]);
-convert!(u16, [u8; 2]);
+convert_primitive_bytes!(u64, [u8; 8]);
+convert_primitive_bytes!(u32, [u8; 4]);
+convert_primitive_bytes!(u16, [u8; 2]);
 convert!([[u64; 4]; 2], [u8; 64]);
 
 macro_rules! as_array {
