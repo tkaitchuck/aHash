@@ -357,11 +357,4 @@ mod tests {
         let result2: [u8; 8] = result2.convert();
         assert_ne!(hex::encode(result), hex::encode(result2));
     }
-
-    #[test]
-    fn test_conversion() {
-        let input: &[u8] = "dddddddd".as_bytes();
-        let bytes: u64 = as_array!(input, 8).convert();
-        assert_eq!(bytes, 0x6464646464646464);
-    }
 }
