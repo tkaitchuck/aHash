@@ -54,12 +54,6 @@ convert!([u16; 2], [u8; 4]);
 convert!(u16, [u8; 2]);
 convert!([[u64; 4]; 2], [u8; 64]);
 
-convert!([f64; 2], [u8; 16]);
-convert!([f32; 4], [u8; 16]);
-convert!(f64, [u8; 8]);
-convert!([f32; 2], [u8; 8]);
-convert!(f32, [u8; 4]);
-
 macro_rules! as_array {
     ($input:expr, $len:expr) => {{
         {
