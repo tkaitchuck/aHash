@@ -70,8 +70,12 @@ fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
     gen_combinations(&options, 7, Vec::new(), &mut combinations);
     let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
     for combination in combinations {
-        use zerocopy::AsBytes;
-        let array = combination.as_slice().as_bytes().to_vec();
+        let array = unsafe {
+            let (begin, middle, end) = combination.align_to::<u8>();
+            assert_eq!(0, begin.len());
+            assert_eq!(0, end.len());
+            middle.to_vec()
+        };
         let mut hasher = gen_hash();
         hasher.write(&array);
         let hash = hasher.finish();
@@ -441,7 +445,12 @@ mod fallback_tests {
 ///Basic sanity tests of the cypto properties of aHash.
 #[cfg(any(
     all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(
+        feature = "nightly-arm-aes",
+        target_arch = "aarch64",
+        target_feature = "aes",
+        not(miri)
+    ),
     all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
 #[cfg(test)]

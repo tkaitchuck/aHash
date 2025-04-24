@@ -1,6 +1,4 @@
 use crate::convert::*;
-#[allow(unused)]
-use zerocopy::transmute;
 
 ///This constant comes from Kunth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
@@ -57,7 +55,12 @@ pub(crate) fn shuffle(a: u128) -> u128 {
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
         use core::arch::x86_64::*;
-        unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(SHUFFLE_MASK))) }
+        unsafe {
+            checked_transmute!(_mm_shuffle_epi8(
+                checked_transmute!(a),
+                checked_transmute!(SHUFFLE_MASK)
+            ))
+        }
     }
     #[cfg(not(all(target_feature = "ssse3", not(miri))))]
     {
@@ -87,7 +90,7 @@ pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
         use core::arch::x86::*;
         #[cfg(target_arch = "x86_64")]
         use core::arch::x86_64::*;
-        transmute!(_mm_add_epi64(transmute!(a), transmute!(b)))
+        checked_transmute!(_mm_add_epi64(checked_transmute!(a), checked_transmute!(b)))
     }
 }
 
@@ -106,13 +109,18 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     #[cfg(target_arch = "x86_64")]
     use core::arch::x86_64::*;
     unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesenc_si128(value, transmute!(xor)))
+        let value = checked_transmute!(value);
+        checked_transmute!(_mm_aesenc_si128(value, checked_transmute!(xor)))
     }
 }
 
 #[cfg(any(
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(
+        feature = "nightly-arm-aes",
+        target_arch = "aarch64",
+        target_feature = "aes",
+        not(miri)
+    ),
     all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
 #[allow(unused)]
@@ -123,7 +131,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
     let res = unsafe { vaesmcq_u8(vaeseq_u8(transmute!(value), transmute!(0u128))) };
-    let value: u128 = transmute!(res);
+    let value: u128 = checked_transmute!(res);
     xor ^ value
 }
 
@@ -136,13 +144,18 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     #[cfg(target_arch = "x86_64")]
     use core::arch::x86_64::*;
     unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesdec_si128(value, transmute!(xor)))
+        let value = checked_transmute!(value);
+        checked_transmute!(_mm_aesdec_si128(value, checked_transmute!(xor)))
     }
 }
 
 #[cfg(any(
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(
+        feature = "nightly-arm-aes",
+        target_arch = "aarch64",
+        target_feature = "aes",
+        not(miri)
+    ),
     all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
 #[allow(unused)]
@@ -152,8 +165,8 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
-    let res = unsafe { vaesimcq_u8(vaesdq_u8(transmute!(value), transmute!(0u128))) };
-    let value: u128 = transmute!(res);
+    let res = unsafe { vaesimcq_u8(vaesdq_u8(checked_transmute!(value), checked_transmute!(0u128))) };
+    let value: u128 = checked_transmute!(res);
     xor ^ value
 }
 
@@ -196,7 +209,7 @@ mod test {
     //     #[cfg(target_arch = "x86_64")]
     //     use core::arch::x86_64::*;
     //     MASK.with(|mask| {
-    //         unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(mask.get()))) }
+    //         unsafe { safer_transmute!(_mm_shuffle_epi8(safer_transmute!(a), safer_transmute!(mask.get()))) }
     //     })
     // }
     //
@@ -364,10 +377,10 @@ mod test {
 
     #[test]
     fn test_add_length() {
-        let enc : [u64; 2] = [50, u64::MAX];
-        let mut enc : u128 = enc.convert();
+        let enc: [u64; 2] = [50, u64::MAX];
+        let mut enc: u128 = enc.convert();
         add_in_length(&mut enc, u64::MAX);
-        let enc : [u64; 2] = enc.convert();
+        let enc: [u64; 2] = enc.convert();
         assert_eq!(enc[1], u64::MAX);
         assert_eq!(enc[0], 49);
     }

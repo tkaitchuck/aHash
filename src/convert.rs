@@ -1,3 +1,16 @@
+macro_rules! safer_transmute {
+    ($e:expr) => {{
+        #[cfg(feature = "zerocopy")]
+        {
+            zerocopy::transmute!($e)
+        }
+        #[cfg(not(feature = "zerocopy"))]
+        {
+            ::core::mem::transmute($e)
+        }
+    }}
+}
+
 pub(crate) trait Convert<To> {
     fn convert(self) -> To;
 }
@@ -7,13 +20,13 @@ macro_rules! convert {
         impl Convert<$b> for $a {
             #[inline(always)]
             fn convert(self) -> $b {
-                zerocopy::transmute!(self)
+                unsafe { safer_transmute!(self) }
             }
         }
         impl Convert<$a> for $b {
             #[inline(always)]
             fn convert(self) -> $a {
-                zerocopy::transmute!(self)
+                unsafe { safer_transmute!(self) }
             }
         }
     };
