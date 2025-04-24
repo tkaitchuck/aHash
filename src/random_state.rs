@@ -79,7 +79,7 @@ cfg_if::cfg_if! {
 
             SEEDS.get_or_init(|| {
                 let mut result: [u8; 64] = [0; 64];
-                getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
+                getrandom::fill(&mut result).expect("getrandom::fill() failed.");
                 Box::new(result.convert())
             })
         }
@@ -394,16 +394,16 @@ impl BuildHasher for RandomState {
 ```
         use ahash::{AHasher, RandomState};
         use std::hash::{Hasher, BuildHasher};
-    
+
         let build_hasher = RandomState::new();
         let mut hasher_1 = build_hasher.build_hasher();
         let mut hasher_2 = build_hasher.build_hasher();
-    
+
         hasher_1.write_u32(1234);
         hasher_2.write_u32(1234);
-    
+
         assert_eq!(hasher_1.finish(), hasher_2.finish());
-    
+
         let other_build_hasher = RandomState::new();
         let mut different_hasher = other_build_hasher.build_hasher();
         different_hasher.write_u32(1234);
