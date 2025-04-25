@@ -9,8 +9,6 @@ extern crate alloc;
 extern crate std as alloc;
 
 #[cfg(feature = "specialize")]
-use crate::BuildHasherExt;
-#[cfg(feature = "specialize")]
 use alloc::string::String;
 #[cfg(feature = "specialize")]
 use alloc::vec::Vec;

@@ -11,11 +11,6 @@ cfg_if::cfg_if! {
     }
 }
 cfg_if::cfg_if! {
-    if #[cfg(feature = "specialize")]{
-        use crate::BuildHasherExt;
-    }
-}
-cfg_if::cfg_if! {
     if #[cfg(feature = "std")] {
         extern crate std as alloc;
     } else {
@@ -466,9 +461,9 @@ impl BuildHasher for RandomState {
 }
 
 #[cfg(feature = "specialize")]
-impl BuildHasherExt for RandomState {
+impl RandomState {
     #[inline]
-    fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+    pub(crate) fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = AHasherU64 {
             buffer: self.k1,
             pad: self.k0,
@@ -478,14 +473,14 @@ impl BuildHasherExt for RandomState {
     }
 
     #[inline]
-    fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+    pub(crate) fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = AHasherFixed(self.build_hasher());
         value.hash(&mut hasher);
         hasher.finish()
     }
 
     #[inline]
-    fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+    pub(crate) fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
         let mut hasher = AHasherStr(self.build_hasher());
         value.hash(&mut hasher);
         hasher.finish()
