@@ -2,7 +2,7 @@
 //! uses the hash value as the return value.
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler)]
+#![feature(alloc_error_handler, core_intrinsics, lang_items)]
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
