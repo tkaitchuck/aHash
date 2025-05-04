@@ -16,6 +16,7 @@ use core::hash::Hasher;
 /// start with the same data.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct AHasher {
     enc: u128,
     sum: u128,
@@ -215,6 +216,7 @@ impl Hasher for AHasher {
 }
 
 #[cfg(feature = "specialize")]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub(crate) struct AHasherU64 {
     pub(crate) buffer: u64,
     pub(crate) pad: u64,
@@ -265,6 +267,7 @@ impl Hasher for AHasherU64 {
 }
 
 #[cfg(feature = "specialize")]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub(crate) struct AHasherFixed(pub AHasher);
 
 /// A specialized hasher for fixed size primitives larger than 64 bits.
@@ -312,6 +315,7 @@ impl Hasher for AHasherFixed {
 }
 
 #[cfg(feature = "specialize")]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub(crate) struct AHasherStr(pub AHasher);
 
 /// A specialized hasher for strings

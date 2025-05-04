@@ -212,6 +212,7 @@ cfg_if::cfg_if! {
 /// |`with_seeds`   | Fixed               |`u64` x 4|
 ///
 #[derive(Clone)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct RandomState {
     pub(crate) k0: u64,
     pub(crate) k1: u64,

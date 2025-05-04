@@ -20,6 +20,7 @@ fn hash_test_final_wrapper(num: i32, string: &str) {
     hash_test_final(num, string);
 }
 
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 struct SimpleBuildHasher {
     hasher: AHasher,
 }
