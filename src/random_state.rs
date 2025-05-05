@@ -453,14 +453,14 @@ impl BuildHasher for RandomState {
     /// implementation of [`Hash`].  The way to create a combined hash of
     /// multiple values is to call [`Hash::hash`] multiple times using the same
     /// [`Hasher`], not to call this method repeatedly and combine the results.
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     #[inline]
     fn hash_one<T: Hash>(&self, x: T) -> u64 {
         RandomState::hash_one(self, x)
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl RandomState {
     #[inline]
     pub(crate) fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {

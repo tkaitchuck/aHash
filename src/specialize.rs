@@ -8,9 +8,9 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std as alloc;
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 use alloc::string::String;
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 use alloc::vec::Vec;
 
 /// Provides a way to get an optimized hasher for a given data type.
@@ -20,7 +20,7 @@ pub(crate) trait CallHasher {
     fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64;
 }
 
-#[cfg(not(feature = "specialize"))]
+#[cfg(not(specialize))]
 impl<T> CallHasher for T
 where
     T: Hash + ?Sized,
@@ -33,7 +33,7 @@ where
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl<T> CallHasher for T
 where
     T: Hash + ?Sized,
@@ -48,7 +48,7 @@ where
 
 macro_rules! call_hasher_impl_u64 {
     ($typ:ty) => {
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         impl CallHasher for $typ {
             #[inline]
             fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -76,7 +76,7 @@ call_hasher_impl_u64!(&i64);
 
 macro_rules! call_hasher_impl_fixed_length{
     ($typ:ty) => {
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         impl CallHasher for $typ {
             #[inline]
             fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -95,7 +95,7 @@ call_hasher_impl_fixed_length!(&i128);
 call_hasher_impl_fixed_length!(&usize);
 call_hasher_impl_fixed_length!(&isize);
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for [u8] {
     #[inline]
     fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -103,7 +103,7 @@ impl CallHasher for [u8] {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for Vec<u8> {
     #[inline]
     fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -111,7 +111,7 @@ impl CallHasher for Vec<u8> {
     }
 }
 
-#[cfg(feature = "specialize")]
+#[cfg(specialize)]
 impl CallHasher for str {
     #[inline]
     fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -119,7 +119,7 @@ impl CallHasher for str {
     }
 }
 
-#[cfg(all(feature = "specialize"))]
+#[cfg(all(specialize))]
 impl CallHasher for String {
     #[inline]
     fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
@@ -133,7 +133,7 @@ mod test {
     use crate::*;
 
     #[test]
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     pub fn test_specialized_invoked() {
         let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
         let shortened = u64::get_hash(&0, &build_hasher);
@@ -185,7 +185,7 @@ mod test {
             str::get_hash(&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
         );
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         assert_eq!(
             str::get_hash(&"test", &build_hasher),
             <[u8]>::get_hash("test".as_bytes(), &build_hasher)
@@ -205,7 +205,7 @@ mod test {
             str::get_hash(&&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
         );
-        #[cfg(feature = "specialize")]
+        #[cfg(specialize)]
         assert_eq!(
             str::get_hash(&&"test", &build_hasher),
             <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher)
