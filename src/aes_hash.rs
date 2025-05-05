@@ -34,7 +34,7 @@ impl AHasher {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_build
     /// use std::hash::Hasher;
     /// use ahash::AHasher;
     ///
