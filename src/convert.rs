@@ -41,7 +41,6 @@ convert!([u128; 2], [u64; 4]);
 convert!([u128; 2], [u8; 32]);
 convert!(u128, [u64; 2]);
 convert_primitive_bytes!(u128, [u8; 16]);
-convert!([u64; 2], [u32; 4]);
 #[cfg(test)]
 convert!([u64; 2], [u8; 16]);
 convert_primitive_bytes!(u64, [u8; 8]);
