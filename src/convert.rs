@@ -36,9 +36,7 @@ macro_rules! convert_primitive_bytes {
     };
 }
 
-convert!([u128; 4], [u8; 64]);
 convert!([u128; 2], [u64; 4]);
-convert!([u128; 2], [u8; 32]);
 convert!(u128, [u64; 2]);
 convert_primitive_bytes!(u128, [u8; 16]);
 #[cfg(test)]
@@ -102,14 +100,18 @@ impl ReadFromSlice for [u8] {
 
     #[inline(always)]
     fn read_u128x2(&self) -> ([u128; 2], &[u8]) {
-        let (value, rest) = self.split_at(32);
-        (as_array!(value, 32).convert(), rest)
+        let (a, rest) = self.read_u128();
+        let (b, rest) = rest.read_u128();
+        ([a, b], rest)
     }
 
     #[inline(always)]
     fn read_u128x4(&self) -> ([u128; 4], &[u8]) {
-        let (value, rest) = self.split_at(64);
-        (as_array!(value, 64).convert(), rest)
+        let (a, rest) = self.read_u128();
+        let (b, rest) = rest.read_u128();
+        let (c, rest) = rest.read_u128();
+        let (d, rest) = rest.read_u128();
+        ([a, b, c, d], rest)
     }
 
     #[inline(always)]
@@ -138,13 +140,19 @@ impl ReadFromSlice for [u8] {
 
     #[inline(always)]
     fn read_last_u128x2(&self) -> [u128; 2] {
-        let (_, value) = self.split_at(self.len() - 32);
-        as_array!(value, 32).convert()
+        let (_, rest) = self.split_at(self.len() - 32);
+        let (a, rest) = rest.read_u128();
+        let b = rest.read_last_u128();
+        [a, b]
     }
 
     #[inline(always)]
     fn read_last_u128x4(&self) -> [u128; 4] {
-        let (_, value) = self.split_at(self.len() - 64);
-        as_array!(value, 64).convert()
+        let (_, rest) = self.split_at(self.len() - 64);
+        let (a, rest) = rest.read_u128();
+        let (b, rest) = rest.read_u128();
+        let (c, rest) = rest.read_u128();
+        let d = rest.read_last_u128();
+        [a, b, c, d]
     }
 }
