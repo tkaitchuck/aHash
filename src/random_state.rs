@@ -356,6 +356,30 @@ impl RandomState {
         use crate::specialize::CallHasher;
         T::get_hash(&x, self)
     }
+
+    #[inline]
+    pub(crate) fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = AHasherU64 {
+            buffer: self.k1,
+            pad: self.k0,
+        };
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = AHasherFixed(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
+        let mut hasher = AHasherStr(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
 }
 
 /// Creates an instance of RandomState using keys obtained from the random number generator.
@@ -453,37 +477,10 @@ impl BuildHasher for RandomState {
     /// implementation of [`Hash`].  The way to create a combined hash of
     /// multiple values is to call [`Hash::hash`] multiple times using the same
     /// [`Hasher`], not to call this method repeatedly and combine the results.
-    #[cfg(specialize)]
+    #[cfg(build_hasher_hash_one)]
     #[inline]
     fn hash_one<T: Hash>(&self, x: T) -> u64 {
         RandomState::hash_one(self, x)
-    }
-}
-
-#[cfg(specialize)]
-impl RandomState {
-    #[inline]
-    pub(crate) fn hash_as_u64<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = AHasherU64 {
-            buffer: self.k1,
-            pad: self.k0,
-        };
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    pub(crate) fn hash_as_fixed_length<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = AHasherFixed(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    pub(crate) fn hash_as_str<T: Hash + ?Sized>(&self, value: &T) -> u64 {
-        let mut hasher = AHasherStr(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
     }
 }
 
