@@ -2,7 +2,7 @@ use crate::convert::*;
 use crate::operations::folded_multiply;
 use crate::operations::read_small;
 use crate::operations::MULTIPLE;
-use crate::random_state::PI;
+use crate::random_state::PI_U128X2;
 use crate::RandomState;
 use core::hash::Hasher;
 
@@ -31,9 +31,8 @@ impl AHasher {
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> AHasher {
-        let pi: [u128; 2] = PI.convert();
-        let key1: [u64; 2] = (key1 ^ pi[0]).convert();
-        let key2: [u64; 2] = (key2 ^ pi[1]).convert();
+        let key1: [u64; 2] = (key1 ^ PI_U128X2[0]).convert();
+        let key2: [u64; 2] = (key2 ^ PI_U128X2[1]).convert();
         AHasher {
             buffer: key1[0],
             pad: key1[1],

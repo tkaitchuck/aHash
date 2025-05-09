@@ -30,11 +30,16 @@ use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
-pub(crate) const PI: [u64; 4] = [
+pub(crate) const PI_U64X4: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
     0x1319_8a2e_0370_7344,
     0xa409_3822_299f_31d0,
     0x082e_fa98_ec4e_6c89,
+];
+
+pub(crate) const PI_U128X2: [u128; 2] = [
+    0x1319_8a2e_0370_7344_243f_6a88_85a3_08d3,
+    0x082e_fa98_ec4e_6c89_a409_3822_299f_31d0,
 ];
 
 pub(crate) const PI2: [u64; 4] = [
@@ -101,7 +106,7 @@ cfg_if::cfg_if! {
     } else {
         #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
-            &[PI, PI2]
+            &[PI_U64X4, PI2]
         }
     }
 }
@@ -135,14 +140,14 @@ struct DefaultRandomSource {
 impl DefaultRandomSource {
     fn new() -> DefaultRandomSource {
         DefaultRandomSource {
-            counter: AtomicUsize::new(&PI as *const _ as usize),
+            counter: AtomicUsize::new(&PI_U64X4 as *const _ as usize),
         }
     }
 
     #[cfg(all(target_arch = "arm", target_os = "none"))]
     const fn default() -> DefaultRandomSource {
         DefaultRandomSource {
-            counter: AtomicUsize::new(PI[3] as usize),
+            counter: AtomicUsize::new(PI_U64X4[3] as usize),
         }
     }
 }
@@ -501,19 +506,19 @@ mod test {
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
     #[test]
     fn test_not_pi() {
-        assert_ne!(PI, get_fixed_seeds()[0]);
+        assert_ne!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
     #[test]
     fn test_not_pi_const() {
-        assert_ne!(PI, get_fixed_seeds()[0]);
+        assert_ne!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
     #[test]
     fn test_pi() {
-        assert_eq!(PI, get_fixed_seeds()[0]);
+        assert_eq!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
     #[test]
