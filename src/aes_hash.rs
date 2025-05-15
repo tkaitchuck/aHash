@@ -27,7 +27,7 @@ impl AHasher {
     ///
     /// Normally hashers are created via `AHasher::default()` for fixed keys or `RandomState::new()` for randomly
     /// generated keys and `RandomState::with_seeds(a,b)` for seeds that are set and can be reused. All of these work at
-    /// map creation time (and hence don't have any overhead on a per-item bais).
+    /// map creation time (and hence don't have any overhead on a per-item basis).
     ///
     /// This method directly creates the hasher instance and performs no transformation on the provided seeds. This may
     /// be useful where a HashBuilder is not desired, such as for testing purposes.

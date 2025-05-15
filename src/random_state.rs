@@ -18,10 +18,10 @@ cfg_if::cfg_if! {
     }
 }
 
-#[cfg(feature = "atomic-polyfill")]
-use portable_atomic as atomic;
 #[cfg(not(feature = "atomic-polyfill"))]
 use core::sync::atomic;
+#[cfg(feature = "atomic-polyfill")]
+use portable_atomic as atomic;
 
 use alloc::boxed::Box;
 use atomic::{AtomicUsize, Ordering};
@@ -292,7 +292,7 @@ impl RandomState {
     }
 
     /// Allows for explicitly setting the seeds to used.
-    /// All `RandomState`s created with the same set of keys key will produce identical hashers.
+    /// All `RandomState`s created with the same set of keys will produce identical hashers.
     /// (In contrast to `generate_with` above)
     ///
     /// Note: If DOS resistance is desired one of these should be a decent quality random number.
@@ -364,7 +364,7 @@ impl RandomState {
 ///
 /// This is the same as [RandomState::new()]
 ///
-/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// NOTE: For safety this trait impl is only available if either of the flags `runtime-rng` (on by default) or
 /// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
 /// constructors for [RandomState] must be used.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
@@ -379,7 +379,7 @@ impl BuildHasher for RandomState {
     type Hasher = AHasher;
 
     /// Constructs a new [AHasher] with keys based on this [RandomState] object.
-    /// This means that two different [RandomState]s will will generate
+    /// This means that two different [RandomState]s will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///

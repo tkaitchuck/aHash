@@ -414,7 +414,7 @@ mod fallback_tests {
     }
 
     #[test]
-    fn fallback_finish_is_consistant() {
+    fn fallback_finish_is_consistent() {
         test_finish_is_consistent(AHasher::test_with_keys)
     }
 
@@ -511,7 +511,7 @@ mod aes_tests {
     }
 
     #[test]
-    fn aes_finish_is_consistant() {
+    fn aes_finish_is_consistent() {
         test_finish_is_consistent(AHasher::test_with_keys)
     }
 
