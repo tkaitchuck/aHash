@@ -74,7 +74,7 @@ call_hasher_impl_u64!(&i16);
 call_hasher_impl_u64!(&i32);
 call_hasher_impl_u64!(&i64);
 
-macro_rules! call_hasher_impl_fixed_length{
+macro_rules! call_hasher_impl_fixed_length {
     ($typ:ty) => {
         #[cfg(specialize)]
         impl CallHasher for $typ {

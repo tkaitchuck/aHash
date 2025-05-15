@@ -200,7 +200,6 @@ fn test_ahash_alias_set_construction() {
     set.insert(1);
 }
 
-
 #[cfg(feature = "std")]
 #[test]
 fn test_key_ref() {
@@ -228,8 +227,8 @@ fn test_key_ref() {
 #[cfg(feature = "std")]
 #[test]
 fn test_byte_dist() {
-    use rand::{SeedableRng, Rng, RngCore};
     use pcg_mwc::Mwc256XXA64;
+    use rand::{Rng, RngCore, SeedableRng};
 
     let mut r = Mwc256XXA64::seed_from_u64(0xe786_c22b_119c_1479);
     let mut lowest = 2.541;
@@ -274,7 +273,6 @@ fn test_byte_dist() {
     assert!(lowest > 1.9, "Lowest = {}", lowest);
     assert!(highest < 3.9, "Highest = {}", highest);
 }
-
 
 fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
