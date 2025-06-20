@@ -1,7 +1,7 @@
 //! AHash is a high performance keyed hash function.
 //!
 //! It quickly provides a high quality hash where the result is not predictable without knowing the Key.
-//! AHash works with `HashMap` to hash keys, but without allowing for the possibility that an malicious user can
+//! AHash works with `HashMap` to hash keys, but without allowing for the possibility that a malicious user can
 //! induce a collision.
 //!
 //! # How aHash works

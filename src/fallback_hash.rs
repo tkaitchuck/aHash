@@ -80,7 +80,7 @@ impl AHasher {
     /// https://en.wikipedia.org/wiki/Multiply-with-carry_pseudorandom_number_generator
     /// If the multiple is chosen well, this creates a long period, decent quality PRNG.
     /// Notice that this function is equivalent to this except the `buffer`/`state` is being xored with each
-    /// new block of data. In the event that data is all zeros, it is exactly equivalent to a MWC PRNG.
+    /// new block of data. In the event that data is all zeros, it is exactly equivalent to an MWC PRNG.
     ///
     /// This is impervious to attack because every bit buffer at the end is dependent on every bit in
     /// `new_data ^ buffer`. For example suppose two inputs differed in only the 5th bit. Then when the
@@ -88,8 +88,8 @@ impl AHasher {
     /// 2^5 * MULTIPLE. However in the next step bits 65-128 are turned into a separate 64 bit value. So the
     /// differing bits will be in the lower 6 bits of this value. The two intermediate values that differ in
     /// bits 5-63 and in bits 0-5 respectively get added together. Producing an output that differs in every
-    /// bit. The addition carries in the multiplication and at the end additionally mean that the even if an
-    /// attacker somehow knew part of (but not all) the contents of the buffer before hand,
+    /// bit. The addition carries in the multiplication and at the end additionally mean that even if an
+    /// attacker somehow knew part of (but not all) the contents of the buffer beforehand,
     /// they would not be able to predict any of the bits in the buffer at the end.
     #[inline(always)]
     fn update(&mut self, new_data: u64) {
@@ -142,7 +142,7 @@ impl Hasher for AHasher {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.update(i as u64);
+        self.update(i);
     }
 
     #[inline]
