@@ -1,6 +1,6 @@
 use crate::convert::*;
 use crate::operations::*;
-use crate::random_state::PI;
+use crate::random_state::PI_U128X2;
 use crate::RandomState;
 use core::hash::Hasher;
 
@@ -49,9 +49,8 @@ impl AHasher {
     /// ```
     #[inline]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
-        let pi: [u128; 2] = PI.convert();
-        let key1 = key1 ^ pi[0];
-        let key2 = key2 ^ pi[1];
+        let key1 = key1 ^ PI_U128X2[0];
+        let key2 = key2 ^ PI_U128X2[1];
         Self {
             enc: key1,
             sum: key2,
