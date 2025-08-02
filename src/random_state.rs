@@ -291,12 +291,12 @@ impl RandomState {
         RandomState::from_keys(&fixed[0], &fixed[1], key)
     }
 
-    /// Allows for explicitly setting the seeds to used.
+    /// Allows for explicitly setting the seeds to be used.
     /// All `RandomState`s created with the same set of keys will produce identical hashers.
     /// (In contrast to `generate_with` above)
     ///
     /// Note: If DOS resistance is desired one of these should be a decent quality random number.
-    /// If 4 high quality random number are not cheaply available this method is robust against 0s being passed for
+    /// If 4 high quality random numbers are not cheaply available this method is robust against 0s being passed for
     /// one or more of the parameters or the same value being passed for more than one parameter.
     /// It is recommended to pass numbers in order from highest to lowest quality (if there is any difference).
     #[inline]
