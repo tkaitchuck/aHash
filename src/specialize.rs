@@ -125,13 +125,21 @@ macro_rules! call_hasher_impl_str {
     };
 }
 call_hasher_impl_str!([u8]);
+call_hasher_impl_str!(Box<[u8]>);
 call_hasher_impl_str!(Vec<u8>);
+call_hasher_impl_str!(Box<Vec<u8>>);
 call_hasher_impl_str!(str);
+call_hasher_impl_str!(Box<str>);
 call_hasher_impl_str!(String);
+call_hasher_impl_str!(Box<String>);
 call_hasher_impl_str!(OsStr);
+call_hasher_impl_str!(Box<OsStr>);
 call_hasher_impl_str!(OsString);
+call_hasher_impl_str!(Box<OsString>);
 call_hasher_impl_str!(Path);
+call_hasher_impl_str!(Box<Path>);
 call_hasher_impl_str!(PathBuf);
+call_hasher_impl_str!(Box<PathBuf>);
 
 macro_rules! call_hasher_impl_fixed_str {
     ($typ:ty) => {
