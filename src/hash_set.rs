@@ -55,7 +55,7 @@ impl<T> AHashSet<T, RandomState<T>> {
         AHashSet(HashSet::with_hasher(RandomState::new()))
     }
 
-    /// This craetes a hashset with the specified capacity using [RandomState::new].
+    /// This creates a hashset with the specified capacity using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
     /// 
     /// [RandomSource]: crate::random_state::RandomSource
@@ -299,7 +299,7 @@ where
     }
 }
 
-/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// NOTE: For safety this trait impl is only available if either of the flags `runtime-rng` (on by default) or
 /// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
 /// constructors for [RandomState] must be used.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]

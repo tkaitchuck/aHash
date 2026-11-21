@@ -1,6 +1,6 @@
 use crate::convert::*;
 use crate::operations::*;
-use crate::random_state::PI;
+use crate::random_state::PI_U128X2;
 use crate::RandomState;
 use core::hash::Hasher;
 
@@ -27,7 +27,7 @@ impl AHasher {
     ///
     /// Normally hashers are created via `AHasher::default()` for fixed keys or `RandomState::new()` for randomly
     /// generated keys and `RandomState::with_seeds(a,b)` for seeds that are set and can be reused. All of these work at
-    /// map creation time (and hence don't have any overhead on a per-item bais).
+    /// map creation time (and hence don't have any overhead on a per-item basis).
     ///
     /// This method directly creates the hasher instance and performs no transformation on the provided seeds. This may
     /// be useful where a HashBuilder is not desired, such as for testing purposes.
@@ -50,9 +50,8 @@ impl AHasher {
     #[inline]
     #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
-        let pi: [u128; 2] = PI.convert();
-        let key1 = xor(key1, pi[0]);
-        let key2 = xor(key2, pi[1]);
+        let key1 = xor(key1, PI_U128X2[0]);
+        let key2 = xor(key2, PI_U128X2[1]);
         Self {
             enc: key1,
             sum: key2,

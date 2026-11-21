@@ -2,7 +2,7 @@ use crate::convert::*;
 #[allow(unused)]
 use zerocopy::transmute;
 
-///This constant comes from Kunth's prng (Empirically it works better than those from splitmix32).
+///This constant comes from Knuth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 
 /// This is a constant with a lot of special properties found by automated search.
@@ -369,10 +369,10 @@ mod test {
 
     #[test]
     fn test_add_length() {
-        let enc : [u64; 2] = [50, u64::MAX];
-        let mut enc : u128 = enc.convert();
+        let enc: [u64; 2] = [50, u64::MAX];
+        let mut enc: u128 = enc.convert();
         add_in_length(&mut enc, u64::MAX);
-        let enc : [u64; 2] = enc.convert();
+        let enc: [u64; 2] = enc.convert();
         assert_eq!(enc[1], u64::MAX);
         assert_eq!(enc[0], 49);
     }

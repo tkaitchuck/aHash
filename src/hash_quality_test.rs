@@ -427,7 +427,7 @@ mod fallback_tests {
     }
 
     #[test]
-    fn fallback_finish_is_consistant() {
+    fn fallback_finish_is_consistent() {
         #[cfg(feature = "specialize")]
         test_finish_is_consistent(|a, b| AHasherStr(AHasher::test_with_keys(a, b)));
         test_finish_is_consistent(AHasher::test_with_keys)
@@ -576,7 +576,7 @@ mod aes_tests {
     }
 
     #[test]
-    fn aes_finish_is_consistant() {
+    fn aes_finish_is_consistent() {
         test_finish_is_consistent(AHasher::test_with_keys);
         #[cfg(feature = "specialize")]
         {
