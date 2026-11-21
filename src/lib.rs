@@ -34,7 +34,7 @@ map.insert(12, 34);
 The above requires a source of randomness to generate keys for the hashmap. By default this obtained from the OS.
 It is also possible to have randomness supplied via the `compile-time-rng` flag, or manually.
 
-### If randomess is not available
+### If randomness is not available
 
 [AHasher::default()] can be used to hash using fixed keys. This works with
 [BuildHasherDefault](std::hash::BuildHasherDefault). For example:
@@ -97,7 +97,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal, unused_imports)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
-#![cfg_attr(feature = "specialize", feature(min_specialization))]
+#![cfg_attr(specialize, feature(min_specialization))]
 
 #[macro_use]
 mod convert;
@@ -146,8 +146,6 @@ pub use crate::random_state::RandomState;
 pub use crate::random_state::SmallState;
 
 use core::hash::BuildHasher;
-use core::hash::Hash;
-use core::hash::Hasher;
 
 #[cfg(feature = "std")]
 /// A convenience trait that can be used together with the type aliases defined to
@@ -261,6 +259,8 @@ mod test {
     use crate::convert::Convert;
     use crate::specialize::CallHasher;
     use crate::*;
+    use core::hash::Hash;
+    use core::hash::Hasher;
     use std::collections::HashMap;
 
     #[test]

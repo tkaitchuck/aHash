@@ -19,7 +19,7 @@ cfg_if::cfg_if! {
 }
 
 #[cfg(feature = "atomic-polyfill")]
-use atomic_polyfill as atomic;
+use portable_atomic as atomic;
 #[cfg(not(feature = "atomic-polyfill"))]
 use core::sync::atomic;
 
@@ -77,7 +77,7 @@ cfg_if::cfg_if! {
 
             SEEDS.get_or_init(|| {
                 let mut result: [u8; 64] = [0; 64];
-                getrandom::getrandom(&mut result).expect("getrandom::getrandom() failed.");
+                getrandom::fill(&mut result).expect("getrandom::fill() failed.");
                 Box::new(result.convert())
             })
         }
@@ -369,7 +369,7 @@ impl <T> RandomState<T> {
 
 
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     pub(crate) fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherU64 {
             buffer: self.k0,
@@ -380,7 +380,7 @@ impl <T> RandomState<T> {
     }
 
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     pub(crate) fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherFixed(self.build_hasher());
         value.hash(&mut hasher);
@@ -388,7 +388,7 @@ impl <T> RandomState<T> {
     }
 
     #[inline]
-    #[cfg(feature = "specialize")]
+    #[cfg(specialize)]
     pub(crate) fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
         let mut hasher = AHasherStr(self.build_hasher());
         value.hash(&mut hasher);
@@ -477,10 +477,10 @@ impl <T> BuildHasher for RandomState<T> {
         let build_hasher = RandomState::<u32>::new();
         let mut hasher_1 = build_hasher.build_hasher();
         let mut hasher_2 = build_hasher.build_hasher();
-    
+
         hasher_1.write_u32(1234);
         hasher_2.write_u32(1234);
-    
+
         assert_eq!(hasher_1.finish(), hasher_2.finish());
     
         let other_build_hasher = RandomState::<u32>::new();

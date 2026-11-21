@@ -47,7 +47,7 @@ impl<T> Into<HashSet<T, RandomState<T>>> for AHashSet<T> {
 }
 
 impl<T> AHashSet<T, RandomState<T>> {
-    /// This crates a hashset using [RandomState::new].
+    /// This creates a hashset using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
     /// 
     /// [RandomSource]: crate::random_state::RandomSource
@@ -55,7 +55,7 @@ impl<T> AHashSet<T, RandomState<T>> {
         AHashSet(HashSet::with_hasher(RandomState::new()))
     }
 
-    /// This crates a hashset with the specified capacity using [RandomState::new].
+    /// This craetes a hashset with the specified capacity using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
     /// 
     /// [RandomSource]: crate::random_state::RandomSource
@@ -249,7 +249,7 @@ impl<T> FromIterator<T> for AHashSet<T, RandomState<T>>
 where
     T: Eq + Hash,
 {
-    /// This crates a hashset from the provided iterator using [RandomState::new].
+    /// This creates a hashset from the provided iterator using [RandomState::new].
     /// See the documentation in [RandomSource] for notes about key strength.
     /// 
     /// [RandomSource]: crate::random_state::RandomSource

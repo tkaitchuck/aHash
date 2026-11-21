@@ -1,8 +1,8 @@
 //! This is a bare-bones `no-std` application that hashes a value and
 //! uses the hash value as the return value.
-
+#![no_main]
 #![no_std]
-#![feature(alloc_error_handler, start, core_intrinsics, lang_items, link_cfg)]
+#![feature(alloc_error_handler, core_intrinsics, lang_items)]
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -15,7 +15,7 @@ use core::hash::{Hash, Hasher};
 #[link(name = "libcmt")]
 extern "C" {}
 
-#[start]
+#[no_mangle]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
 	let mut h: ahash::AHasher = Default::default();
 	42_i32.hash(&mut h);
