@@ -2,7 +2,7 @@ use crate::convert::*;
 #[allow(unused)]
 use zerocopy::transmute;
 
-///This constant comes from Kunth's prng (Empirically it works better than those from splitmix32).
+///This constant comes from Knuth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 
 /// This is a constant with a lot of special properties found by automated search.
