@@ -27,7 +27,7 @@ default = ["std", "runtime-rng"]
 serde = ["serde/derive"]
 
 # Enabling this will enable `AHashMap` and `AHashSet`.
-std = ["serde/std"]
+std = ["serde?/std"]
 
 # Runtime random key generation using getrandom.
 runtime-rng = ["getrandom"]
