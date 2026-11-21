@@ -1,4 +1,8 @@
 use core::hash::Hash;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 cfg_if::cfg_if! {
     if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
@@ -216,6 +220,7 @@ cfg_if::cfg_if! {
 /// |`with_seed`    | Fixed per process   |`u64` + static random number|
 /// |`with_seeds`   | Fixed               |`u64` x 4|
 ///
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone)]
 pub struct RandomState {
     pub(crate) k0: u64,
@@ -507,6 +512,20 @@ mod test {
     #[test]
     fn test_not_pi() {
         assert_ne!(PI_U64X4, get_fixed_seeds()[0]);
+    }
+
+    #[cfg(all(feature = "serde"))]
+    #[test]
+    fn test_serialize() {
+        let rs = RandomState::new();
+
+        let serialized = bincode::serialize(&rs).expect("failed to serialize");
+        let deserialized: RandomState = bincode::deserialize(&serialized).expect("failed to deserialize");
+
+        assert_eq!(rs.k0, deserialized.k0);
+        assert_eq!(rs.k1, deserialized.k1);
+        assert_eq!(rs.k2, deserialized.k2);
+        assert_eq!(rs.k3, deserialized.k3);
     }
 
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
