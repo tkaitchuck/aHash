@@ -84,7 +84,7 @@ const-random = { version = "0.1.17", optional = true }
 serde = { version = "1.0.117", default-features = false, optional = true }
 cfg-if = "1.0"
 portable-atomic = { version = "1.0.0", optional = true }
-getrandom = { version = "0.4", optional = true }
+getrandom = {  version = ">=0.3.1, <0.5", optional = true }
 zerocopy = { version = "0.8.24", default-features = false, features = ["simd"] }
 
 [target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
