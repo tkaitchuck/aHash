@@ -1,5 +1,7 @@
 use crate::convert::*;
 use crate::operations::folded_multiply;
+#[cfg(feature = "folded_multiply")]
+use crate::operations::multiply_halves;
 use crate::operations::read_small;
 use crate::random_state::PI;
 use crate::RandomState;
@@ -7,7 +9,14 @@ use core::hash::Hasher;
 
 ///This constant come from Kunth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
-const ROT: u32 = 23; //17
+/// How far `large_update` rotates the buffer.
+///
+/// This also sets how likely the most likely known collision is: About one key in `2^(64 - ROT)`. So smaller is
+/// better, until the factors of `2^(64 + ROT) - 1` and `2^(64 + ROT) + 1` come into play: When one operand is a
+/// multiple of one factor, changing the other by a multiple of the rest can go unnoticed. For 15 these are
+/// `2687 * 202029703 * 1113491139767` and three times a prime, which leaves nothing usable.
+/// See the tests of `large_update` below.
+const ROT: u32 = 15;
 
 /// A `Hasher` for hashing an arbitrary stream of bytes.
 ///
@@ -106,23 +115,30 @@ impl AHasher {
         self.buffer = (self.buffer ^ self.pad).rotate_left(24);
     }
 
-    /// Similar to the above this function performs an update using a "folded multiply".
+    /// Similar to the above this function performs an update using a multiply.
     /// However it takes in 128 bits of data instead of 64. Both halves must be masked.
     ///
-    /// This makes it impossible for an attacker to place a single bit difference between
-    /// two blocks so as to cancel each other.
+    /// Unlike in `update` both operands of the multiply are controlled by the input, so the two halves of the
+    /// product must not simply be xored together (See [multiply_halves]). Instead the low half is xored into the
+    /// buffer before it is rotated and the high half is added afterwards. A change to the input which moves one
+    /// half up and the other down then lands in two different positions, via two different operations, and does
+    /// not offset itself. Because xor and add do not commute and the rotation moves the bits, the buffer is also
+    /// updated in a way which prevents (a,b) from hashing the same as (b,a).
     ///
-    /// However this is not sufficient. to prevent (a,b) from hashing the same as (b,a) the buffer itself must
-    /// be updated between calls in a way that does not commute. To achieve this XOR and Rotate are used.
-    /// Add followed by xor is not the same as xor followed by add, and rotate ensures that the same out bits
-    /// can't be changed by the same set of input bits. To cancel this sequence with subsequent input would require
-    /// knowing the keys.
+    /// `pad` is added along with the high half, off the path from one block to the next. It makes no difference
+    /// to whether two blocks collide, but without it the key in `pad` would only reach the state when finishing,
+    /// through a single multiply. (Where there is no 128 bit product, that leaves bits it cannot change.)
+    ///
+    /// The price of the rotation: When one operand happens to be small, a difference in a single bit of the
+    /// other changes a short run of bits which lies partly in each half, and these can line up and cancel.
+    /// This is the most likely collision that is known for a single block, at about one key in `2^(64 - ROT)`.
     #[inline(always)]
     #[cfg(feature = "folded_multiply")]
     fn large_update(&mut self, new_data: u128) {
         let block: [u64; 2] = new_data.convert();
-        let combined = folded_multiply(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
-        self.buffer = (self.buffer.wrapping_add(self.pad) ^ combined).rotate_left(ROT);
+        let [low, high] = multiply_halves(block[0] ^ self.extra_keys[0], block[1] ^ self.extra_keys[1]);
+        let high = high.wrapping_add(self.pad);
+        self.buffer = (self.buffer ^ low).rotate_left(ROT).wrapping_add(high);
     }
 
     #[inline(always)]
@@ -338,8 +354,10 @@ impl Hasher for AHasherStr {
             self.0.write(bytes)
         } else {
             let value = read_small(bytes);
-            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer,
-                                           value[1] ^ self.0.extra_keys[1]);
+            // Both operands depend on the input here too, but only in their low 32 bits. Xoring the halves of
+            // the product is only a problem when all of the bits of an operand can be complemented.
+            // (See `test_short_string_differences_do_not_scale`.)
+            self.0.buffer = folded_multiply(value[0] ^ self.0.buffer, value[1] ^ self.0.extra_keys[1]);
             self.0.pad = self.0.pad.wrapping_add(bytes.len() as u64);
         }
     }
@@ -367,6 +385,7 @@ impl Hasher for AHasherStr {
 mod tests {
     use crate::convert::Convert;
     use crate::fallback_hash::*;
+    use crate::operations::multiply_halves;
 
     #[test]
     fn test_hash() {
@@ -388,5 +407,269 @@ mod tests {
         let input: &[u8] = "dddddddd".as_bytes();
         let bytes: u64 = as_array!(input, 8).convert();
         assert_eq!(bytes, 0x6464646464646464);
+    }
+
+    // The 64 bit function is too large to measure how often two different blocks collide. But the weaknesses
+    // of `large_update` come from the arithmetic, and exist at every word size. So the tests below use a
+    // model of it with small words, where every key can be tried. (All of the rotations scale with the
+    // word size.) Rates are given as a multiple of the `2^-width` that an ideal function would have.
+
+    type Halves = fn(u64, u64, u32) -> [u64; 2];
+    type Combine = fn(u64, [u64; 2], u32) -> u64;
+
+    fn mask(width: u32) -> u64 {
+        u64::MAX >> (64 - width)
+    }
+
+    /// `ROT` scaled to the word size.
+    fn scaled_rot(width: u32) -> u32 {
+        (ROT * width + 32) / 64
+    }
+
+    fn rotate(value: u64, width: u32) -> u64 {
+        let rot = scaled_rot(width);
+        ((value << rot) | (value >> (width - rot))) & mask(width)
+    }
+
+    /// The model of `multiply_halves`.
+    fn product_halves(x: u64, y: u64, width: u32) -> [u64; 2] {
+        let product = (x as u128) * (y as u128);
+        [product as u64 & mask(width), (product >> width) as u64 & mask(width)]
+    }
+
+    /// The model of `large_update`.
+    fn combine(buffer: u64, [low, high]: [u64; 2], width: u32) -> u64 {
+        rotate(buffer ^ low, width).wrapping_add(high) & mask(width)
+    }
+
+    /// The model of `AHasherStr` for short strings, which xors the halves together.
+    fn fold(_buffer: u64, [low, high]: [u64; 2], _width: u32) -> u64 {
+        low ^ high
+    }
+
+    #[cfg(feature = "folded_multiply")]
+    #[test]
+    fn test_large_update_matches_model() {
+        for (data, key1, key2) in [
+            (0_u128, 0_u128, 0_u128),
+            (1, 2, 3),
+            (u128::MAX, 1 << 80, 7),
+            (0x0123_4567_89ab_cdef_0011_2233_4455_6677, 99, 12345),
+            (0xfedc_ba98_7654_3210_8899_aabb_ccdd_eeff, u128::MAX / 3, u128::MAX / 5),
+        ] {
+            let mut hasher = AHasher::test_with_keys(key1, key2);
+            let block: [u64; 2] = data.convert();
+            let (x, y) = (block[0] ^ hasher.extra_keys[0], block[1] ^ hasher.extra_keys[1]);
+            // (`pad` is a constant which is added to every state, so it cancels when two blocks are compared, and
+            // the models leave it out.)
+            let expected = combine(hasher.buffer, product_halves(x, y, 64), 64).wrapping_add(hasher.pad);
+            hasher.large_update(data);
+            assert_eq!(expected, hasher.buffer);
+        }
+    }
+
+    #[test]
+    fn test_model_matches_multiply_halves() {
+        for (x, y) in [
+            (0_u64, 0_u64),
+            (3, 5),
+            (u64::MAX, u64::MAX),
+            (0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210),
+        ] {
+            assert_eq!(multiply_halves(x, y), product_halves(x, y, 64));
+        }
+    }
+
+    /// For every possible difference between two blocks: How often they leave the buffer in the same state.
+    /// The difference `(da, db)` is at index `da << width | db`.
+    /// (The keys are xored with the input before it is used. So trying every pair of operands is trying every key.)
+    fn difference_profile(halves: Halves, combine: Combine, width: u32, buffers: u64) -> Vec<f64> {
+        let size = 1_usize << width;
+        let mut counts = vec![0_u32; size * size];
+        let mut states: Vec<Vec<u32>> = vec![Vec::new(); size];
+        for i in 0..buffers {
+            let buffer = (i + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) >> (64 - width);
+            states.iter_mut().for_each(Vec::clear);
+            for x in 0..size as u64 {
+                for y in 0..size as u64 {
+                    let state = combine(buffer, halves(x, y, width), width);
+                    states[state as usize].push((x << width | y) as u32);
+                }
+            }
+            // Any two operand pairs which lead to the same state are a collision for the difference between them.
+            for state in states.iter() {
+                for (i, a) in state.iter().enumerate() {
+                    for b in &state[i + 1..] {
+                        counts[(a ^ b) as usize] += 1;
+                    }
+                }
+            }
+        }
+        let ideal = (size as u64 * buffers) as f64 / 2.0;
+        counts.into_iter().map(|count| count as f64 / ideal).collect()
+    }
+
+    /// The same for a single difference, which is feasible for larger words.
+    fn collision_rate(halves: Halves, combine: Combine, width: u32, da: u64, db: u64) -> f64 {
+        let size = 1_u64 << width;
+        let mut collisions = 0_u64;
+        for x in 0..size {
+            for y in 0..size {
+                let buffer =
+                    (x.wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ y.wrapping_mul(0x85eb_ca6b_1234_5677)) >> (64 - width);
+                let a = combine(buffer, halves(x, y, width), width);
+                let b = combine(buffer, halves(x ^ da, y ^ db, width), width);
+                collisions += (a == b) as u64;
+            }
+        }
+        collisions as f64 / size as f64
+    }
+
+    fn worst(profile: &[f64], width: u32, include: impl Fn(u64, u64) -> bool) -> (f64, u64, u64) {
+        let mut worst = (0.0, 0, 0);
+        for (index, &rate) in profile.iter().enumerate().skip(1) {
+            let (da, db) = (index as u64 >> width, index as u64 & mask(width));
+            if rate > worst.0 && include(da, db) {
+                worst = (rate, da, db);
+            }
+        }
+        worst
+    }
+
+    /// Differences in one bit: Of either operand, or the same bit of both.
+    fn single_bits(width: u32) -> impl Iterator<Item = (u64, u64)> {
+        (0..width).flat_map(|bit| [(1 << bit, 1 << bit), (1 << bit, 0), (0, 1 << bit)])
+    }
+
+    /// Checks every possible difference between two blocks, so that no pattern (like the complement in issue #292,
+    /// which collided 2^38 times more often than ideal at 64 bits) can stand out. This is not an ideal function,
+    /// and it is not expected to be: See the next test for what the worst of these are, and what they amount to.
+    /// (The worst measured is 3.9 times ideal.)
+    #[test]
+    fn test_no_block_difference_collides_often() {
+        let width = 8;
+        let profile = difference_profile(product_halves, combine, width, 32);
+        let (rate, da, db) = worst(&profile, width, |_, _| true);
+        assert!(
+            rate < 6.0,
+            "A difference of {:x?} collides {} times more often than ideal",
+            (da, db),
+            rate
+        );
+    }
+
+    /// The price of not xoring the halves together: When one operand is small, changing one bit of the other
+    /// changes a short run of bits in the product, which lies partly in each half. As the low half is rotated
+    /// relative to the high half, these two parts can end up on top of each other and cancel out.
+    ///
+    /// For the product this depends on the rotation and not on the word size: It is about `2^(rot - 1)` times the
+    /// ideal rate for a bit of one operand, and up to `2^rot` times for the same bit of both. For the real
+    /// function that is `2^15 * 2^-64`, or one key in 2^49. See `test_single_bit_differences_at_full_width` for
+    /// the same measurement on the real function. (The worst measured are 0.9 and 1.0 times `2^rot` at 8 and 12
+    /// bits.)
+    #[test]
+    fn test_single_bit_differences_are_limited_by_rotation() {
+        for width in [8, 12] {
+            let limit = 1.25 * (1 << scaled_rot(width)) as f64;
+            for (da, db) in single_bits(width) {
+                let rate = collision_rate(product_halves, combine, width, da, db);
+                assert!(
+                    rate < limit,
+                    "At {} bits a difference of {:x?} collides {} times more often than ideal",
+                    width,
+                    (da, db),
+                    rate
+                );
+            }
+        }
+    }
+
+    /// `AHasherStr` xors the halves of a product of two operands which both depend on the input, for strings of
+    /// up to 8 bytes. But there the input only reaches the low half of each operand. Check that no difference
+    /// which is confined to the low halves stands out, or grows with the word size the way the complement did.
+    #[test]
+    fn test_short_string_differences_do_not_scale() {
+        let width = 8;
+        let half = mask(width / 2);
+        let profile = difference_profile(product_halves, fold, width, 1);
+        let (rate, da, db) = worst(&profile, width, |da, db| da <= half && db <= half);
+        assert!(rate < 6.0, "{:x?} {}", (da, db), rate);
+        let width = 12;
+        let half = mask(width / 2);
+        for (da, db) in [(half, half), (half, 0), (0, half)] {
+            let rate = collision_rate(product_halves, fold, width, da, db);
+            assert!(rate < 6.0, "{:x?} {}", (da, db), rate);
+        }
+    }
+
+    /// The chance that two blocks whose operands differ by `(da, db)` leave a random buffer in the same state,
+    /// for these particular operands. This can be computed rather than counted, which makes the real word size
+    /// reachable: With `u = rotl(buffer ^ low)` the states are `u + high` and `(u ^ d) + high'`, where
+    /// `d = rotl(low ^ low')`. Each bit set in `d` moves `u` up or down by that bit, depending on whether
+    /// it is set in `u`. So they are equal exactly when `2 * (u & d) - d == high' - high`.
+    #[cfg(feature = "folded_multiply")]
+    fn collision_chance(x: u64, y: u64, da: u64, db: u64) -> f64 {
+        let [low, high] = multiply_halves(x, y);
+        let [low2, high2] = multiply_halves(x ^ da, y ^ db);
+        let d = (low ^ low2).rotate_left(ROT);
+        if d == 0 {
+            return (high == high2) as u64 as f64;
+        }
+        let sum = high2.wrapping_sub(high).wrapping_add(d);
+        if sum & 1 != 0 {
+            return 0.0;
+        }
+        // `u & d` is half of the sum. Its top bit could be either value.
+        let candidates = [sum >> 1, sum >> 1 | 1 << 63];
+        let count = candidates.iter().filter(|&bits| bits & !d == 0).count();
+        count as f64 / 2_f64.powi(d.count_ones() as i32)
+    }
+
+    /// Measures how often a difference in one bit collides, at the real word size, as a multiple of 2^-64.
+    /// Such collisions come from the keys where the other operand is a short value, shifted left by some amount.
+    /// So rather than drawing it uniformly, every length and shift is drawn equally often and the result is
+    /// weighted by how common such operands are.
+    /// (Shapes for which it would take around 2^32 samples to see anything contribute nothing here. The whole
+    /// of an ideal function is like that, so this only measures the excess.)
+    #[cfg(feature = "folded_multiply")]
+    fn single_bit_rate(da: u64, db: u64, samples: u64) -> f64 {
+        let mut state = da ^ db.rotate_left(32);
+        let mut next = || {
+            state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let z = (state ^ (state >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            let z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            z ^ (z >> 31)
+        };
+        let mut total = 0.0;
+        for _ in 0..samples {
+            // An odd value of `length` bits, followed by `shift` zeros.
+            let length = 1 + next() % 64;
+            let shift = next() % (65 - length);
+            let short = ((next() | 1 << 63) >> (64 - length) | 1) << shift;
+            let (x, y) = if da != 0 { (next(), short) } else { (short, next()) };
+            // This is one of 64 lengths and `65 - length` shifts, and there are `2^(length - 2)` such values.
+            let weight = 64.0 * (65 - length) as f64 * 2_f64.powi(length as i32 - 2).max(1.0);
+            total += collision_chance(x, y, da, db) * weight;
+        }
+        total / samples as f64
+    }
+
+    /// The small models say a difference in a single bit collides about `2^(ROT - 1)` times more often than
+    /// ideal (up to `2^ROT` for the same bit of both operands). This checks that the real function is no worse.
+    /// (With 2^28 samples, every fourth bit from 16 to 48 of either operand comes out between 2^13.8 and 2^14.2.
+    /// The same bit of both operands reaches 2^15.0.)
+    #[cfg(feature = "folded_multiply")]
+    #[test]
+    fn test_single_bit_differences_at_full_width() {
+        let limit = 3.0 * 2_f64.powi(ROT as i32 - 1);
+        for (da, db) in [(1 << 36, 0), (0, 1 << 36), (1 << 36, 1 << 36)] {
+            let rate = single_bit_rate(da, db, 1 << 24);
+            assert!(
+                rate < limit,
+                "A difference of {:x?} collides 2^{:.1} times more often than ideal",
+                (da, db),
+                rate.log2()
+            );
+        }
     }
 }
