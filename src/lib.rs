@@ -137,6 +137,8 @@ cfg_if::cfg_if! {
 }
 
 #[cfg(test)]
+mod aes_hash_test;
+#[cfg(test)]
 mod hash_quality_test;
 
 mod operations;
