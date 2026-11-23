@@ -37,7 +37,6 @@ macro_rules! convert_primitive_bytes {
 }
 
 convert!([u128; 4], [u8; 64]);
-convert!([u128; 2], [u64; 4]);
 convert!([u128; 2], [u8; 32]);
 convert!(u128, [u64; 2]);
 convert_primitive_bytes!(u128, [u8; 16]);
