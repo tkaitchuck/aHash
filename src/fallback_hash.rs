@@ -385,6 +385,7 @@ impl Hasher for AHasherStr {
 mod tests {
     use crate::convert::Convert;
     use crate::fallback_hash::*;
+    use crate::operations::multiply_halves;
 
     #[test]
     fn test_hash() {
