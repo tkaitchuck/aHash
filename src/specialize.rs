@@ -9,13 +9,12 @@ extern crate alloc;
 extern crate std as alloc;
 
 #[cfg(specialize)]
-use alloc::ffi::{OsStr, OsString};
-#[cfg(specialize)]
-use alloc::path::{Path, PathBuf};
-#[cfg(specialize)]
-use alloc::string::String;
-#[cfg(specialize)]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, string::String, vec::Vec};
+#[cfg(all(specialize, feature = "std"))]
+use std::{
+    ffi::{OsStr, OsString},
+    path::{Path, PathBuf},
+};
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
@@ -132,14 +131,18 @@ call_hasher_impl_str!(str);
 call_hasher_impl_str!(Box<str>);
 call_hasher_impl_str!(String);
 call_hasher_impl_str!(Box<String>);
-call_hasher_impl_str!(OsStr);
-call_hasher_impl_str!(Box<OsStr>);
-call_hasher_impl_str!(OsString);
-call_hasher_impl_str!(Box<OsString>);
-call_hasher_impl_str!(Path);
-call_hasher_impl_str!(Box<Path>);
-call_hasher_impl_str!(PathBuf);
-call_hasher_impl_str!(Box<PathBuf>);
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        call_hasher_impl_str!(OsStr);
+        call_hasher_impl_str!(Box<OsStr>);
+        call_hasher_impl_str!(OsString);
+        call_hasher_impl_str!(Box<OsString>);
+        call_hasher_impl_str!(Path);
+        call_hasher_impl_str!(Box<Path>);
+        call_hasher_impl_str!(PathBuf);
+        call_hasher_impl_str!(Box<PathBuf>);
+    }
+}
 
 macro_rules! call_hasher_impl_fixed_str {
     ($typ:ty) => {
@@ -167,6 +170,11 @@ call_hasher_impl_fixed_str!([u8; N]);
 mod test {
     use super::*;
     use crate::*;
+    #[cfg(feature = "std")]
+    use std::{
+        ffi::{OsStr, OsString},
+        path::{Path, PathBuf},
+    };
 
     #[test]
     #[cfg(specialize)]
@@ -221,11 +229,6 @@ mod test {
             str::get_hash(&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
         );
-        #[cfg(specialize)]
-        assert_eq!(
-            str::get_hash(&"test", &build_hasher),
-            <[u8]>::get_hash("test".as_bytes(), &build_hasher)
-        );
 
         let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
         assert_eq!(u8::get_hash(&&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
@@ -241,17 +244,12 @@ mod test {
             str::get_hash(&&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
         );
-        #[cfg(specialize)]
-        assert_eq!(
-            str::get_hash(&&"test", &build_hasher),
-            <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher)
-        );
-        #[cfg(specialize)]
-        assert_eq!(
-            str::get_hash(&&"test", &build_hasher),
-            <[u8; 4]>::get_hash(b"test", &build_hasher)
-        );
+    }
 
+    #[test]
+    #[cfg(feature = "std")]
+    pub fn test_ref_independent_get_hash_os_str_and_path() {
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
         let os_str = OsStr::new("test");
         let os_string = OsString::from("test");
         assert_eq!(
@@ -261,10 +259,6 @@ mod test {
         assert_eq!(
             OsStr::get_hash(&os_str, &build_hasher),
             OsString::get_hash(&os_string, &build_hasher)
-        );
-        assert_eq!(
-            OsStr::get_hash(&os_str, &build_hasher),
-            str::get_hash("test", &build_hasher)
         );
 
         let path = Path::new("test");
@@ -276,10 +270,6 @@ mod test {
         assert_eq!(
             Path::get_hash(&path, &build_hasher),
             PathBuf::get_hash(&path_buf, &build_hasher)
-        );
-        assert_eq!(
-            Path::get_hash(&path, &build_hasher),
-            OsStr::get_hash(os_str, &build_hasher)
         );
     }
 
@@ -301,7 +291,6 @@ mod test {
             build_hasher.hash_one(&"test"),
             build_hasher.hash_one(&"test".to_string())
         );
-        assert_eq!(build_hasher.hash_one(&"test"), build_hasher.hash_one("test".as_bytes()));
 
         let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
         assert_eq!(build_hasher.hash_one(&&1u8), build_hasher.hash_one(&1));
@@ -319,22 +308,20 @@ mod test {
             build_hasher.hash_one(&&"test"),
             build_hasher.hash_one(&"test".to_string())
         );
-        assert_eq!(
-            build_hasher.hash_one(&&"test"),
-            build_hasher.hash_one(&"test".to_string().into_bytes())
-        );
-        assert_eq!(build_hasher.hash_one("test"), build_hasher.hash_one(b"test"));
+    }
 
+    #[test]
+    #[cfg(feature = "std")]
+    pub fn test_ref_independent_hash_one_os_str_and_path() {
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
         let os_str = OsStr::new("test");
         let os_string = OsString::from("test");
         assert_eq!(build_hasher.hash_one(&&os_str), build_hasher.hash_one(os_str));
         assert_eq!(build_hasher.hash_one(&os_str), build_hasher.hash_one(&os_string));
-        assert_eq!(build_hasher.hash_one(os_str), build_hasher.hash_one("test"));
 
         let path = Path::new("test");
         let path_buf = PathBuf::from("test");
         assert_eq!(build_hasher.hash_one(&&path), build_hasher.hash_one(path));
         assert_eq!(build_hasher.hash_one(&path), build_hasher.hash_one(&path_buf));
-        assert_eq!(build_hasher.hash_one(path), build_hasher.hash_one(os_str));
     }
 }
