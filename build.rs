@@ -43,5 +43,16 @@ fn main() {
     {
         println!("cargo:rustc-cfg=feature=\"folded_multiply\"");
     }
-
+    // The 256 bit AES instructions can be used if they are enabled and the compiler is new enough to have them.
+    println!("cargo:rustc-check-cfg=cfg(vaes)");
+    let features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let enabled = |feature: &str| features.split(',').any(|f| f == feature);
+    if arch.eq_ignore_ascii_case("x86_64")
+        && enabled("aes")
+        && enabled("vaes")
+        && enabled("avx2")
+        && version_check::is_min_version("1.89.0") == Some(true)
+    {
+        println!("cargo:rustc-cfg=vaes");
+    }
 }

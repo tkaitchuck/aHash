@@ -42,6 +42,8 @@ mod convert;
 mod aes_hash;
 mod fallback_hash;
 #[cfg(test)]
+mod aes_hash_test;
+#[cfg(test)]
 mod hash_quality_test;
 
 #[cfg(feature = "std")]
