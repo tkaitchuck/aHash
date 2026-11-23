@@ -9,9 +9,12 @@ extern crate alloc;
 extern crate std as alloc;
 
 #[cfg(specialize)]
-use alloc::string::String;
-#[cfg(specialize)]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, string::String, vec::Vec};
+#[cfg(all(specialize, feature = "std"))]
+use std::{
+    ffi::{OsStr, OsString},
+    path::{Path, PathBuf},
+};
 
 /// Provides a way to get an optimized hasher for a given data type.
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
@@ -48,6 +51,15 @@ where
 
 macro_rules! call_hasher_impl_u64 {
     ($typ:ty) => {
+        call_hasher_impl_u64!(@internal $typ);
+        call_hasher_impl_u64!(@internal &$typ);
+        call_hasher_impl_u64!(@internal &&$typ);
+        call_hasher_impl_u64!(@internal &&&$typ);
+        call_hasher_impl_u64!(@internal &&&&$typ);
+        call_hasher_impl_u64!(@internal &&&&&$typ);
+    };
+
+    (@internal $typ:ty) => {
         #[cfg(specialize)]
         impl CallHasher for $typ {
             #[inline]
@@ -65,17 +77,18 @@ call_hasher_impl_u64!(i8);
 call_hasher_impl_u64!(i16);
 call_hasher_impl_u64!(i32);
 call_hasher_impl_u64!(i64);
-call_hasher_impl_u64!(&u8);
-call_hasher_impl_u64!(&u16);
-call_hasher_impl_u64!(&u32);
-call_hasher_impl_u64!(&u64);
-call_hasher_impl_u64!(&i8);
-call_hasher_impl_u64!(&i16);
-call_hasher_impl_u64!(&i32);
-call_hasher_impl_u64!(&i64);
 
-macro_rules! call_hasher_impl_fixed_length{
+macro_rules! call_hasher_impl_fixed_length {
     ($typ:ty) => {
+        call_hasher_impl_fixed_length!(@internal $typ);
+        call_hasher_impl_fixed_length!(@internal &$typ);
+        call_hasher_impl_fixed_length!(@internal &&$typ);
+        call_hasher_impl_fixed_length!(@internal &&&$typ);
+        call_hasher_impl_fixed_length!(@internal &&&&$typ);
+        call_hasher_impl_fixed_length!(@internal &&&&&$typ);
+    };
+
+    (@internal $typ:ty) => {
         #[cfg(specialize)]
         impl CallHasher for $typ {
             #[inline]
@@ -85,52 +98,83 @@ macro_rules! call_hasher_impl_fixed_length{
         }
     };
 }
-
 call_hasher_impl_fixed_length!(u128);
 call_hasher_impl_fixed_length!(i128);
 call_hasher_impl_fixed_length!(usize);
 call_hasher_impl_fixed_length!(isize);
-call_hasher_impl_fixed_length!(&u128);
-call_hasher_impl_fixed_length!(&i128);
-call_hasher_impl_fixed_length!(&usize);
-call_hasher_impl_fixed_length!(&isize);
 
-#[cfg(specialize)]
-impl CallHasher for [u8] {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
-        random_state.hash_as_str(value)
+macro_rules! call_hasher_impl_str {
+    ($typ:ty) => {
+        call_hasher_impl_str!(@internal $typ);
+        call_hasher_impl_str!(@internal &$typ);
+        call_hasher_impl_str!(@internal &&$typ);
+        call_hasher_impl_str!(@internal &&&$typ);
+        call_hasher_impl_str!(@internal &&&&$typ);
+        call_hasher_impl_str!(@internal &&&&&$typ);
+    };
+
+    (@internal $typ:ty) => {
+        #[cfg(specialize)]
+        impl CallHasher for $typ {
+            #[inline]
+            fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
+                random_state.hash_as_str(value)
+            }
+        }
+    };
+}
+call_hasher_impl_str!([u8]);
+call_hasher_impl_str!(Box<[u8]>);
+call_hasher_impl_str!(Vec<u8>);
+call_hasher_impl_str!(Box<Vec<u8>>);
+call_hasher_impl_str!(str);
+call_hasher_impl_str!(Box<str>);
+call_hasher_impl_str!(String);
+call_hasher_impl_str!(Box<String>);
+cfg_if::cfg_if! {
+    if #[cfg(feature = "std")] {
+        call_hasher_impl_str!(OsStr);
+        call_hasher_impl_str!(Box<OsStr>);
+        call_hasher_impl_str!(OsString);
+        call_hasher_impl_str!(Box<OsString>);
+        call_hasher_impl_str!(Path);
+        call_hasher_impl_str!(Box<Path>);
+        call_hasher_impl_str!(PathBuf);
+        call_hasher_impl_str!(Box<PathBuf>);
     }
 }
 
-#[cfg(specialize)]
-impl CallHasher for Vec<u8> {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
-        random_state.hash_as_str(value)
-    }
-}
+macro_rules! call_hasher_impl_fixed_str {
+    ($typ:ty) => {
+        call_hasher_impl_fixed_str!(@internal $typ);
+        call_hasher_impl_fixed_str!(@internal &$typ);
+        call_hasher_impl_fixed_str!(@internal &&$typ);
+        call_hasher_impl_fixed_str!(@internal &&&$typ);
+        call_hasher_impl_fixed_str!(@internal &&&&$typ);
+        call_hasher_impl_fixed_str!(@internal &&&&&$typ);
+    };
 
-#[cfg(specialize)]
-impl CallHasher for str {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
-        random_state.hash_as_str(value)
-    }
+    (@internal $typ:ty) => {
+        #[cfg(specialize)]
+        impl<const N: usize> CallHasher for $typ {
+            #[inline]
+            fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
+                random_state.hash_as_str(value)
+            }
+        }
+    };
 }
-
-#[cfg(all(specialize))]
-impl CallHasher for String {
-    #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState) -> u64 {
-        random_state.hash_as_str(value)
-    }
-}
+call_hasher_impl_fixed_str!([u8; N]);
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::*;
+    #[cfg(feature = "std")]
+    use std::{
+        ffi::{OsStr, OsString},
+        path::{Path, PathBuf},
+    };
 
     #[test]
     #[cfg(specialize)]
@@ -170,7 +214,7 @@ mod test {
     }
 
     #[test]
-    pub fn test_ref_independent() {
+    pub fn test_ref_independent_get_hash() {
         let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
         assert_eq!(u8::get_hash(&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
         assert_eq!(u16::get_hash(&&2, &build_hasher), u16::get_hash(&2, &build_hasher));
@@ -184,11 +228,6 @@ mod test {
         assert_eq!(
             str::get_hash(&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
-        );
-        #[cfg(specialize)]
-        assert_eq!(
-            str::get_hash(&"test", &build_hasher),
-            <[u8]>::get_hash("test".as_bytes(), &build_hasher)
         );
 
         let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
@@ -205,10 +244,84 @@ mod test {
             str::get_hash(&&"test", &build_hasher),
             String::get_hash(&"test".to_string(), &build_hasher)
         );
-        #[cfg(specialize)]
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    pub fn test_ref_independent_get_hash_os_str_and_path() {
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
+        let os_str = OsStr::new("test");
+        let os_string = OsString::from("test");
         assert_eq!(
-            str::get_hash(&&"test", &build_hasher),
-            <[u8]>::get_hash(&"test".to_string().into_bytes(), &build_hasher)
+            OsStr::get_hash(&&os_str, &build_hasher),
+            OsStr::get_hash(os_str, &build_hasher)
         );
+        assert_eq!(
+            OsStr::get_hash(&os_str, &build_hasher),
+            OsString::get_hash(&os_string, &build_hasher)
+        );
+
+        let path = Path::new("test");
+        let path_buf = PathBuf::from("test");
+        assert_eq!(
+            Path::get_hash(&&path, &build_hasher),
+            Path::get_hash(path, &build_hasher)
+        );
+        assert_eq!(
+            Path::get_hash(&path, &build_hasher),
+            PathBuf::get_hash(&path_buf, &build_hasher)
+        );
+    }
+
+    #[test]
+    pub fn test_ref_independent_hash_one() {
+        let build_hasher = RandomState::with_seeds(1, 2, 3, 4);
+        assert_eq!(build_hasher.hash_one(&&1u8), build_hasher.hash_one(&1));
+        assert_eq!(build_hasher.hash_one(&&2u16), build_hasher.hash_one(&2));
+        assert_eq!(build_hasher.hash_one(&&3u32), build_hasher.hash_one(&3));
+        assert_eq!(build_hasher.hash_one(&&4u64), build_hasher.hash_one(&4));
+        assert_eq!(build_hasher.hash_one(&&5u128), build_hasher.hash_one(&5i128));
+        assert_eq!(build_hasher.hash_one(&&1i8), build_hasher.hash_one(&1));
+        assert_eq!(build_hasher.hash_one(&&2i16), build_hasher.hash_one(&2));
+        assert_eq!(build_hasher.hash_one(&&3i32), build_hasher.hash_one(&3));
+        assert_eq!(build_hasher.hash_one(&&4i64), build_hasher.hash_one(&4));
+        assert_eq!(build_hasher.hash_one(&&5isize), build_hasher.hash_one(&5usize));
+        assert_eq!(build_hasher.hash_one(&"test"), build_hasher.hash_one("test"));
+        assert_eq!(
+            build_hasher.hash_one(&"test"),
+            build_hasher.hash_one(&"test".to_string())
+        );
+
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
+        assert_eq!(build_hasher.hash_one(&&1u8), build_hasher.hash_one(&1));
+        assert_eq!(build_hasher.hash_one(&&2u16), build_hasher.hash_one(&2));
+        assert_eq!(build_hasher.hash_one(&&3u32), build_hasher.hash_one(&3));
+        assert_eq!(build_hasher.hash_one(&&4u64), build_hasher.hash_one(&4));
+        assert_eq!(build_hasher.hash_one(&&5u128), build_hasher.hash_one(&5i128));
+        assert_eq!(build_hasher.hash_one(&&1i8), build_hasher.hash_one(&1));
+        assert_eq!(build_hasher.hash_one(&&2i16), build_hasher.hash_one(&2));
+        assert_eq!(build_hasher.hash_one(&&3i32), build_hasher.hash_one(&3));
+        assert_eq!(build_hasher.hash_one(&&4i64), build_hasher.hash_one(&4));
+        assert_eq!(build_hasher.hash_one(&&5isize), build_hasher.hash_one(&5usize));
+        assert_eq!(build_hasher.hash_one(&&"test"), build_hasher.hash_one("test"));
+        assert_eq!(
+            build_hasher.hash_one(&&"test"),
+            build_hasher.hash_one(&"test".to_string())
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    pub fn test_ref_independent_hash_one_os_str_and_path() {
+        let build_hasher = RandomState::with_seeds(10, 20, 30, 40);
+        let os_str = OsStr::new("test");
+        let os_string = OsString::from("test");
+        assert_eq!(build_hasher.hash_one(&&os_str), build_hasher.hash_one(os_str));
+        assert_eq!(build_hasher.hash_one(&os_str), build_hasher.hash_one(&os_string));
+
+        let path = Path::new("test");
+        let path_buf = PathBuf::from("test");
+        assert_eq!(build_hasher.hash_one(&&path), build_hasher.hash_one(path));
+        assert_eq!(build_hasher.hash_one(&path), build_hasher.hash_one(&path_buf));
     }
 }

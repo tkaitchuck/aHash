@@ -1,4 +1,8 @@
 use core::hash::Hash;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 cfg_if::cfg_if! {
     if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
@@ -18,10 +22,10 @@ cfg_if::cfg_if! {
     }
 }
 
-#[cfg(feature = "atomic-polyfill")]
-use portable_atomic as atomic;
 #[cfg(not(feature = "atomic-polyfill"))]
 use core::sync::atomic;
+#[cfg(feature = "atomic-polyfill")]
+use portable_atomic as atomic;
 
 use alloc::boxed::Box;
 use atomic::{AtomicUsize, Ordering};
@@ -30,11 +34,16 @@ use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 
-pub(crate) const PI: [u64; 4] = [
+pub(crate) const PI_U64X4: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
     0x1319_8a2e_0370_7344,
     0xa409_3822_299f_31d0,
     0x082e_fa98_ec4e_6c89,
+];
+
+pub(crate) const PI_U128X2: [u128; 2] = [
+    0x1319_8a2e_0370_7344_243f_6a88_85a3_08d3,
+    0x082e_fa98_ec4e_6c89_a409_3822_299f_31d0,
 ];
 
 pub(crate) const PI2: [u64; 4] = [
@@ -101,7 +110,7 @@ cfg_if::cfg_if! {
     } else {
         #[inline]
         fn get_fixed_seeds() -> &'static [[u64; 4]; 2] {
-            &[PI, PI2]
+            &[PI_U64X4, PI2]
         }
     }
 }
@@ -135,14 +144,14 @@ struct DefaultRandomSource {
 impl DefaultRandomSource {
     fn new() -> DefaultRandomSource {
         DefaultRandomSource {
-            counter: AtomicUsize::new(&PI as *const _ as usize),
+            counter: AtomicUsize::new(&PI_U64X4 as *const _ as usize),
         }
     }
 
     #[cfg(all(target_arch = "arm", target_os = "none"))]
     const fn default() -> DefaultRandomSource {
         DefaultRandomSource {
-            counter: AtomicUsize::new(PI[3] as usize),
+            counter: AtomicUsize::new(PI_U64X4[3] as usize),
         }
     }
 }
@@ -211,6 +220,7 @@ cfg_if::cfg_if! {
 /// |`with_seed`    | Fixed per process   |`u64` + static random number|
 /// |`with_seeds`   | Fixed               |`u64` x 4|
 ///
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Clone)]
 pub struct RandomState {
     pub(crate) k0: u64,
@@ -291,12 +301,12 @@ impl RandomState {
         RandomState::from_keys(&fixed[0], &fixed[1], key)
     }
 
-    /// Allows for explicitly setting the seeds to used.
-    /// All `RandomState`s created with the same set of keys key will produce identical hashers.
+    /// Allows for explicitly setting the seeds to be used.
+    /// All `RandomState`s created with the same set of keys will produce identical hashers.
     /// (In contrast to `generate_with` above)
     ///
     /// Note: If DOS resistance is desired one of these should be a decent quality random number.
-    /// If 4 high quality random number are not cheaply available this method is robust against 0s being passed for
+    /// If 4 high quality random numbers are not cheaply available this method is robust against 0s being passed for
     /// one or more of the parameters or the same value being passed for more than one parameter.
     /// It is recommended to pass numbers in order from highest to lowest quality (if there is any difference).
     #[inline]
@@ -364,7 +374,7 @@ impl RandomState {
 ///
 /// This is the same as [RandomState::new()]
 ///
-/// NOTE: For safety this trait impl is only available available if either of the flags `runtime-rng` (on by default) or
+/// NOTE: For safety this trait impl is only available if either of the flags `runtime-rng` (on by default) or
 /// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
 /// constructors for [RandomState] must be used.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
@@ -379,7 +389,7 @@ impl BuildHasher for RandomState {
     type Hasher = AHasher;
 
     /// Constructs a new [AHasher] with keys based on this [RandomState] object.
-    /// This means that two different [RandomState]s will will generate
+    /// This means that two different [RandomState]s will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
@@ -501,19 +511,33 @@ mod test {
     #[cfg(all(feature = "runtime-rng", not(all(feature = "compile-time-rng", test))))]
     #[test]
     fn test_not_pi() {
-        assert_ne!(PI, get_fixed_seeds()[0]);
+        assert_ne!(PI_U64X4, get_fixed_seeds()[0]);
+    }
+
+    #[cfg(all(feature = "serde"))]
+    #[test]
+    fn test_serialize() {
+        let rs = RandomState::new();
+
+        let serialized = bincode::serialize(&rs).expect("failed to serialize");
+        let deserialized: RandomState = bincode::deserialize(&serialized).expect("failed to deserialize");
+
+        assert_eq!(rs.k0, deserialized.k0);
+        assert_eq!(rs.k1, deserialized.k1);
+        assert_eq!(rs.k2, deserialized.k2);
+        assert_eq!(rs.k3, deserialized.k3);
     }
 
     #[cfg(all(feature = "compile-time-rng", any(not(feature = "runtime-rng"), test)))]
     #[test]
     fn test_not_pi_const() {
-        assert_ne!(PI, get_fixed_seeds()[0]);
+        assert_ne!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
     #[cfg(all(not(feature = "runtime-rng"), not(feature = "compile-time-rng")))]
     #[test]
     fn test_pi() {
-        assert_eq!(PI, get_fixed_seeds()[0]);
+        assert_eq!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
     #[test]
