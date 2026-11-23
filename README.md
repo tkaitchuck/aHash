@@ -71,8 +71,8 @@ A full comparison with other hashing algorithms can be found [here](https://gith
 
 ![Hasher performance](https://docs.google.com/spreadsheets/d/e/2PACX-1vSK7Li2nS-Bur9arAYF9IfT37MP-ohAe1v19lZu5fd9MajI1fSveLAQZyEie4Ea9k5-SWHTff7nL2DW/pubchart?oid=1323618938&format=image)
 
-For a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown#performance)
-as HashBrown now uses aHash as its hasher by default.
+For a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown/blob/c0947914b98f93b9ae52011cb1212ff817772b7d/README.md#performance)
+as HashBrown once used aHash as its hasher by default.
 
 ## Hash quality
 
