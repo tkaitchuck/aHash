@@ -109,7 +109,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
 
 /// Returns the same as [aesenc], which on this architecture already applies `xor` after the round.
 #[cfg(any(
-    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
     all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
 ))]
 #[allow(unused)]
@@ -170,7 +170,7 @@ cfg_if::cfg_if! {
         }
     } else if #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-        all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+        all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
         all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
     ))] {
         /// Returns `[aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]`.
@@ -256,7 +256,7 @@ mod test {
 
     #[cfg(any(
         all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-        all(target_arch = "aarch64", target_feature = "aes", not(miri)),
+        all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
         all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
     ))]
     #[test]
