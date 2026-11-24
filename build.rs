@@ -14,7 +14,7 @@ fn main() {
         || arch.eq_ignore_ascii_case("aarch64")
         || arch.eq_ignore_ascii_case("mips64")
         || arch.eq_ignore_ascii_case("powerpc64")
-        || arch.eq_ignore_ascii_case("riscv64gc")
+        || arch.eq_ignore_ascii_case("riscv64")
         || arch.eq_ignore_ascii_case("s390x")
     {
         println!("cargo:rustc-cfg=folded_multiply");
