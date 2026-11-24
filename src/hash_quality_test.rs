@@ -50,42 +50,46 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     (same_byte_count, same_nibble_count)
 }
 
-fn gen_combinations(options: &[u32; 11], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>) {
+/// Calls `f` once with each sequence of 1 to `depth` values taken from `options`.
+fn for_each_combination(options: &[u32], depth: u32, so_far: &mut Vec<u32>, f: &mut impl FnMut(&[u32])) {
     if depth == 0 {
         return;
     }
-    for option in options {
-        let mut next = so_far.clone();
-        next.push(*option);
-        combinations.push(next.clone());
-        gen_combinations(options, depth - 1, next, combinations);
+    for &option in options {
+        so_far.push(option);
+        f(so_far);
+        for_each_combination(options, depth - 1, so_far, f);
+        so_far.pop();
     }
 }
 
 fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
+    use zerocopy::IntoBytes;
     let options: [u32; 11] = [
         0x00000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0xF0000000, 1, 2, 4, 8, 15,
     ];
-    let mut combinations = Vec::new();
-    gen_combinations(&options, 7, Vec::new(), &mut combinations);
-    let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
-    for combination in combinations {
-        use zerocopy::IntoBytes;
-        let array = combination.as_bytes().to_vec();
+    let hash_of = |combination: &[u32]| {
         let mut hasher = gen_hash();
-        hasher.write(&array);
-        let hash = hasher.finish();
-        if let Some(value) = map.get(&hash) {
-            assert_eq!(
-                value, &array,
-                "Found a collision between {:x?} and {:x?}. Hash: {:x?}",
-                value, &array, &hash
-            );
-        } else {
-            map.insert(hash, array);
-        }
+        hasher.write(combination.as_bytes());
+        hasher.finish()
+    };
+    // The inputs are all distinct, so any repeated hash is a collision. Only the hashes are kept: the inputs as
+    // well do not fit in a 32-bit address space.
+    let count = 21435887; //11^7 + 11^6 ...
+    let mut hashes = Vec::with_capacity(count);
+    for_each_combination(&options, 7, &mut Vec::new(), &mut |c| hashes.push(hash_of(c)));
+    assert_eq!(count, hashes.len());
+    hashes.sort_unstable();
+    if let Some(pair) = hashes.windows(2).find(|pair| pair[0] == pair[1]) {
+        let hash = pair[0];
+        let mut inputs = Vec::new();
+        for_each_combination(&options, 7, &mut Vec::new(), &mut |c| {
+            if hash_of(c) == hash {
+                inputs.push(c.to_vec());
+            }
+        });
+        panic!("Found a collision between {:x?}. Hash: {:x?}", inputs, hash);
     }
-    assert_eq!(21435887, map.len()); //11^7 + 11^6 ...
 }
 
 fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {

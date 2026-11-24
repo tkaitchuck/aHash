@@ -101,9 +101,11 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
     // (The xor is done on the vector type so the result does not make a round trip through general registers.)
+    // (zerocopy does not implement its traits for 32-bit ARM's NEON types, so `core::mem::transmute` is used.
+    // Both types are 16 bytes and every bit pattern is valid for both.)
     unsafe {
-        let res = vaesmcq_u8(vaeseq_u8(transmute!(value), transmute!(0u128)));
-        transmute!(veorq_u8(res, transmute!(xor)))
+        let res = vaesmcq_u8(vaeseq_u8(core::mem::transmute(value), core::mem::transmute(0u128)));
+        core::mem::transmute(veorq_u8(res, core::mem::transmute(xor)))
     }
 }
 
@@ -145,9 +147,11 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     use core::arch::aarch64::*;
     #[cfg(target_arch = "arm")]
     use core::arch::arm::*;
+    // (zerocopy does not implement its traits for 32-bit ARM's NEON types, so `core::mem::transmute` is used.
+    // Both types are 16 bytes and every bit pattern is valid for both.)
     unsafe {
-        let res = vaesimcq_u8(vaesdq_u8(transmute!(value), transmute!(0u128)));
-        transmute!(veorq_u8(res, transmute!(xor)))
+        let res = vaesimcq_u8(vaesdq_u8(core::mem::transmute(value), core::mem::transmute(0u128)));
+        core::mem::transmute(veorq_u8(res, core::mem::transmute(xor)))
     }
 }
 
@@ -242,7 +246,16 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
             _mm_storeu_si128(enc.cast(), sum);
         }
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2", not(miri))))]
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))]
+    {
+        use core::arch::aarch64::*;
+        // (On the vector type, so `enc` does not make a round trip through general registers.)
+        unsafe { *enc = transmute!(vaddq_u64(transmute!(*enc), transmute!([len, 0_u64]))) }
+    }
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "sse2", not(miri)),
+        all(target_arch = "aarch64", target_feature = "neon", not(miri)),
+    )))]
     {
         let mut t: [u64; 2] = enc.convert();
         t[0] = t[0].wrapping_add(len);

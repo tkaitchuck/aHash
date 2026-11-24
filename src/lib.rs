@@ -98,7 +98,10 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(specialize, feature(min_specialization))]
-#![cfg_attr(feature = "nightly-arm-aes", feature(stdarch_arm_neon_intrinsics))]
+#![cfg_attr(
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+    feature(stdarch_arm_neon_intrinsics)
+)]
 
 #[macro_use]
 mod convert;
