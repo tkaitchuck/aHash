@@ -58,7 +58,7 @@ pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
 }
 
 /// One AES encryption round of `value` (SubBytes, ShiftRows, MixColumns), then xor with `xor`.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
@@ -74,7 +74,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
 
 /// Returns the same as [aesenc]. The round is computed from `value` alone and `xor` is applied to its result, so
 /// the round can start before `xor` is known.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
@@ -89,10 +89,7 @@ pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
 }
 
 /// One AES encryption round of `value` (SubBytes, ShiftRows, MixColumns), then xor with `xor`.
-#[cfg(any(
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-))]
+#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
@@ -110,10 +107,7 @@ pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
 }
 
 /// Returns the same as [aesenc], which on this architecture already applies `xor` after the round.
-#[cfg(any(
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-))]
+#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
@@ -121,7 +115,7 @@ pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
 }
 
 /// One AES decryption round of `value` (InvShiftRows, InvSubBytes, InvMixColumns), then xor with `xor`.
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
+#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
@@ -136,10 +130,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
 }
 
 /// One AES decryption round of `value` (InvShiftRows, InvSubBytes, InvMixColumns), then xor with `xor`.
-#[cfg(any(
-    all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-))]
+#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
@@ -156,7 +147,7 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
 }
 
 cfg_if::cfg_if! {
-    if #[cfg(all(vaes, not(miri)))] {
+    if #[cfg(vaes)] {
         /// Returns `[aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]`.
         #[allow(unused)]
         #[inline(always)]
@@ -172,11 +163,7 @@ cfg_if::cfg_if! {
             use core::arch::x86_64::*;
             unsafe { transmute!(_mm256_aesdec_epi128(transmute!(value), transmute!(xor))) }
         }
-    } else if #[cfg(any(
-        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-        all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-        all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-    ))] {
+    } else if #[cfg(aes_hash)] {
         /// Returns `[aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]`.
         #[allow(unused)]
         #[inline(always)]
@@ -267,11 +254,7 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
 mod test {
     use super::*;
 
-    #[cfg(any(
-        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-        all(feature = "nightly-arm-aes", target_arch = "aarch64", target_feature = "aes", not(miri)),
-        all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-    ))]
+    #[cfg(aes_hash)]
     #[test]
     fn test_aes_variants_agree() {
         let mut x = 1_u128;
