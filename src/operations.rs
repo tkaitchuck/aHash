@@ -242,7 +242,16 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
             _mm_storeu_si128(enc.cast(), sum);
         }
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2", not(miri))))]
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))]
+    {
+        use core::arch::aarch64::*;
+        // (On the vector type, so `enc` does not make a round trip through general registers.)
+        unsafe { *enc = transmute!(vaddq_u64(transmute!(*enc), transmute!([len, 0_u64]))) }
+    }
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "sse2", not(miri)),
+        all(target_arch = "aarch64", target_feature = "neon", not(miri)),
+    )))]
     {
         let mut t: [u64; 2] = enc.convert();
         t[0] = t[0].wrapping_add(len);
