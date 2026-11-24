@@ -125,6 +125,34 @@ jobs:
       - run: cargo +1.85.0 check --target x86_64-unknown-linux-gnu
       - name: check constrandom
         run: cargo +1.85.0 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+  riscv64gc-unknown-linux-gnu:
+    name: Linux RISC-V 64
+    runs-on: ubuntu-latest
+    env:
+        CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
+        CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_RUNNER: qemu-riscv64 -L /usr/riscv64-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: riscv64gc-unknown-linux-gnu
+      - name: Install cross compile tools
+        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
+      - run: cargo check --target riscv64gc-unknown-linux-gnu
+      - name: check folded_multiply is enabled
+        run: |
+          touch build.rs  # Force the build script to rerun so its output is printed.
+          cargo check -vv --target riscv64gc-unknown-linux-gnu 2>&1 | grep '^\[ahash [^]]*\] cargo:rustc-cfg=folded_multiply$'
+      - run: cargo test --target riscv64gc-unknown-linux-gnu
+      - name: test constrandom
+        run: cargo test --no-default-features --features compile-time-rng --target riscv64gc-unknown-linux-gnu
+      - name: Install 1.85.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          targets: riscv64gc-unknown-linux-gnu
+      - run: cargo +1.85.0 check --target riscv64gc-unknown-linux-gnu
   thumbv6m:
     name: thumbv6m
     runs-on: ubuntu-latest
