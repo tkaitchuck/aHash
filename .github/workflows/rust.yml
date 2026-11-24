@@ -62,6 +62,25 @@ jobs:
           toolchain: 1.85.0
           targets: armv7-unknown-linux-gnueabihf
       - run: cargo +1.85.0 check --target armv7-unknown-linux-gnueabihf
+  nightly_arm_aes:
+    name: nightly-arm-aes
+    runs-on: ubuntu-latest
+    env:
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS: -C target-feature=+aes,+neon
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER: qemu-arm -cpu max -L /usr/arm-linux-gnueabihf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          targets: armv7-unknown-linux-gnueabihf, aarch64-unknown-linux-gnu
+      - name: Install cross compile tools
+        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+      # The feature must not break targets other than 32-bit ARM.
+      - run: cargo check --features nightly-arm-aes
+      - run: cargo check --features nightly-arm-aes --target aarch64-unknown-linux-gnu
+      - run: cargo test --features nightly-arm-aes --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
     runs-on: macos-latest
