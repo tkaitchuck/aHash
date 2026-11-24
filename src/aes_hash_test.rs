@@ -3,11 +3,7 @@
 //! * Inputs which only differ in length never collide.
 //! * Each bit of the output, and each pair of bits, changes half of the time when any bit of the input or of the
 //!   keys does.
-#![cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
-    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
-))]
+#![cfg(aes_hash)]
 
 use crate::aes_hash::AHasher;
 use crate::operations::*;
