@@ -6,6 +6,7 @@ use fxhash::FxHasher;
 use rand::Rng;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::hint::black_box;
 
 const AHASH_IMPL: &str = if cfg!(aes_hash) { "aeshash" } else { "fallbackhash" };
 

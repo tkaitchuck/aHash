@@ -14,6 +14,8 @@ readme = "README.md"
 default = ["std"]
 std = ["ahash/std"]
 compile-time-rng = ["ahash/compile-time-rng"]
+# For a nightly compiler: Turns on what the other hashers only do on nightly. (aHash detects nightly by itself.)
+nightly = ["foldhash/nightly", "rapidhash/nightly", "rustc-hash/nightly"]
 
 [[bench]]
 name = "compare"
@@ -34,13 +36,13 @@ rand = "0.8.5"
 rand_core = "0.6.4"
 
 [dev-dependencies]
-criterion = "0.3.3"
+criterion = "0.8"
+hashbrown = { version = "0.17", default-features = false }
 fnv = "1.0.7"
+foldhash = "0.2"
 fxhash = "0.2.1"
-farmhash = "1.1.5"
-highway = "1.1.0"
-metrohash = "1.0.6"
+rapidhash = "4.5"
+rustc-hash = "2.1"
+seahash = "4.1"
 siphasher = "1"
-t1ha = "0.1.0"
-wyhash = "0.5"
-xxhash-rust = {version = "0.8", features = ["xxh3"]}
+xxhash-rust = { version = "0.8", features = ["xxh3"] }

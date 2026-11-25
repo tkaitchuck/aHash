@@ -1,6 +1,7 @@
 #![cfg_attr(specialize, feature(build_hasher_simple_hash_one))]
 
 use std::hash::{BuildHasher, Hash, Hasher};
+use std::hint::black_box;
 
 use ahash::RandomState;
 use criterion::*;
