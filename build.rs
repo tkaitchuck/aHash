@@ -33,8 +33,8 @@ fn main() {
     let aes_hash = env::var_os("CARGO_CFG_MIRI").is_none()
         && enabled("aes")
         && match arch.as_str() {
-            "x86" | "x86_64" | "aarch64" => true,
-            "arm" => nightly_arm_aes,
+            "x86" | "x86_64" => true,
+            "aarch64" | "arm" => nightly_arm_aes,
             _ => false,
         };
     if aes_hash {
