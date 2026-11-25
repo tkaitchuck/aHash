@@ -459,7 +459,9 @@ impl BuildHasher for RandomState {
     /// implementation of [`Hash`].  The way to create a combined hash of
     /// multiple values is to call [`Hash::hash`] multiple times using the same
     /// [`Hasher`], not to call this method repeatedly and combine the results.
-    #[cfg(specialize)]
+    // This is overridden wherever the compiler has the method (it was added in Rust 1.71), not only with
+    // specialization. Generic code, such as a `HashMap`, calls this one and not `RandomState::hash_one`.
+    #[cfg(build_hasher_hash_one)]
     #[inline]
     fn hash_one<T: Hash>(&self, x: T) -> u64 {
         RandomState::hash_one(self, x)
@@ -534,6 +536,21 @@ mod test {
     #[test]
     fn test_pi() {
         assert_eq!(PI_U64X4, get_fixed_seeds()[0]);
+    }
+
+    /// Generic code calls `BuildHasher::hash_one`. It has to agree with `RandomState::hash_one`.
+    #[cfg(build_hasher_hash_one)]
+    #[test]
+    fn test_trait_hash_one_is_own() {
+        fn through_trait<B: BuildHasher, T: Hash>(builder: &B, value: T) -> u64 {
+            builder.hash_one(value)
+        }
+        let state = RandomState::with_seeds(1, 2, 3, 4);
+        assert_eq!(through_trait(&state, 1234_u64), state.hash_one(1234_u64));
+        assert_eq!(through_trait(&state, &1234_u64), state.hash_one(&1234_u64));
+        assert_eq!(through_trait(&state, 1234_u128), state.hash_one(1234_u128));
+        assert_eq!(through_trait(&state, "Some Data"), state.hash_one("Some Data"));
+        assert_eq!(through_trait(&state, (1_u8, "tuple")), state.hash_one((1_u8, "tuple")));
     }
 
     #[test]
