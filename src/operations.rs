@@ -2,6 +2,24 @@ use crate::convert::*;
 #[allow(unused)]
 use zerocopy::transmute;
 
+// The vector paths below keep `u128`s in vector registers instead of a round trip through general ones. zerocopy
+// has no traits for 32-bit ARM's NEON types, so the ARM paths use `core::mem::transmute` (16 bytes either way, and
+// every bit pattern is valid).
+cfg_if::cfg_if! {
+    if #[cfg(target_arch = "x86")] {
+        #[allow(unused_imports)]
+        use core::arch::x86::*;
+    } else if #[cfg(target_arch = "x86_64")] {
+        #[allow(unused_imports)]
+        use core::arch::x86_64::*;
+    } else if #[cfg(target_arch = "aarch64")] {
+        #[allow(unused_imports)]
+        use core::arch::aarch64::*;
+    } else if #[cfg(all(target_arch = "arm", aes_hash))] {
+        use core::arch::arm::*;
+    }
+}
+
 ///This constant comes from Knuth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 
@@ -58,91 +76,68 @@ pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
 }
 
 /// One AES encryption round of `value` (SubBytes, ShiftRows, MixColumns), then xor with `xor`.
-#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(aes_hash)]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesenc_si128(value, transmute!(xor)))
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe { transmute!(_mm_aesenc_si128(transmute!(value), transmute!(xor))) }
+        } else {
+            unsafe {
+                let round = vaesmcq_u8(vaeseq_u8(core::mem::transmute(value), core::mem::transmute(0_u128)));
+                core::mem::transmute(veorq_u8(round, core::mem::transmute(xor)))
+            }
+        }
     }
 }
 
-/// Returns the same as [aesenc]. The round is computed from `value` alone and `xor` is applied to its result, so
-/// the round can start before `xor` is known.
-#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
+/// Returns the same as [aesenc], but `xor` is applied after the round, so the round can start before it is known.
+#[cfg(aes_hash)]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    unsafe {
-        let round = _mm_aesenc_si128(transmute!(value), _mm_setzero_si128());
-        transmute!(_mm_xor_si128(round, transmute!(xor)))
-    }
-}
-
-/// One AES encryption round of `value` (SubBytes, ShiftRows, MixColumns), then xor with `xor`.
-#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "aarch64")]
-    use core::arch::aarch64::*;
-    #[cfg(target_arch = "arm")]
-    use core::arch::arm::*;
-    // (The xor is done on the vector type so the result does not make a round trip through general registers.)
-    // (zerocopy does not implement its traits for 32-bit ARM's NEON types, so `core::mem::transmute` is used.
-    // Both types are 16 bytes and every bit pattern is valid for both.)
-    unsafe {
-        let res = vaesmcq_u8(vaeseq_u8(core::mem::transmute(value), core::mem::transmute(0u128)));
-        core::mem::transmute(veorq_u8(res, core::mem::transmute(xor)))
-    }
-}
-
-/// Returns the same as [aesenc], which on this architecture already applies `xor` after the round.
-#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
-    aesenc(value, xor)
-}
-
-/// One AES decryption round of `value` (InvShiftRows, InvSubBytes, InvMixColumns), then xor with `xor`.
-#[cfg(all(aes_hash, any(target_arch = "x86", target_arch = "x86_64")))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesdec_si128(value, transmute!(xor)))
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe {
+                let round = _mm_aesenc_si128(transmute!(value), _mm_setzero_si128());
+                transmute!(_mm_xor_si128(round, transmute!(xor)))
+            }
+        } else {
+            // (ARM's [aesenc] already applies `xor` after the round.)
+            aesenc(value, xor)
+        }
     }
 }
 
 /// One AES decryption round of `value` (InvShiftRows, InvSubBytes, InvMixColumns), then xor with `xor`.
-#[cfg(all(aes_hash, any(target_arch = "aarch64", target_arch = "arm")))]
+#[cfg(aes_hash)]
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "aarch64")]
-    use core::arch::aarch64::*;
-    #[cfg(target_arch = "arm")]
-    use core::arch::arm::*;
-    // (zerocopy does not implement its traits for 32-bit ARM's NEON types, so `core::mem::transmute` is used.
-    // Both types are 16 bytes and every bit pattern is valid for both.)
-    unsafe {
-        let res = vaesimcq_u8(vaesdq_u8(core::mem::transmute(value), core::mem::transmute(0u128)));
-        core::mem::transmute(veorq_u8(res, core::mem::transmute(xor)))
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe { transmute!(_mm_aesdec_si128(transmute!(value), transmute!(xor))) }
+        } else {
+            unsafe {
+                let round = vaesimcq_u8(vaesdq_u8(core::mem::transmute(value), core::mem::transmute(0_u128)));
+                core::mem::transmute(veorq_u8(round, core::mem::transmute(xor)))
+            }
+        }
+    }
+}
+
+/// Returns `a ^ b`, computed in vector registers.
+#[cfg(aes_hash)]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn xor(a: u128, b: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe { transmute!(_mm_xor_si128(transmute!(a), transmute!(b))) }
+        } else {
+            unsafe { core::mem::transmute(veorq_u8(core::mem::transmute(a), core::mem::transmute(b))) }
+        }
     }
 }
 
@@ -152,7 +147,6 @@ cfg_if::cfg_if! {
         #[allow(unused)]
         #[inline(always)]
         pub(crate) fn aesenc_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
-            use core::arch::x86_64::*;
             unsafe { transmute!(_mm256_aesenc_epi128(transmute!(value), transmute!(xor))) }
         }
 
@@ -160,7 +154,6 @@ cfg_if::cfg_if! {
         #[allow(unused)]
         #[inline(always)]
         pub(crate) fn aesdec_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
-            use core::arch::x86_64::*;
             unsafe { transmute!(_mm256_aesdec_epi128(transmute!(value), transmute!(xor))) }
         }
     } else if #[cfg(aes_hash)] {
@@ -184,35 +177,23 @@ cfg_if::cfg_if! {
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn shift_in_byte(value: u128, next: u128) -> u128 {
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))]
-    {
-        #[cfg(target_arch = "x86")]
-        use core::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-        // (On the vector type, so the value does not make a round trip through general registers.)
-        unsafe {
-            transmute!(_mm_or_si128(
-                _mm_srli_si128(transmute!(value), 1),
-                _mm_slli_si128(transmute!(next), 15)
-            ))
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe {
+                transmute!(_mm_or_si128(
+                    _mm_srli_si128(transmute!(value), 1),
+                    _mm_slli_si128(transmute!(next), 15)
+                ))
+            }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { transmute!(vextq_u8(transmute!(value), transmute!(next), 1)) }
+        } else {
+            let (value, next): ([u8; 16], [u8; 16]) = (value.convert(), next.convert());
+            let mut bytes = [0_u8; 16];
+            bytes[..15].copy_from_slice(&value[1..]);
+            bytes[15] = next[0];
+            bytes.convert()
         }
-    }
-    #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))]
-    {
-        use core::arch::aarch64::*;
-        unsafe { transmute!(vextq_u8(transmute!(value), transmute!(next), 1)) }
-    }
-    #[cfg(not(any(
-        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)),
-        all(target_arch = "aarch64", target_feature = "neon", not(miri)),
-    )))]
-    {
-        let (value, next): ([u8; 16], [u8; 16]) = (value.convert(), next.convert());
-        let mut bytes = [0_u8; 16];
-        bytes[..15].copy_from_slice(&value[1..]);
-        bytes[15] = next[0];
-        bytes.convert()
     }
 }
 
@@ -220,33 +201,64 @@ pub(crate) fn shift_in_byte(value: u128, next: u128) -> u128 {
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
-    #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))]
-    {
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-
-        unsafe {
-            let enc = enc as *mut u128;
-            let len = _mm_cvtsi64_si128(len as i64);
-            let data = _mm_loadu_si128(enc.cast());
-            let sum = _mm_add_epi64(data, len);
-            _mm_storeu_si128(enc.cast(), sum);
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))] {
+            unsafe {
+                let enc = enc as *mut u128;
+                let sum = _mm_add_epi64(_mm_loadu_si128(enc.cast()), _mm_cvtsi64_si128(len as i64));
+                _mm_storeu_si128(enc.cast(), sum);
+            }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { *enc = transmute!(vaddq_u64(transmute!(*enc), transmute!([len, 0_u64]))) }
+        } else {
+            let mut t: [u64; 2] = enc.convert();
+            t[0] = t[0].wrapping_add(len);
+            *enc = t.convert();
         }
     }
-    #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))]
-    {
-        use core::arch::aarch64::*;
-        // (On the vector type, so `enc` does not make a round trip through general registers.)
-        unsafe { *enc = transmute!(vaddq_u64(transmute!(*enc), transmute!([len, 0_u64]))) }
+}
+
+/// Returns bytes 0, 4, 8, 12, 1, 5, 9 and 13 of `x`, in that order. Only where there is a byte shuffle.
+#[cfg(all(
+    aes_hash,
+    any(
+        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3"),
+        target_arch = "aarch64"
+    )
+))]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn spread_low64(x: u128) -> u64 {
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "aarch64")] {
+            unsafe {
+                let order = vld1q_u8([0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15].as_ptr());
+                vgetq_lane_u64(vreinterpretq_u64_u8(vqtbl1q_u8(transmute!(x), order)), 0)
+            }
+        } else {
+            unsafe {
+                let order = _mm_set_epi8(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
+                let spread: [u64; 2] = transmute!(_mm_shuffle_epi8(transmute!(x), order));
+                spread[0]
+            }
+        }
     }
-    #[cfg(not(any(
-        all(target_arch = "x86_64", target_feature = "sse2", not(miri)),
-        all(target_arch = "aarch64", target_feature = "neon", not(miri)),
-    )))]
-    {
-        let mut t: [u64; 2] = enc.convert();
-        t[0] = t[0].wrapping_add(len);
-        *enc = t.convert();
+}
+
+/// Adds each 64 bit half of `a` to the same half of `b`, wrapping.
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn add_by_64s(a: u128, b: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe { transmute!(_mm_add_epi64(transmute!(a), transmute!(b))) }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { transmute!(vaddq_u64(transmute!(a), transmute!(b))) }
+        } else {
+            let a: [u64; 2] = a.convert();
+            let b: [u64; 2] = b.convert();
+            [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])].convert()
+        }
     }
 }
 
