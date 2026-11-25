@@ -14,73 +14,73 @@ Running thread-safety test 2 .......... PASS
 [[[ Speed Tests ]]]
 
 Small key speed test - [1, 31]-byte keys
-   1-byte keys -     6.64 cycles/hash
-   2-byte keys -     6.49 cycles/hash
-   3-byte keys -     6.23 cycles/hash
-   4-byte keys -     3.30 cycles/hash
-   5-byte keys -     8.74 cycles/hash
-   6-byte keys -     9.28 cycles/hash
-   7-byte keys -     9.21 cycles/hash
-   8-byte keys -     3.29 cycles/hash
-   9-byte keys -     9.33 cycles/hash
-  10-byte keys -     9.24 cycles/hash
-  11-byte keys -     9.38 cycles/hash
-  12-byte keys -     8.85 cycles/hash
-  13-byte keys -     8.85 cycles/hash
-  14-byte keys -     8.60 cycles/hash
-  15-byte keys -     8.97 cycles/hash
-  16-byte keys -     9.03 cycles/hash
-  17-byte keys -    10.81 cycles/hash
-  18-byte keys -    10.87 cycles/hash
-  19-byte keys -    10.77 cycles/hash
-  20-byte keys -     8.93 cycles/hash
-  21-byte keys -     9.02 cycles/hash
-  22-byte keys -     9.02 cycles/hash
-  23-byte keys -     9.02 cycles/hash
-  24-byte keys -     8.99 cycles/hash
-  25-byte keys -     9.00 cycles/hash
-  26-byte keys -     8.98 cycles/hash
-  27-byte keys -     8.97 cycles/hash
-  28-byte keys -     8.99 cycles/hash
-  29-byte keys -     9.00 cycles/hash
-  30-byte keys -     9.00 cycles/hash
-  31-byte keys -     9.01 cycles/hash
-Average        -     8.57 cycles/hash
- rnd-byte keys -     8.49 cycles/hash
+   1-byte keys -     8.54 cycles/hash
+   2-byte keys -     8.45 cycles/hash
+   3-byte keys -     8.38 cycles/hash
+   4-byte keys -     5.04 cycles/hash
+   5-byte keys -    11.01 cycles/hash
+   6-byte keys -    11.00 cycles/hash
+   7-byte keys -    11.06 cycles/hash
+   8-byte keys -     4.98 cycles/hash
+   9-byte keys -    11.98 cycles/hash
+  10-byte keys -    11.91 cycles/hash
+  11-byte keys -    11.20 cycles/hash
+  12-byte keys -    11.19 cycles/hash
+  13-byte keys -    11.60 cycles/hash
+  14-byte keys -    11.41 cycles/hash
+  15-byte keys -    11.30 cycles/hash
+  16-byte keys -    11.13 cycles/hash
+  17-byte keys -    13.35 cycles/hash
+  18-byte keys -    13.27 cycles/hash
+  19-byte keys -    13.41 cycles/hash
+  20-byte keys -    11.96 cycles/hash
+  21-byte keys -    11.89 cycles/hash
+  22-byte keys -    12.07 cycles/hash
+  23-byte keys -    12.06 cycles/hash
+  24-byte keys -    11.99 cycles/hash
+  25-byte keys -    11.26 cycles/hash
+  26-byte keys -    11.57 cycles/hash
+  27-byte keys -    10.36 cycles/hash
+  28-byte keys -    10.95 cycles/hash
+  29-byte keys -    10.90 cycles/hash
+  30-byte keys -    12.01 cycles/hash
+  31-byte keys -    11.69 cycles/hash
+Average        -    10.93 cycles/hash
+ rnd-byte keys -    11.05 cycles/hash
 
 Bulk speed test - 262144-byte keys
-Alignment   7 - 11.81 bytes/cycle - 38.51 GiB/sec @ 3.5 ghz
-Alignment   6 - 11.19 bytes/cycle - 36.47 GiB/sec @ 3.5 ghz
-Alignment   5 - 11.44 bytes/cycle - 37.28 GiB/sec @ 3.5 ghz
-Alignment   4 - 11.64 bytes/cycle - 37.93 GiB/sec @ 3.5 ghz
-Alignment   3 - 11.65 bytes/cycle - 37.96 GiB/sec @ 3.5 ghz
-Alignment   2 - 11.44 bytes/cycle - 37.28 GiB/sec @ 3.5 ghz
-Alignment   1 - 11.35 bytes/cycle - 36.99 GiB/sec @ 3.5 ghz
-Alignment   0 - 11.94 bytes/cycle - 38.91 GiB/sec @ 3.5 ghz
-Average       - 11.56 bytes/cycle - 37.67 GiB/sec @ 3.5 ghz
-Alignment rnd - 11.73 bytes/cycle - 38.24 GiB/sec @ 3.5 ghz
+Alignment   7 - 10.05 bytes/cycle - 32.76 GiB/sec @ 3.5 ghz
+Alignment   6 -  7.30 bytes/cycle - 23.78 GiB/sec @ 3.5 ghz
+Alignment   5 -  7.11 bytes/cycle - 23.18 GiB/sec @ 3.5 ghz
+Alignment   4 -  6.79 bytes/cycle - 22.12 GiB/sec @ 3.5 ghz
+Alignment   3 -  6.94 bytes/cycle - 22.62 GiB/sec @ 3.5 ghz
+Alignment   2 -  6.75 bytes/cycle - 21.99 GiB/sec @ 3.5 ghz
+Alignment   1 -  6.94 bytes/cycle - 22.62 GiB/sec @ 3.5 ghz
+Alignment   0 -  6.89 bytes/cycle - 22.46 GiB/sec @ 3.5 ghz
+Average       -  7.34 bytes/cycle - 23.94 GiB/sec @ 3.5 ghz
+Alignment rnd -  6.67 bytes/cycle - 21.75 GiB/sec @ 3.5 ghz
 
 Bulk speed test - [262017, 262144]-byte keys
-Alignment   7 - 11.36 bytes/cycle - 37.03 GiB/sec @ 3.5 ghz
-Alignment   6 - 11.29 bytes/cycle - 36.80 GiB/sec @ 3.5 ghz
-Alignment   5 - 11.40 bytes/cycle - 37.15 GiB/sec @ 3.5 ghz
-Alignment   4 - 11.46 bytes/cycle - 37.37 GiB/sec @ 3.5 ghz
-Alignment   3 - 11.43 bytes/cycle - 37.26 GiB/sec @ 3.5 ghz
-Alignment   2 - 11.28 bytes/cycle - 36.76 GiB/sec @ 3.5 ghz
-Alignment   1 - 11.24 bytes/cycle - 36.65 GiB/sec @ 3.5 ghz
-Alignment   0 - 11.12 bytes/cycle - 36.25 GiB/sec @ 3.5 ghz
-Average       - 11.32 bytes/cycle - 36.91 GiB/sec @ 3.5 ghz
-Alignment rnd - 11.03 bytes/cycle - 35.94 GiB/sec @ 3.5 ghz
+Alignment   7 -  6.46 bytes/cycle - 21.04 GiB/sec @ 3.5 ghz
+Alignment   6 -  6.59 bytes/cycle - 21.50 GiB/sec @ 3.5 ghz
+Alignment   5 -  6.54 bytes/cycle - 21.31 GiB/sec @ 3.5 ghz
+Alignment   4 -  6.51 bytes/cycle - 21.23 GiB/sec @ 3.5 ghz
+Alignment   3 -  6.67 bytes/cycle - 21.73 GiB/sec @ 3.5 ghz
+Alignment   2 -  6.68 bytes/cycle - 21.79 GiB/sec @ 3.5 ghz
+Alignment   1 -  6.72 bytes/cycle - 21.91 GiB/sec @ 3.5 ghz
+Alignment   0 -  7.35 bytes/cycle - 23.96 GiB/sec @ 3.5 ghz
+Average       -  6.69 bytes/cycle - 21.81 GiB/sec @ 3.5 ghz
+Alignment rnd -  4.75 bytes/cycle - 15.47 GiB/sec @ 3.5 ghz
 
 [[[ 'Hashmap' Speed Tests ]]]
 
 std::unordered_map
-Init std HashMapTest:     520.740 cycles/op (792291 inserts, 1% deletions)
-Running std HashMapTest:  376.731 cycles/op (44.2 stdv)
+Init std HashMapTest:     1161.436 cycles/op (792291 inserts, 1% deletions)
+Running std HashMapTest:  995.020 cycles/op (109.8 stdv)
 
 greg7mdp/parallel-hashmap
-Init fast HashMapTest:    217.807 cycles/op (792291 inserts, 1% deletions)
-Running fast HashMapTest: 277.005 cycles/op (17.9 stdv)
+Init fast HashMapTest:    766.650 cycles/op (792291 inserts, 1% deletions)
+Running fast HashMapTest: 992.070 cycles/op (109.2 stdv)
 
 [[[ Avalanche Tests ]]]
 
@@ -3167,5 +3167,5 @@ Summary for: rust-ahash-crate
 Overall result: pass            ( 252 / 252 passed)
 
 ----------------------------------------------------------------------------------------------
-Verification value is 0x00000001 - Testing took 1156.388117 seconds
+Verification value is 0x00000001 - Testing took 1452.507100 seconds
 
