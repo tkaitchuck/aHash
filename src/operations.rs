@@ -30,14 +30,14 @@ pub(crate) const fn folded_multiply(s: u64, by: u64) -> u64 {
     low ^ high
 }
 
-/// Returns the low and high halves of the product (or of its substitute where there is no 128 bit product).
+/// Returns the low and high halves of the 128 bit product.
 ///
 /// Xoring the two halves of a product is not safe when both operands are derived from the input:
 /// The xor of the halves is unchanged by complementing both of them, and this is approximately what
 /// complementing an operand does to the product. (`!x` is `-x` modulo `2^64 - 1` and the high half of a
 /// product carries a weight of `2^64`, which is `1` modulo `2^64 - 1`.) So the complement of an input
 /// collided with the original for roughly one key in 2^26. Callers in that position should combine the
-/// halves in a way that is not symmetric. See `large_update` in `fallback_hash.rs`.
+/// halves in a way that is not symmetric. See `hash_in` in `fallback_hash.rs`.
 #[inline(always)]
 #[cfg(folded_multiply)]
 pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
@@ -45,12 +45,23 @@ pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
     [(result & 0xffff_ffff_ffff_ffff) as u64, (result >> 64) as u64]
 }
 
+/// The same product from four multiplies of 32 bits by 32, for targets where a 128 bit product is a call into
+/// a library.
 #[inline(always)]
 #[cfg(not(folded_multiply))]
 pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
-    let b1 = s.wrapping_mul(by.swap_bytes());
-    let b2 = s.swap_bytes().wrapping_mul(!by);
-    [b1, b2.swap_bytes()]
+    const LOW: u64 = 0xffff_ffff;
+    let low_low = (s & LOW) * (by & LOW);
+    let low_high = (s & LOW) * (by >> 32);
+    let high_low = (s >> 32) * (by & LOW);
+    let high_high = (s >> 32) * (by >> 32);
+    // (Neither sum can overflow: The square of `2^32 - 1` leaves room for twice `2^32 - 1`.)
+    let middle = low_high + (low_low >> 32);
+    let middle_low = high_low + (middle & LOW);
+    [
+        (middle_low << 32) | (low_low & LOW),
+        high_high + (middle >> 32) + (middle_low >> 32),
+    ]
 }
 
 /// Given a small (less than 8 byte slice) returns the same data stored in two u32s.
@@ -127,16 +138,17 @@ pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
     }
 }
 
-/// Returns `a ^ b`, computed in vector registers.
-#[cfg(aes_hash)]
+/// Returns `a ^ b`, computed in a vector register where there is one.
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn xor(a: u128, b: u128) -> u128 {
     cfg_if::cfg_if! {
-        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
             unsafe { transmute!(_mm_xor_si128(transmute!(a), transmute!(b))) }
-        } else {
+        } else if #[cfg(any(all(target_arch = "aarch64", target_feature = "neon", not(miri)), all(target_arch = "arm", aes_hash)))] {
             unsafe { core::mem::transmute(veorq_u8(core::mem::transmute(a), core::mem::transmute(b))) }
+        } else {
+            a ^ b
         }
     }
 }
