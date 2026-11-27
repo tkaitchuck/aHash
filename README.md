@@ -1,18 +1,16 @@
 # aHash     ![Build Status](https://img.shields.io/github/actions/workflow/status/tkaitchuck/aHash/rust.yml?branch=master) ![Licence](https://img.shields.io/crates/l/ahash) ![Downloads](https://img.shields.io/crates/d/ahash) 
 
-AHash is a [fast](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#speed),
-[DOS resistant](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#dos-resistance) hash for Rust.
-For typical keys it computes a hash 5 to 9 times faster than the default hasher of the standard library.
-AHash is intended *exclusively* for use in in-memory hashmaps.
+AHash is an ultra [fast](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#speed),
+[DOS resistant](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#dos-resistance) hash written in Rust. It is intended *exclusively* for use in in-memory hashmaps.
+For typical keys it computes a hash 5-10x faster than the default hasher in the standard library.
 
 AHash's output is of [high quality](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#quality) but aHash is **not** a cryptographically secure hash.
 
-**AHash is not a fixed algorithm.** What it offers is a set of properties: Speed, quality, and resistance to DOS attacks.
-The algorithm which provides them is subject to change. It depends on the CPU and on how the program is compiled, and
-it is changed when a faster technique is found, or a flaw. This is how aHash keeps its speed and its quality over time.
-It also means that the hash of a value is not the same on different computers, in different versions of aHash, or in
-different builds of the same program.
-
+**AHash's algorithm is not fixed.** How it computes the hash is dependent on the CPU it is running on, how the program
+was compiled, and the version of the software it is running. If a flaw or faster hashing technique is found newer
+versions of aHash will change the output hash value for a given input. Because the output is not the same on different 
+computers, in different versions of aHash, or in different builds of the same program, aHash should not be used to 
+persist hashs or in a situation where different hosts need to compute the same hash.
 ## Design
 
 Because AHash is a keyed hash, each map will produce completely different hashes, which cannot be predicted without knowing the keys.
@@ -20,15 +18,16 @@ Because AHash is a keyed hash, each map will produce completely different hashes
 
 This also avoids [accidentally quadratic behavior by reading from one map and writing to another.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
 
-AHash has two algorithms. One uses the hardware AES instructions, and the other (the fallback) uses multiplication.
-**Which one is used is decided when your program is compiled.** AES is used if the target has it enabled, which most
-targets do not by default. (`aarch64-apple-darwin` is one which does.) To use it elsewhere, compile with
-`RUSTFLAGS="-C target-cpu=native"` or `-C target-feature=+aes`. AES is supported on x86, x86-64 and AArch64.
+AHash's primary algorithm uses the hardware AES instructions. It has a fallback (if the instruction is not available)
+which uses multiplication.
 
-AES is faster for strings: More than three times as fast at 1KB. Integers take the same time with both.
+AES is used if the target has it enabled, which most targets do not by default. (`aarch64-apple-darwin` is one which does.)
+To use it elsewhere, compile with `RUSTFLAGS="-C target-cpu=native"` or `-C target-feature=+aes`.
+AES is supported on x86, x86-64 and AArch64.
 
-Both keep a small state of fixed size: 48 bytes with AES and 32 with the fallback, whatever the length of the input.
-Nothing is allocated for a map or for a hash, and there are no lookup tables.
+Having AES makes strings much faster. For hashing integers there is no meaningful difference.
+
+The "`BuildHasher`" Which is held by the map holds onto 32 bytes of memory.
 
 ## Goals and Non-Goals
 
@@ -111,25 +110,10 @@ The time to compute one hash, in nanoseconds. (On an AMD Ryzen AI 9 465, compile
 
 A typical hashmap lookup takes about 1 ns on top of this, independent of the hashing algorithm.
 
-For typical keys, strings of 5 to 32 bytes, aHash computes a hash 8 to 9 times faster than SipHash-1-3 with AES, and
-5 to 6 times faster with the fallback.
-
-AHash is not the fastest hasher for small keys. Several are faster, among them
-[rustc-hash](https://github.com/rust-lang/rustc-hash) (FxHash) and [foldhash](https://github.com/orlp/foldhash) as it
-is used by default. They do not pass the [SMHasher3](https://gitlab.com/fwojcik/smhasher3) test suite, and are in the
-second panel of the chart.
-[The comparison](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#why-use-ahash-over-x) goes into
-what the differences are, and has the details of how this was measured.
-
 ## Hash quality
 
 AHash passes every test of [SMHasher3](https://gitlab.com/fwojcik/smhasher3), both with AES and with the fallback.
 The code to reproduce the result, and the full output [are checked into the repo](https://github.com/tkaitchuck/aHash/tree/master/smhasher).
-
-AHash regards this as the least that a hasher for general use should do. A library hashes whatever its callers give
-it, and a hasher which fails has some kind of input for which its output is measurably not random. Such a hasher can
-still be the right choice in a program whose author knows the algorithm and knows what the keys look like, but it is
-not a sound default. [More on this here.](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#quality)
 
 ## Additional FAQ
 
