@@ -50,6 +50,14 @@ pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
 #[inline(always)]
 #[cfg(not(folded_multiply))]
 pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
+    multiply_halves_by_32s(s, by)
+}
+
+/// Returns the same halves as a 128 bit product, from four multiplies of 32 bits by 32.
+/// (It is built on every target so that it can be tested on every target.)
+#[inline(always)]
+#[cfg_attr(folded_multiply, allow(dead_code))]
+pub(crate) const fn multiply_halves_by_32s(s: u64, by: u64) -> [u64; 2] {
     const LOW: u64 = 0xffff_ffff;
     let low_low = (s & LOW) * (by & LOW);
     let low_high = (s & LOW) * (by >> 32);

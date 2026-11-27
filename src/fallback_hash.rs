@@ -121,10 +121,10 @@ impl AHasher {
     }
 
     /// Similar to the above this function performs an update using a multiply.
-    /// However it takes in 128 bits of data instead of 64. Both halves must be masked.
+    /// However it takes in 128 bits of data instead of 64, and xors each half with a key itself.
     ///
-    /// Unlike in `update` both operands of the multiply are  input, so the two halves go into two halves of the buffer
-    /// (See `combine`).
+    /// Unlike in `update` both operands of the multiply are derived from the input, so the two halves of the product
+    /// go into the two words of the buffer. (See `combine`.)
     ///
     /// The keys change after every block so the same delta cannot be applied repeatedly.
     #[inline(always)]
@@ -138,7 +138,7 @@ impl AHasher {
         ];
     }
 
-    /// Preforms a wide multiply and xors and adds the halves in to the buffer.
+    /// Performs a wide multiply and xors and adds the halves in to the buffer.
     /// The added side is rotated to introduce asymmetry and the halves are swapped.
     /// (Addition and xors don't commute.)
     #[inline(always)]
@@ -458,7 +458,13 @@ mod tests {
     // The 64 bit function is too large to measure how often two different blocks collide. But the weaknesses
     // of `hash_in` come from the arithmetic, and exist at every word size. So the tests below use a
     // model of it with small words, where every key can be tried. (All of the rotations scale with the
-    // word size.) Rates are given as a multiple of the `2^-width` that an ideal function would have.
+    // word size.) Rates are given as a multiple of `2^-width`, which is the chance that any two inputs collide in
+    // the one word `finish` returns.
+    //
+    // This is the bar even where the state compared is two words: A product of two words does not do better than
+    // one word. If an operand is zero (one key in `2^width`) any difference in the other has no effect, and if the
+    // operands are swapped the product is the same. So two words of state collide at about `2^-width` for some
+    // differences however the halves are combined, which adds at most as much as the output's own rate.
 
     /// What two blocks are compared by: Equal results are a collision.
     type Outcome = fn([u64; 2], u32) -> u64;
@@ -562,7 +568,8 @@ mod tests {
     /// Where there is no 128 bit multiply the product is put together from four smaller ones. It has to be the
     /// same product, as the models assume it is.
     #[test]
-    fn test_multiply_halves_is_the_product() {
+    fn test_multiply_halves_by_32s_is_the_product() {
+        use crate::operations::multiply_halves_by_32s;
         let mut seed = 1;
         let mut operands = vec![
             (0_u64, 0_u64),
@@ -574,12 +581,19 @@ mod tests {
         ];
         operands.extend((0..10_000).map(|_| (random(&mut seed), random(&mut seed))));
         for (x, y) in operands {
-            assert_eq!(multiply_halves(x, y), product_halves(x, y, 64), "{:x} {:x}", x, y);
+            assert_eq!(
+                multiply_halves_by_32s(x, y),
+                product_halves(x, y, 64),
+                "{:x} {:x}",
+                x,
+                y
+            );
         }
     }
 
     /// For every possible difference between two blocks: How often they have the same `outcome`, which may have
-    /// up to twice the width. The difference `(da, db)` is at index `da << width | db`.
+    /// up to twice the width (but is held to the same rate, see above). The difference `(da, db)` is at index
+    /// `da << width | db`.
     /// (The keys are xored with the input before it is used. So trying every pair of operands is trying every key.)
     fn difference_profile(outcome: Outcome, width: u32) -> Vec<f64> {
         let size = 1_usize << width;
