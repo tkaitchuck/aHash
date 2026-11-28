@@ -23,6 +23,7 @@ use core::sync::atomic;
 #[cfg(feature = "atomic-polyfill")]
 use portable_atomic as atomic;
 
+use crate::operations::folded_multiply;
 use alloc::boxed::Box;
 use atomic::{AtomicUsize, Ordering};
 use core::any::{Any, TypeId};
@@ -30,8 +31,6 @@ use core::fmt;
 use core::hash::BuildHasher;
 use core::hash::Hasher;
 use core::marker::PhantomData;
-use crate::convert::Convert;
-use crate::operations::{folded_multiply};
 
 pub(crate) const PI_U64X4: [u64; 4] = [
     0x243f_6a88_85a3_08d3,
@@ -40,6 +39,8 @@ pub(crate) const PI_U64X4: [u64; 4] = [
     0x082e_fa98_ec4e_6c89,
 ];
 
+// Used by the AES finish, and by `new_with_keys` in tests.
+#[cfg(any(aes_hash, test))]
 pub(crate) const PI_U128X2: [u128; 2] = [
     0x1319_8a2e_0370_7344_243f_6a88_85a3_08d3,
     0x082e_fa98_ec4e_6c89_a409_3822_299f_31d0,
@@ -210,33 +211,33 @@ cfg_if::cfg_if! {
 /// [HashMap]: std::collections::HashMap
 ///
 /// # Type parameter
-/// `RandomState<T>` takes a type parameter `T`. This type is used to determine which hashing 
+/// `RandomState<T>` takes a type parameter `T`. This type is used to determine which hashing
 /// algorithm will be used. Normally this is the type of the items to be hashed.
-/// However, it is also possible hash other types provided their implementation of [Hash] is
-/// functionally the same as the `T`'s implementation of [Hash]. 
-/// (Or if one derefs into the other). 
-/// 
-/// For example, it is possible to use a `RandomState<String>` to hash not only `String`s but also 
+/// However, it is also possible to hash other types provided their implementation of [Hash] is
+/// functionally the same as the `T`'s implementation of [Hash].
+/// (Or if one derefs into the other).
+///
+/// For example, it is possible to use a `RandomState<String>` to hash not only `String`s but also
 /// `&str`s, `Box<str>`s, or `&Box<String>`:
 /// ```
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;
-/// 
+///
 /// let state = RandomState::<String>::new();
 /// let v1 = state.hash_one("foo");
 /// let v2 = state.hash_one(&Box::new("foo"));
 /// assert_eq!(v1, v2);
 /// ```
 /// This is convenient because it avoids the need to declare lifetimes.
-/// 
+///
 /// Similarly, it is possible to use a `RandomState<u64>` to hash a `&u64` or a `Box<u64>` etc.
-/// 
-/// If you wish to hash items of heterogeneous types use `RandomState<()>`. This will use a generic 
+///
+/// If you wish to hash items of heterogeneous types use `RandomState<()>`. This will use a generic
 /// algorithm which will work for any type.
 /// ```
 /// use std::hash::BuildHasher;
 /// use ahash::RandomState;
-/// 
+///
 /// let state = RandomState::<()>::new();
 /// let foo_hash = state.hash_one("foo");
 /// let num_hash = state.hash_one(1234);
@@ -273,19 +274,19 @@ pub struct SmallState<T> {
     _h: PhantomData<T>,
 }
 
-impl <T> fmt::Debug for RandomState<T> {
+impl<T> fmt::Debug for RandomState<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.pad("RandomState { .. }")
     }
 }
 
-impl <T> fmt::Debug for SmallState<T> {
+impl<T> fmt::Debug for SmallState<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.pad("SmallState { .. }")
     }
 }
 
-impl <T> RandomState<T> {
+impl<T> RandomState<T> {
     /// Create a new `RandomState` `BuildHasher` using random keys.
     ///
     /// Each instance will have a unique set of keys derived from [RandomSource].
@@ -294,8 +295,7 @@ impl <T> RandomState<T> {
     pub fn new() -> RandomState<T> {
         let src = get_src();
         let fixed = get_fixed_seeds();
-        let mixed = Self::pre_mix_key(&fixed[0], src.gen_hasher_seed());
-        Self::from_keys(&fixed[0], &fixed[1], mixed)
+        Self::from_keys(&fixed[0], &fixed[1], src.gen_hasher_seed())
     }
 
     /// Create a new `RandomState` `BuildHasher` based on the provided seeds, but in such a way
@@ -311,35 +311,38 @@ impl <T> RandomState<T> {
     pub fn generate_with(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState<T> {
         let src = get_src();
         let fixed = get_fixed_seeds();
-        let mixed = Self::pre_mix_key(&fixed[0], src.gen_hasher_seed());
-        RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], mixed)
+        RandomState::from_keys(&fixed[0], &[k0, k1, k2, k3], src.gen_hasher_seed())
+    }
+
+    fn from_keys(a: &[u64; 4], b: &[u64; 4], c: usize) -> RandomState<T> {
+        let &[k0, k1, k2, k3] = a;
+        let mut hasher = AHasher::from_random_state(&RandomState::<()>::from_raw_keys(k0, k1, k2, k3));
+        hasher.write_usize(c);
+        let mix = |l: u64, r: u64| {
+            let mut h = hasher.clone();
+            h.write_u64(l);
+            h.write_u64(r);
+            h.finish()
+        };
+        RandomState::from_raw_keys(mix(b[0], b[2]), mix(b[1], b[3]), mix(b[2], b[1]), mix(b[3], b[0]))
     }
 
     #[inline]
-    fn pre_mix_key(a: &[u64; 4], c: usize) -> u64 {
-        let &[k0, k1, _k2, _k3] = a;
-        folded_multiply(k0 ^ c as u64, k1)
-    }
-
-    #[inline]
-    fn from_keys(a: &[u64; 4], b: &[u64; 4], pre_mixed_key: u64) -> RandomState<T> {
-        let &[_k0, _k1, k2, k3] = a;
-        let c1 = folded_multiply(pre_mixed_key, k2);
-        let c2 = folded_multiply(pre_mixed_key, k3);
+    pub(crate) const fn from_raw_keys(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState<T> {
         RandomState {
-            k0: (c1 ^ b[0]).wrapping_add(b[2]),
-            k1: (c1 ^ b[1]).wrapping_add(b[3]),
-            k2: (c2 ^ b[2]).wrapping_add(b[1]),
-            k3: (c2 ^ b[3]).wrapping_add(b[0]),
-            _h: PhantomData::default(),
+            k0,
+            k1,
+            k2,
+            k3,
+            _h: PhantomData,
         }
     }
-    
+
     /// Internal. Used by Default.
     #[inline]
     pub(crate) fn with_fixed_keys() -> RandomState<T> {
         let [k0, k1, k2, k3] = get_fixed_seeds()[0];
-        RandomState { k0, k1, k2, k3, _h: PhantomData::default() }
+        RandomState::from_raw_keys(k0, k1, k2, k3)
     }
 
     /// Build a `RandomState` from a single key. The provided key does not need to be of high quality,
@@ -352,8 +355,7 @@ impl <T> RandomState<T> {
     #[inline]
     pub fn with_seed(key: usize) -> RandomState<T> {
         let fixed = get_fixed_seeds();
-        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], key);
-        RandomState::from_keys(&fixed[0], &fixed[1], mixed)
+        RandomState::from_keys(&fixed[0], &fixed[1], key)
     }
 
     /// Allows for explicitly setting the seeds to be used.
@@ -366,45 +368,11 @@ impl <T> RandomState<T> {
     /// It is recommended to pass numbers in order from highest to lowest quality (if there is any difference).
     #[inline]
     pub const fn with_seeds(k0: u64, k1: u64, k2: u64, k3: u64) -> RandomState<T> {
-        RandomState {
-            k0: k0 ^ PI2[0],
-            k1: k1 ^ PI2[1],
-            k2: k2 ^ PI2[2],
-            k3: k3 ^ PI2[3],
-            _h: PhantomData,
-        }
-    }
-
-
-    #[inline]
-    #[cfg(specialize)]
-    pub(crate) fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherU64 {
-            buffer: self.k0,
-            pad: self.k1,
-        };
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    #[cfg(specialize)]
-    pub(crate) fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherFixed(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    #[inline]
-    #[cfg(specialize)]
-    pub(crate) fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
-        let mut hasher = AHasherStr(self.build_hasher());
-        value.hash(&mut hasher);
-        hasher.finish()
+        RandomState::from_raw_keys(k0 ^ PI2[0], k1 ^ PI2[1], k2 ^ PI2[2], k3 ^ PI2[3])
     }
 }
 
-impl <T> SmallState<T> {
+impl<T> SmallState<T> {
     /// Create a new `SmallState` `BuildHasher` using random keys.
     ///
     /// Each instance will have a unique set of keys derived from [RandomSource].
@@ -412,10 +380,9 @@ impl <T> SmallState<T> {
     #[inline]
     pub fn new() -> SmallState<T> {
         let fixed = get_fixed_seeds();
-        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], get_src().gen_hasher_seed());
         SmallState {
-            key: mixed,
-            _h: Default::default(),
+            key: Self::pre_mix_key(&fixed[0], get_src().gen_hasher_seed()),
+            _h: PhantomData,
         }
     }
 
@@ -429,11 +396,31 @@ impl <T> SmallState<T> {
     #[inline]
     pub fn with_seed(key: usize) -> SmallState<T> {
         let fixed = get_fixed_seeds();
-        let mixed = RandomState::<T>::pre_mix_key(&fixed[0], key);
         SmallState {
-            key: mixed,
-            _h: Default::default(),
+            key: Self::pre_mix_key(&fixed[0], key),
+            _h: PhantomData,
         }
+    }
+
+    #[inline]
+    fn pre_mix_key(a: &[u64; 4], c: usize) -> u64 {
+        let &[k0, k1, _k2, _k3] = a;
+        folded_multiply(k0 ^ c as u64, k1)
+    }
+
+    /// The state this stands for. It is rebuilt for every hasher, so it is derived with two multiplies rather than
+    /// with [RandomState]'s mixing.
+    #[inline]
+    fn random_state(&self) -> RandomState<T> {
+        let [a, b] = get_fixed_seeds();
+        let c1 = folded_multiply(self.key, a[2]);
+        let c2 = folded_multiply(self.key, a[3]);
+        RandomState::from_raw_keys(
+            (c1 ^ b[0]).wrapping_add(b[2]),
+            (c1 ^ b[1]).wrapping_add(b[3]),
+            (c2 ^ b[2]).wrapping_add(b[1]),
+            (c2 ^ b[3]).wrapping_add(b[0]),
+        )
     }
 }
 
@@ -447,7 +434,7 @@ impl <T> SmallState<T> {
 /// `compile-time-rng` are enabled. This is to prevent weakly keyed maps from being accidentally created. Instead one of
 /// constructors for [RandomState] must be used.
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
-impl <T> Default for RandomState<T> {
+impl<T> Default for RandomState<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
@@ -460,14 +447,14 @@ impl <T> Default for RandomState<T> {
 ///
 /// This is the same as [SmallState::new()]
 #[cfg(any(feature = "compile-time-rng", feature = "runtime-rng", feature = "no-rng"))]
-impl <T> Default for SmallState<T> {
+impl<T> Default for SmallState<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl <T> BuildHasher for RandomState<T> {
+impl<T> BuildHasher for RandomState<T> {
     type Hasher = AHasher;
 
     /// Constructs a new [AHasher] with keys based on this [RandomState] object.
@@ -552,17 +539,17 @@ impl <T> BuildHasher for RandomState<T> {
     }
 }
 
-impl <T> BuildHasher for SmallState<T> {
+impl<T> BuildHasher for SmallState<T> {
     type Hasher = AHasher;
 
     /// Constructs a new [AHasher] with keys based on this [SmallState] object.
-    /// This means that two different [SmallState]s will will generate
+    /// This means that two different [SmallState]s will generate
     /// [AHasher]s that will return different hashcodes, but [Hasher]s created from the same [BuildHasher]
     /// will generate the same hashes for the same input data.
     ///
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
         use ahash::{AHasher, SmallState};
         use std::hash::{Hasher, BuildHasher};
@@ -588,15 +575,14 @@ impl <T> BuildHasher for SmallState<T> {
     /// [HashMap]: std::collections::HashMap
     #[inline]
     fn build_hasher(&self) -> AHasher {
-        let fixed = get_fixed_seeds();
-        AHasher::from_random_state(&RandomState::<T>::from_keys(&fixed[0], &fixed[1], self.key))
+        AHasher::from_random_state(&self.random_state())
     }
 
     /// Calculates the hash of a single value. This provides a more convenient (and faster) way to obtain a hash:
     /// For example:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::BuildHasher;
     use ahash::SmallState;
@@ -608,8 +594,8 @@ impl <T> BuildHasher for SmallState<T> {
     )]
     /// This is similar to:
     #[cfg_attr(
-    feature = "std",
-    doc = r##" # Examples
+        feature = "std",
+        doc = r##" # Examples
 ```
     use std::hash::{BuildHasher, Hash, Hasher};
     use ahash::SmallState;
@@ -634,8 +620,34 @@ impl <T> BuildHasher for SmallState<T> {
     #[inline]
     fn hash_one<V: Hash>(&self, x: V) -> u64 {
         use crate::specialize::CallHasher;
-        let fixed = get_fixed_seeds();
-        T::get_hash(&x, &RandomState::<T>::from_keys(&fixed[0], &fixed[1], self.key))
+        T::get_hash(&x, &self.random_state())
+    }
+}
+
+#[cfg(specialize)]
+impl<T> RandomState<T> {
+    #[inline]
+    pub(crate) fn hash_as_u64<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherU64 {
+            buffer: self.k1,
+            pad: self.k0,
+        };
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_fixed_length<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherFixed(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[inline]
+    pub(crate) fn hash_as_str<V: Hash + ?Sized>(&self, value: &V) -> u64 {
+        let mut hasher = AHasherStr(self.build_hasher());
+        value.hash(&mut hasher);
+        hasher.finish()
     }
 }
 

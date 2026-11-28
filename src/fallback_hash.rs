@@ -5,6 +5,7 @@ use crate::operations::multiply_halves;
 use crate::operations::read_small;
 use crate::operations::xor;
 use crate::operations::MULTIPLE;
+#[cfg(test)]
 use crate::random_state::PI_U128X2;
 use crate::RandomState;
 use core::hash::Hasher;
@@ -309,6 +310,7 @@ impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
         folded_multiply(self.buffer, self.pad)
+        //self.buffer
     }
 
     #[inline]
@@ -337,26 +339,13 @@ impl Hasher for AHasherU64 {
     }
 
     #[inline]
-    fn write_u128(&mut self, i: u128) {
-        let i: [u64; 2] = i.convert();
-        self.buffer = folded_multiply(i[0] ^ self.buffer, MULTIPLE);
-        self.pad = folded_multiply(i[1] ^ self.pad, MULTIPLE);
+    fn write_u128(&mut self, _i: u128) {
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
-    #[cfg(any(
-    target_pointer_width = "64",
-    target_pointer_width = "32",
-    target_pointer_width = "16"
-    ))]
-    fn write_usize(&mut self, i: usize) {
-        self.write_u64(i as u64);
-    }
-
-    #[inline]
-    #[cfg(target_pointer_width = "128")]
-    fn write_usize(&mut self, i: usize) {
-        self.write_u128(i as u128);
+    fn write_usize(&mut self, _i: usize) {
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 }
 
@@ -437,35 +426,24 @@ impl Hasher for AHasherStr {
     fn write_u8(&mut self, _i: u8) {}
 
     #[inline]
-    fn write_u16(&mut self, i: u16) {
-        self.0.write_u16(i)
-    }
+    fn write_u16(&mut self, _i: u16) {}
 
     #[inline]
-    fn write_u32(&mut self, i: u32) {
-        self.0.write_u32(i)
-    }
+    fn write_u32(&mut self, _i: u32) {}
 
     #[inline]
-    fn write_u64(&mut self, i: u64) {
-        self.0.write_u64(i)
-    }
+    fn write_u64(&mut self, _i: u64) {}
 
     #[inline]
-    fn write_u128(&mut self, i: u128) {
-        self.0.write_u128(i)
-    }
+    fn write_u128(&mut self, _i: u128) {}
 
     #[inline]
-    fn write_usize(&mut self, i: usize) {
-        self.0.write_usize(i)
-    }
+    fn write_usize(&mut self, _i: usize) {}
 }
 
 #[cfg(test)]
 mod tests {
     use crate::fallback_hash::*;
-    use crate::random_state::PI2;
 
     #[test]
     fn test_hash() {
@@ -496,13 +474,7 @@ mod tests {
             for hasher in [
                 AHasher::new_with_keys(key1, key2),
                 AHasher::test_with_keys(key1, key2),
-                // `with_seeds` xors in PI2, so undo it to get exactly these keys.
-                AHasher::from_random_state(&RandomState::<()>::with_seeds(
-                    k0 ^ PI2[0],
-                    k1 ^ PI2[1],
-                    k2 ^ PI2[2],
-                    k3 ^ PI2[3],
-                )),
+                AHasher::from_random_state(&RandomState::<()>::from_raw_keys(k0, k1, k2, k3)),
             ] {
                 assert_eq!([1, 1], [hasher.increments[0] & 1, hasher.increments[1] & 1]);
             }

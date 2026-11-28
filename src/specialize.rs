@@ -17,14 +17,14 @@ use alloc::vec::Vec;
 /// Rather than using a Hasher generically which can hash any value, this provides a way to get a specialized hash
 /// for a specific type. So this may be faster for primitive types.
 pub(crate) trait CallHasher<T> {
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64;
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<T>) -> u64;
 }
 
 #[cfg(not(specialize))]
 impl<T> CallHasher<T> for T {
     #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64 {
-        let mut hasher = build_hasher.build_hasher();
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<T>) -> u64 {
+        let mut hasher = random_state.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
@@ -33,8 +33,8 @@ impl<T> CallHasher<T> for T {
 #[cfg(specialize)]
 impl<T> CallHasher<T> for T {
     #[inline]
-    default fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<T>) -> u64 {
-        let mut hasher = build_hasher.build_hasher();
+    default fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<T>) -> u64 {
+        let mut hasher = random_state.build_hasher();
         value.hash(&mut hasher);
         hasher.finish()
     }
@@ -45,8 +45,8 @@ macro_rules! call_hasher_impl_u64 {
         #[cfg(specialize)]
         impl CallHasher<$typ> for $typ {
             #[inline]
-            fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<$typ>) -> u64 {
-                build_hasher.hash_as_u64(value)
+            fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<$typ>) -> u64 {
+                random_state.hash_as_u64(value)
             }
         }
     };
@@ -65,8 +65,8 @@ macro_rules! call_hasher_impl_fixed_length {
         #[cfg(specialize)]
         impl CallHasher<$typ> for $typ {
             #[inline]
-            fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<$typ>) -> u64 {
-                build_hasher.hash_as_fixed_length(value)
+            fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<$typ>) -> u64 {
+                random_state.hash_as_fixed_length(value)
             }
         }
     };
@@ -80,32 +80,32 @@ call_hasher_impl_fixed_length!(isize);
 #[cfg(specialize)]
 impl CallHasher<Vec<u8>> for Vec<u8> {
     #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<Vec<u8>>) -> u64 {
-        build_hasher.hash_as_str(value)
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<Vec<u8>>) -> u64 {
+        random_state.hash_as_str(value)
     }
 }
 
 #[cfg(specialize)]
-impl <'a> CallHasher<&'a [u8]> for &'a [u8] {
+impl<'a> CallHasher<&'a [u8]> for &'a [u8] {
     #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<&'a [u8]>) -> u64 {
-        build_hasher.hash_as_str(value)
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<&'a [u8]>) -> u64 {
+        random_state.hash_as_str(value)
     }
 }
 
 #[cfg(specialize)]
 impl CallHasher<String> for String {
     #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<String>) -> u64 {
-        build_hasher.hash_as_str(value)
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<String>) -> u64 {
+        random_state.hash_as_str(value)
     }
 }
-    
+
 #[cfg(specialize)]
-impl <'a> CallHasher<&'a str> for &'a str {
+impl<'a> CallHasher<&'a str> for &'a str {
     #[inline]
-    fn get_hash<H: Hash + ?Sized>(value: &H, build_hasher: &RandomState<&'a str>) -> u64 {
-        build_hasher.hash_as_str(value)
+    fn get_hash<H: Hash + ?Sized>(value: &H, random_state: &RandomState<&'a str>) -> u64 {
+        random_state.hash_as_str(value)
     }
 }
 
@@ -127,7 +127,7 @@ mod test {
     /// Tests that some non-trivial transformation takes place.
     #[test]
     pub fn test_input_processed() {
-        let build_hasher = RandomState::with_fixed_keys();
+        let build_hasher = RandomState::with_seeds(2, 2, 2, 2);
         assert_ne!(0, u64::get_hash(&0, &build_hasher));
         assert_ne!(1, u64::get_hash(&0, &build_hasher));
         assert_ne!(2, u64::get_hash(&0, &build_hasher));
@@ -153,89 +153,48 @@ mod test {
 
     #[test]
     pub fn test_ref_independent() {
-        let build_hasher = RandomState::<u8>::with_seed(1);
-        assert_eq!(u8::get_hash(&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
-        assert_eq!(build_hasher.hash_one(1_u8), build_hasher.hash_one(&1_u8));
-
-        let build_hasher = RandomState::<u16>::with_seed(1);
-        assert_eq!(u16::get_hash(&&2_u16, &build_hasher), u16::get_hash(&2_u16, &build_hasher));
-        assert_eq!(build_hasher.hash_one(2_u16), build_hasher.hash_one(&2_u16));
-
-        let build_hasher = RandomState::<u32>::with_seed(1);
-        assert_eq!(u32::get_hash(&&3_u32, &build_hasher), u32::get_hash(&3_u32, &build_hasher));
-        assert_eq!(build_hasher.hash_one(3_u32), build_hasher.hash_one(&3_u32));
-
-        let build_hasher = RandomState::<u64>::with_seed(1);
-        assert_eq!(u64::get_hash(&&4_u64, &build_hasher), u64::get_hash(&4_u64, &build_hasher));
-        assert_eq!(build_hasher.hash_one(4_u64), build_hasher.hash_one(&4_u64));
-
-        let build_hasher = RandomState::<u128>::with_seed(1);
-        assert_eq!(u128::get_hash(&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
-        assert_eq!(build_hasher.hash_one(5_u128), build_hasher.hash_one(&5_u128));
-
-
-        let build_hasher = RandomState::<String>::with_seed(1);
-
+        fn state<T>() -> RandomState<T> {
+            RandomState::with_seeds(1, 2, 3, 4)
+        }
+        assert_eq!(u8::get_hash(&&1, &state()), u8::get_hash(&1, &state()));
+        assert_eq!(u16::get_hash(&&2, &state()), u16::get_hash(&2, &state()));
+        assert_eq!(u32::get_hash(&&3, &state()), u32::get_hash(&3, &state()));
+        assert_eq!(u64::get_hash(&&4, &state()), u64::get_hash(&4, &state()));
+        assert_eq!(u128::get_hash(&&5, &state()), u128::get_hash(&5, &state()));
+        let strings = state::<String>();
+        assert_eq!(String::get_hash(&"test", &strings), String::get_hash("test", &strings));
         assert_eq!(
-            build_hasher.hash_one(&"test"),
-            build_hasher.hash_one("test")
+            String::get_hash(&"test", &strings),
+            String::get_hash(&"test".to_string(), &strings)
         );
         assert_eq!(
-            build_hasher.hash_one(&"test"),
-            build_hasher.hash_one(&"test".to_string())
+            String::get_hash(&Box::new("test"), &strings),
+            String::get_hash("test", &strings)
         );
+        #[cfg(specialize)]
         assert_eq!(
-            build_hasher.hash_one(&"test".as_bytes()),
-            build_hasher.hash_one("test".as_bytes())
+            String::get_hash(&"test", &strings),
+            String::get_hash("test".as_bytes(), &strings)
         );
 
-        let build_hasher = RandomState::<u8>::with_seed(1);
-        assert_eq!(u8::get_hash(&&&1, &build_hasher), u8::get_hash(&1, &build_hasher));
-        assert_eq!(build_hasher.hash_one(1_u8), build_hasher.hash_one(&1_u8));
-
-        let build_hasher = RandomState::<u16>::with_seed(1);
-        assert_eq!(u16::get_hash(&&&2_u16, &build_hasher), u16::get_hash(&2_u16, &build_hasher));
-        assert_eq!(build_hasher.hash_one(&&&2_u16), build_hasher.hash_one(&2_u16));
-
-        let build_hasher = RandomState::<u32>::with_seed(1);
-        assert_eq!(u32::get_hash(&&&3_u32, &build_hasher), u32::get_hash(&3_u32, &build_hasher));
-        assert_eq!(build_hasher.hash_one(&&&3_u32), build_hasher.hash_one(&3_u32));
-
-        let build_hasher = RandomState::<u64>::with_seed(1);
-        assert_eq!(u64::get_hash(&&&4_u64, &build_hasher), u64::get_hash(&4_u64, &build_hasher));
-        assert_eq!(build_hasher.hash_one(&&&4_u64), build_hasher.hash_one(&4_u64));
-
-        let build_hasher = RandomState::<u128>::with_seed(1);
-        assert_eq!(u128::get_hash(&&&5, &build_hasher), u128::get_hash(&5, &build_hasher));
-        assert_eq!(build_hasher.hash_one(&&&5_u128), build_hasher.hash_one(&5_u128));
-
-
-        let build_hasher = RandomState::<String>::with_seeds(1, 2, 3, 4);
-
+        fn other_state<T>() -> RandomState<T> {
+            RandomState::with_seeds(10, 20, 30, 40)
+        }
+        assert_eq!(u8::get_hash(&&&1, &other_state()), u8::get_hash(&1, &other_state()));
+        assert_eq!(u16::get_hash(&&&2, &other_state()), u16::get_hash(&2, &other_state()));
+        assert_eq!(u32::get_hash(&&&3, &other_state()), u32::get_hash(&3, &other_state()));
+        assert_eq!(u64::get_hash(&&&4, &other_state()), u64::get_hash(&4, &other_state()));
+        assert_eq!(u128::get_hash(&&&5, &other_state()), u128::get_hash(&5, &other_state()));
+        let strings = other_state::<String>();
+        assert_eq!(String::get_hash(&&"test", &strings), String::get_hash("test", &strings));
         assert_eq!(
-            build_hasher.hash_one(&&"test"),
-            build_hasher.hash_one("test")
+            String::get_hash(&&"test", &strings),
+            String::get_hash(&"test".to_string(), &strings)
         );
+        #[cfg(specialize)]
         assert_eq!(
-            build_hasher.hash_one(&&"test"),
-            build_hasher.hash_one(&"test".to_string())
-        );
-        assert_eq!(
-            build_hasher.hash_one(&&"test".as_bytes()),
-            build_hasher.hash_one(&"test".as_bytes())
-        );
-        
-        assert_eq!(
-            build_hasher.hash_one(Box::new("test")),
-            build_hasher.hash_one("test")
-        );
-        assert_eq!(
-            build_hasher.hash_one(Box::new("test")),
-            build_hasher.hash_one("test".to_string())
-        );
-        assert_eq!(
-            build_hasher.hash_one(Box::new("test".as_bytes())),
-            build_hasher.hash_one(&"test".as_bytes())
+            String::get_hash(&&"test", &strings),
+            String::get_hash(&"test".to_string().into_bytes(), &strings)
         );
     }
 }

@@ -17,11 +17,11 @@ fn main() -> Result<(), Error> {
     let path = Path::new("hash_output");
 
     let mut file = BufWriter::new(File::create(path)?);
-    let hasher = RandomState::<String>::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
+    let hasher = RandomState::<u64>::with_seeds(r.gen(), r.gen(), r.gen(), r.gen());
     let start = Instant::now();
     let mut sum: u64 = 0;
-    for i in 0..5*1024*1024*1024_u64 {
-        let value = hasher.hash_one(i);
+    for i in 0..i32::MAX {
+        let value = hasher.hash_one(i as u64);
         sum = sum.wrapping_add(value);
         let value: [u8; 8] = value.to_ne_bytes();
         file.write_all(&value)?;

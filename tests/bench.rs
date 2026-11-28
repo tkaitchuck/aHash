@@ -9,7 +9,7 @@ use std::hint::black_box;
 const AHASH_IMPL: &str = if cfg!(aes_hash) { "aeshash" } else { "fallbackhash" };
 
 fn ahash<H: Hash>(b: &H) -> u64 {
-    let build_hasher = RandomState::<H>::with_seeds(0, 0, 0, 0);
+    let build_hasher = RandomState::<H>::with_seeds(1, 2, 3, 4);
     build_hasher.hash_one(b)
 }
 
@@ -143,7 +143,8 @@ fn bench_map(c: &mut Criterion) {
         });
         group.bench_function("aHash-rand", |b| {
             b.iter(|| {
-                let hm: std::collections::HashMap<i32, i32, RandomState<i32>> = (0..1_000_000).map(|i| (i, i)).collect();
+                let hm: std::collections::HashMap<i32, i32, RandomState<i32>> =
+                    (0..1_000_000).map(|i| (i, i)).collect();
                 let mut sum = 0;
                 for i in 0..1_000_000 {
                     if let Some(x) = hm.get(&i) {

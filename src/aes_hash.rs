@@ -54,8 +54,8 @@ impl AHasher {
     #[inline]
     #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> Self {
-        let key1 = xor(key1, PI_U128X2[0]);
-        let key2 = xor(key2, PI_U128X2[1]);
+        let key1 = key1 ^ PI_U128X2[0];
+        let key2 = key2 ^ PI_U128X2[1];
         Self {
             echo: key1,
             sum: add_by_64s(key1, key2),
@@ -316,7 +316,6 @@ impl Hasher for AHasher {
             }
         }
     }
-
     #[inline]
     fn finish(&self) -> u64 {
         // Two stacks of three rounds from `chain`, so each 32 bits of output depend on eight last-round S-boxes.
@@ -373,26 +372,13 @@ impl Hasher for AHasherU64 {
     }
 
     #[inline]
-    fn write_u128(&mut self, i: u128) {
-        let i: [u64; 2] = i.convert();
-        self.buffer = folded_multiply(i[0] ^ self.buffer, MULTIPLE);
-        self.pad = folded_multiply(i[1] ^ self.pad, MULTIPLE);
+    fn write_u128(&mut self, _i: u128) {
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
-    #[cfg(any(
-    target_pointer_width = "64",
-    target_pointer_width = "32",
-    target_pointer_width = "16"
-    ))]
-    fn write_usize(&mut self, i: usize) {
-        self.write_u64(i as u64);
-    }
-
-    #[inline]
-    #[cfg(target_pointer_width = "128")]
-    fn write_usize(&mut self, i: usize) {
-        self.write_u128(i as u128);
+    fn write_usize(&mut self, _i: usize) {
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 }
 
@@ -464,29 +450,19 @@ impl Hasher for AHasherStr {
     fn write_u8(&mut self, _i: u8) {}
 
     #[inline]
-    fn write_u16(&mut self, i: u16) {
-        self.0.write_u16(i)
-    }
+    fn write_u16(&mut self, _i: u16) {}
 
     #[inline]
-    fn write_u32(&mut self, i: u32) {
-        self.0.write_u32(i)
-    }
+    fn write_u32(&mut self, _i: u32) {}
 
     #[inline]
-    fn write_u64(&mut self, i: u64) {
-        self.0.write_u64(i)
-    }
+    fn write_u64(&mut self, _i: u64) {}
 
     #[inline]
-    fn write_u128(&mut self, i: u128) {
-        self.0.write_u128(i)
-    }
+    fn write_u128(&mut self, _i: u128) {}
 
     #[inline]
-    fn write_usize(&mut self, i: usize) {
-        self.0.write_usize(i)
-    }
+    fn write_usize(&mut self, _i: usize) {}
 }
 
 #[cfg(test)]

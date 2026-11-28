@@ -451,8 +451,6 @@ mod fallback_tests {
 
     #[test]
     fn fallback_test_no_pair_collisions() {
-        #[cfg(specialize)]
-        test_no_pair_collisions(|| AHasherFixed(AHasher::new_with_keys(0, 0)));
         test_no_pair_collisions(|| AHasher::new_with_keys(0, 0));
     }
 
@@ -532,7 +530,7 @@ mod aes_tests {
     use crate::aes_hash::*;
     use crate::hash_quality_test::*;
     use std::hash::{Hash, Hasher};
-   
+
     //This encrypts to 0.
     const BAD_KEY2: u128 = 0x6363_6363_6363_6363_6363_6363_6363_6363;
     //This decrypts to 0.
@@ -587,7 +585,6 @@ mod aes_tests {
         test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
-        // Not `AHasherFixed`: it takes exactly one value, and a pair is two.
     }
 
     #[test]

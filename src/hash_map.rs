@@ -53,7 +53,7 @@ impl<K, V> Into<HashMap<K, V, crate::RandomState<K>>> for AHashMap<K, V> {
 impl<K, V> AHashMap<K, V, RandomState<K>> {
     /// This creates a hashmap using [RandomState::new] which obtains its keys from [RandomSource].
     /// See the documentation in [RandomSource] for notes about key strength.
-    /// 
+    ///
     /// [RandomSource]: crate::random_state::RandomSource
     pub fn new() -> Self {
         AHashMap(HashMap::with_hasher(RandomState::new()))
