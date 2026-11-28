@@ -52,7 +52,7 @@ fn increments(buffer: [u64; 2], keys: [u64; 2]) -> [u64; 2] {
 impl AHasher {
     /// Creates a new hasher keyed to the provided key.
     #[inline]
-    #[allow(dead_code)] // Is not called if non-fallback hash is used.
+    #[cfg(test)]
     pub(crate) fn new_with_keys(key1: u128, key2: u128) -> AHasher {
         let key1: [u64; 2] = (key1 ^ PI_U128X2[0]).convert();
         let key2: [u64; 2] = (key2 ^ PI_U128X2[1]).convert();
@@ -63,7 +63,8 @@ impl AHasher {
         }
     }
 
-    #[allow(unused)] // False positive
+    #[inline]
+    #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
         let key1: [u64; 2] = key1.convert();
         let key2: [u64; 2] = key2.convert();
@@ -96,7 +97,7 @@ impl AHasher {
     ///
     /// This version avoids this vulnerability while still only using a single multiply. It takes advantage
     /// of the fact that when a 64 bit multiply is performed the upper 64 bits are usually computed and thrown
-    /// away. Instead it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
+    /// away. Instead, it creates two 128 bit values where the upper 64 bits are zeros and multiplies them.
     /// (The compiler is smart enough to turn this into a 64 bit multiplication in the assembly)
     /// Then the upper bits are xored with the lower bits to produce a single 64 bit result.
     ///
@@ -109,7 +110,7 @@ impl AHasher {
     /// This is impervious to attack because every bit buffer at the end is dependent on every bit in
     /// `new_data ^ buffer`. For example suppose two inputs differed in only the 5th bit. Then when the
     /// multiplication is performed the `result` will differ in bits 5-69. More specifically it will differ by
-    /// 2^5 * MULTIPLE. However in the next step bits 65-128 are turned into a separate 64 bit value. So the
+    /// 2^5 * MULTIPLE. However, in the next step bits 65-128 are turned into a separate 64 bit value. So the
     /// differing bits will be in the lower 6 bits of this value. The two intermediate values that differ in
     /// bits 5-63 and in bits 0-5 respectively get added together. Producing an output that differs in every
     /// bit. The addition carries in the multiplication and at the end additionally mean that even if an
@@ -308,7 +309,6 @@ impl Hasher for AHasherU64 {
     #[inline]
     fn finish(&self) -> u64 {
         folded_multiply(self.buffer, self.pad)
-        //self.buffer
     }
 
     #[inline]
@@ -337,13 +337,26 @@ impl Hasher for AHasherU64 {
     }
 
     #[inline]
-    fn write_u128(&mut self, _i: u128) {
-        unreachable!("Specialized hasher was called with a different type of object")
+    fn write_u128(&mut self, i: u128) {
+        let i: [u64; 2] = i.convert();
+        self.buffer = folded_multiply(i[0] ^ self.buffer, MULTIPLE);
+        self.pad = folded_multiply(i[1] ^ self.pad, MULTIPLE);
     }
 
     #[inline]
-    fn write_usize(&mut self, _i: usize) {
-        unreachable!("Specialized hasher was called with a different type of object")
+    #[cfg(any(
+    target_pointer_width = "64",
+    target_pointer_width = "32",
+    target_pointer_width = "16"
+    ))]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u64(i as u64);
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "128")]
+    fn write_usize(&mut self, i: usize) {
+        self.write_u128(i as u128);
     }
 }
 
@@ -424,19 +437,29 @@ impl Hasher for AHasherStr {
     fn write_u8(&mut self, _i: u8) {}
 
     #[inline]
-    fn write_u16(&mut self, _i: u16) {}
+    fn write_u16(&mut self, i: u16) {
+        self.0.write_u16(i)
+    }
 
     #[inline]
-    fn write_u32(&mut self, _i: u32) {}
+    fn write_u32(&mut self, i: u32) {
+        self.0.write_u32(i)
+    }
 
     #[inline]
-    fn write_u64(&mut self, _i: u64) {}
+    fn write_u64(&mut self, i: u64) {
+        self.0.write_u64(i)
+    }
 
     #[inline]
-    fn write_u128(&mut self, _i: u128) {}
+    fn write_u128(&mut self, i: u128) {
+        self.0.write_u128(i)
+    }
 
     #[inline]
-    fn write_usize(&mut self, _i: usize) {}
+    fn write_usize(&mut self, i: usize) {
+        self.0.write_usize(i)
+    }
 }
 
 #[cfg(test)]

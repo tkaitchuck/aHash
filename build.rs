@@ -5,6 +5,7 @@ use std::env;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-check-cfg=cfg(specialize)");
+    println!("cargo:rustc-check-cfg=cfg(fuzzing)");
     if let Some(true) = version_check::supports_feature("specialize") {
         println!("cargo:rustc-cfg=specialize");
     }
