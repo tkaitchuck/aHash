@@ -105,7 +105,7 @@ The time to compute one hash, in nanoseconds. (On an AMD Ryzen AI 9 465, compile
 | Hasher | u64 | 15 byte string | 1023 byte string |
 |---|---:|---:|---:|
 | aHash (AES) | 0.51 | 0.94 | 10.4 |
-| aHash (fallback) | 0.51 | 1.35 | 36.9 |
+| aHash (fallback) | 0.51 | 1.13 | 26.8 |
 | SipHash-1-3 (the default of `std`) | 7.15 | 8.67 | 137 |
 
 A typical hashmap lookup takes about 1 ns on top of this, independent of the hashing algorithm.

@@ -137,16 +137,16 @@ On an AMD Ryzen AI 9 465, compiled with the flag `-C target-cpu=native`, the tim
 | Input   | SipHash 1-3 time | FnvHash time|FxHash time| aHash time| aHash Fallback* |
 |----------------|-----------|-----------|-----------|-----------|---------------|
 | u64              | 7.15 ns | 1.54 ns | **0.28 ns** | 0.51 ns | 0.51 ns |
-| 1 byte string    | 6.19 ns | **0.62 ns** | 0.91 ns | 1.01 ns | 1.48 ns |
-| 3 byte string    | 6.87 ns | 1.13 ns | 1.45 ns | **1.01 ns** | 1.49 ns |
-| 7 byte string    | 7.82 ns | 2.08 ns | 1.70 ns | **1.01 ns** | 1.42 ns |
-| 15 byte string   | 8.67 ns | 4.35 ns | 2.34 ns | **0.94 ns** | 1.35 ns |
-| 31 byte string   | 10.8 ns | 11.3 ns | 3.07 ns | **1.22 ns** | 2.15 ns |
-| 63 byte string   | 15.4 ns | 29.3 ns | 4.82 ns | **1.93 ns** | 3.07 ns |
-| 127 byte string  | 23.4 ns | 77.8 ns | 8.57 ns | **3.43 ns** | 5.04 ns |
-| 255 byte string  | 39.5 ns | 179 ns | 19.1 ns | **3.78 ns** | 9.17 ns |
-| 511 byte string  | 72.5 ns | 386 ns | 47.4 ns | **6.11 ns** | 17.8 ns |
-| 1023 byte string | 137 ns | 793 ns | 111 ns | **10.4 ns** | 36.9 ns |
+| 1 byte string    | 6.19 ns | **0.62 ns** | 0.91 ns | 1.01 ns | 1.20 ns |
+| 3 byte string    | 6.87 ns | 1.13 ns | 1.45 ns | **1.01 ns** | 1.21 ns |
+| 7 byte string    | 7.82 ns | 2.08 ns | 1.70 ns | **1.01 ns** | 1.20 ns |
+| 15 byte string   | 8.67 ns | 4.35 ns | 2.34 ns | **0.94 ns** | 1.13 ns |
+| 31 byte string   | 10.8 ns | 11.3 ns | 3.07 ns | **1.22 ns** | 2.04 ns |
+| 63 byte string   | 15.4 ns | 29.3 ns | 4.82 ns | **1.93 ns** | 2.98 ns |
+| 127 byte string  | 23.4 ns | 77.8 ns | 8.57 ns | **3.43 ns** | 4.48 ns |
+| 255 byte string  | 39.5 ns | 179 ns | 19.1 ns | **3.78 ns** | 7.70 ns |
+| 511 byte string  | 72.5 ns | 386 ns | 47.4 ns | **6.11 ns** | 14.0 ns |
+| 1023 byte string | 137 ns | 793 ns | 111 ns | **10.4 ns** | 26.8 ns |
 
 * Fallback refers to the algorithm aHash would use if AES instructions are unavailable.
 FxHash is the original algorithm, as in the `fxhash` crate. These numbers and those for more hashers are from

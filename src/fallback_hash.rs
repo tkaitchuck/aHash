@@ -179,6 +179,13 @@ impl AHasher {
         self.keys = keys.convert();
     }
 
+    /// Adds the length of a `write` to the buffer.
+    #[inline(always)]
+    fn add_length(&mut self, length: usize) {
+        //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
+        self.buffer[0] = self.buffer[0].wrapping_add(length as u64).wrapping_mul(MULTIPLE);
+    }
+
     #[inline]
     #[cfg(specialize)]
     fn short_finish(&self) -> u64 {
@@ -231,37 +238,22 @@ impl Hasher for AHasher {
         self.write_u128(i as u128);
     }
 
+    // (Up to 16 bytes inlined: a call would pass the state through memory. Longer input does make one, so that what
+    // is inlined stays small enough for LLVM to also inline the callers of `write`, such as `write_str`.)
     #[inline(always)]
-    #[allow(clippy::collapsible_else_if)]
     fn write(&mut self, input: &[u8]) {
-        let data = input;
-        let length = data.len() as u64;
-        //Needs to be an add rather than an xor because otherwise it could be canceled with carefully formed input.
-        self.buffer[0] = self.buffer[0].wrapping_add(length).wrapping_mul(MULTIPLE);
-        //A 'binary search' on sizes reduces the number of comparisons.
-        if data.len() > 8 {
-            if data.len() > 32 {
-                if data.len() > 64 {
-                    self.hash_in_long(data);
-                } else {
-                    //len 33-64, in the order `hash_in_long` would take it
-                    let [first, second] = data.read_last_u128x2();
-                    self.hash_in_2(first, second);
-                    let ([first, second], _) = data.read_u128x2();
-                    self.hash_in_2(first, second);
-                }
+        if input.len() <= 16 {
+            self.add_length(input.len());
+            // (One block for both lengths, so that there is one copy of it to inline.)
+            let value = if input.len() > 8 {
+                [input.read_u64().0, input.read_last_u64()]
             } else {
-                if data.len() > 16 {
-                    //len 17-32
-                    self.hash_in_2(data.read_u128().0, data.read_last_u128());
-                } else {
-                    //len 9-16
-                    self.hash_in([data.read_u64().0, data.read_last_u64()].convert());
-                }
-            }
-        } else {
-            let value = read_small(data);
+                read_small(input)
+            };
             self.hash_in(value.convert());
+        } else {
+            let (low, high) = write_over_16(self.buffer[0], self.buffer[1], &mut self.keys, &self.increments, input);
+            self.buffer = [low, high];
         }
     }
 
@@ -270,6 +262,38 @@ impl Hasher for AHasher {
         let rot = (self.buffer[0] & 63) as u32;
         folded_multiply(self.buffer[0], self.buffer[1]).rotate_left(rot)
     }
+}
+
+/// [AHasher::write] for more than 16 bytes: Takes the buffer and returns it updated, and steps `keys`.
+///
+/// (The buffer goes both ways in registers: As a `[u64; 2]` it would go through memory. The keys and increments go
+/// by reference: By value there would be more arguments than registers to pass them in.)
+#[inline(never)]
+fn write_over_16(low: u64, high: u64, keys: &mut [u64; 2], increments: &[u64; 2], data: &[u8]) -> (u64, u64) {
+    debug_assert!(data.len() > 16);
+    let mut hasher = AHasher {
+        buffer: [low, high],
+        keys: *keys,
+        increments: *increments,
+    };
+    hasher.add_length(data.len());
+    //A 'binary search' on sizes reduces the number of comparisons.
+    if data.len() > 32 {
+        if data.len() > 64 {
+            hasher.hash_in_long(data);
+        } else {
+            //len 33-64, in the order `hash_in_long` would take it
+            let [first, second] = data.read_last_u128x2();
+            hasher.hash_in_2(first, second);
+            let ([first, second], _) = data.read_u128x2();
+            hasher.hash_in_2(first, second);
+        }
+    } else {
+        //len 17-32
+        hasher.hash_in_2(data.read_u128().0, data.read_last_u128());
+    }
+    *keys = hasher.keys;
+    (hasher.buffer[0], hasher.buffer[1])
 }
 
 #[cfg(specialize)]
