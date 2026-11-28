@@ -5,7 +5,7 @@
 In short:
 
 * aHash is **several times faster than SipHash-1-3**, the default hasher of the standard library. For typical keys,
-  strings of 5 to 32 bytes, it computes a hash 8 to 9 times faster with AES, and 5 to 6 times faster with its fallback.
+  strings of 5 to 32 bytes, it computes a hash 8 to 9 times faster with AES, and 5 to 8 times faster with its fallback.
 * aHash **passes SMHasher3**, which is [the least that a hasher for general use should do](#quality). Most of the
   hashers here do not. That includes the ones which are fastest for small keys:
   [rustc-hash](https://github.com/rust-lang/rustc-hash), and the *fast* variants of
@@ -66,7 +66,7 @@ The time to compute one hash, in nanoseconds. (Smaller is better) Hashers which 
 | Hasher | u64 | 15 byte string | 1023 byte string |
 |---|---:|---:|---:|
 | **aHash** (AES) | **0.51** | 0.94 | **10.4** |
-| **aHash** (fallback) | 0.51 | 1.35 | 36.9 |
+| **aHash** (fallback) | 0.51 | 1.13 | 26.8 |
 | foldhash (quality) | 0.52 | **0.70** | 19.8 |
 | rapidhash (quality) | 0.52 | 0.94 | 30.8 |
 | SipHash-1-3 (std) | 7.15 | 8.67 | 137 |
@@ -93,7 +93,7 @@ The time to hash a string, by its length in bytes. (Smaller is better) Hashers w
 | Hasher | 1 | 3 | 7 | 15 | 31 | 63 | 127 | 255 | 511 | 1023 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | **aHash** (AES) | 1.01 | 1.01 | 1.01 | 0.94 | **1.22** | **1.93** | 3.43 | **3.78** | **6.11** | **10.4** |
-| **aHash** (fallback) | 1.48 | 1.49 | 1.42 | 1.35 | 2.15 | 3.07 | 5.04 | 9.17 | 17.8 | 36.9 |
+| **aHash** (fallback) | 1.20 | 1.21 | 1.20 | 1.13 | 2.04 | 2.98 | 4.48 | 7.70 | 14.0 | 26.8 |
 | foldhash (quality) | **0.92** | **0.91** | **0.79** | **0.70** | 1.63 | 2.10 | **3.05** | 5.79 | 10.5 | 19.8 |
 | rapidhash (quality) | 1.18 | 1.19 | 0.99 | 0.94 | 1.58 | 3.23 | 4.17 | 6.72 | 16.5 | 30.8 |
 | SipHash-1-3 (std) | 6.19 | 6.87 | 7.82 | 8.67 | 10.8 | 15.4 | 23.4 | 39.5 | 72.5 | 137 |
@@ -119,7 +119,7 @@ which pass SMHasher3:
 | Hasher | 1023 | 2K | 4K | 8K | 16K | 32K | 64K |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | **aHash** (AES) | **98.8** | **97.1** | **87.9** | **83.8** | **82.2** | **81.4** | **80.9** |
-| **aHash** (fallback) | 27.7 | 26.2 | 25.5 | 24.9 | 24.9 | 24.9 | 24.8 |
+| **aHash** (fallback) | 38.2 | 40.0 | 40.6 | 40.1 | 40.6 | 41.0 | 41.1 |
 | foldhash (quality) | 51.7 | 57.3 | 59.3 | 61.1 | 61.2 | 62.1 | 61.4 |
 | rapidhash (quality) | 33.3 | 28.4 | 26.9 | 26.0 | 25.5 | 25.3 | 25.2 |
 | SipHash-1-3 (std) | 7.46 | 7.56 | 7.71 | 7.80 | 7.80 | 7.80 | 7.78 |
@@ -165,9 +165,9 @@ Hashers which do not pass SMHasher3:
 
 ### AES and fallback
 
-With AES, aHash hashes a string of any length in less time than with the fallback: In about 70% of the time for up to
-15 bytes, and in less than a third of it from 1023 bytes up. A `u64` takes the same time, because both use the same
-specialized hasher for integers.
+With AES, aHash hashes a string of any length in less time than with the fallback: In about 85% of the time for up to
+15 bytes, 60 to 80% for 31 to 127 bytes, and 40 to 50% from 255 bytes up. A `u64` takes the same time, because both use
+the same specialized hasher for integers.
 
 Without `-C target-cpu=native` the fallback's times are within 15% of the ones above.
 
@@ -246,7 +246,7 @@ publishes](https://gitlab.com/fwojcik/smhasher3/-/blob/main/results/README.md) o
 ## SipHash
 
 For a hashmap: Because aHash is several times faster. For typical keys, strings of 5 to 32 bytes, a hash takes 8 to 9
-times as long to compute with SipHash-1-3 as with aHash using AES, and 5 to 6 times as long as with its fallback.
+times as long to compute with SipHash-1-3 as with aHash using AES, and 5 to 8 times as long as with its fallback.
 
 SipHash is however useful in other contexts, such as for a HMAC, where aHash would be completely inappropriate.
 
@@ -295,7 +295,8 @@ There are two hashers by this name. The `fxhash` crate is the original algorithm
 `rustc-hash` crate has since replaced it with a new design.
 
 In terms of performance, both are faster than aHash for integers. The original is slower than aHash for strings of
-7 bytes or more. The new one is faster than aHash's fallback for strings of every length. Against the AES algorithm it
+7 bytes or more. The new one is faster than aHash's fallback for strings of up to 255 bytes, takes the same time at 511,
+and is slower for longer ones. Against the AES algorithm it
 is faster for strings of 7 and 15 bytes, about the same for others of up to 127 bytes, and slower beyond that: At 1023
 bytes it takes three times as long.
 So it might seem like using FxHash for hashmaps when the key is a primitive is a good idea. This is *not* the case.
@@ -333,7 +334,7 @@ It is also non-keyed so it is still subject to DOS attacks and [accidentally qua
 Both are made for hashing large amounts of data, such as for a checksum, with output which is the same everywhere.
 Used as a `Hasher` they are slow for short input: For strings of up to 31 bytes they take five to fourteen times as
 long as aHash. With AES, aHash is faster than both at every length. Its fallback is faster than SeaHash at every length,
-and than XXH3 up to 511 bytes.
+and than XXH3 up to 1023 bytes.
 
 Neither claims DOS resistance, and the Rust crates for them do not use random keys by default. Neither passes SMHasher3.
 
