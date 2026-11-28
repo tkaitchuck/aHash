@@ -81,10 +81,15 @@ def fmt(ns):
     return f"{ns:.0f}"
 
 
+def aHash_first(names, key):
+    """`names` sorted by `key`, with aHash's rows (AES, then fallback) at the top."""
+    ahash = [n for n in HASHERS if n.startswith("aHash") and n in names]
+    return ahash + sorted((n for n in names if n not in ahash), key=key)
+
+
 def table(results, columns, sort_key, names=None):
-    """A markdown table with one row per hasher. The fastest time of each column is bold."""
-    names = [n for n in (names or results) if n in results]
-    names.sort(key=lambda n: results[n][sort_key])
+    """A markdown table with one row per hasher, aHash first. The fastest time of each column is bold."""
+    names = aHash_first([n for n in (names or results) if n in results], lambda n: results[n][sort_key])
     best = {key: min(results[n][key] for n in names) for key, _ in columns}
     lines = ["| Hasher | " + " | ".join(title for _, title in columns) + " |"]
     lines.append("|---|" + "---:|" * len(columns))
@@ -98,8 +103,8 @@ def table(results, columns, sort_key, names=None):
 
 
 def throughput_table(results, lengths, names):
-    """A markdown table of GB per second, with one row per hasher. The highest of each column is bold."""
-    names = sorted((n for n in names if n in results), key=lambda n: -lengths[-1] / results[n][lengths[-1]])
+    """A markdown table of GB per second, with one row per hasher, aHash first. The highest of each column is bold."""
+    names = aHash_first([n for n in names if n in results], lambda n: -lengths[-1] / results[n][lengths[-1]])
     speed = {n: {length: length / results[n][length] for length in lengths} for n in names}
     best = {length: max(speed[n][length] for n in names) for length in lengths}
     lines = ["| Hasher | " + " | ".join(length_label(length) for length in lengths) + " |"]
@@ -221,11 +226,9 @@ def chart(results, names):
     ]
 
     values = [speed(n, length) for n in names for length in lengths]
-    low = 10.0 ** math.floor(math.log10(min(values)))
-    for step in (5, 2):
-        if min(values) / low >= step * 1.1:
-            low *= step
-            break
+    # The slowest hashers start well below this for the shortest strings. Their lines leave the chart at the bottom,
+    # so that the scale is spent where the hashers differ.
+    low = 0.5
     high = 10.0 ** math.floor(math.log10(max(values)))
     high *= next(step for step in (1, 2, 5, 10, 20) if max(values) * 1.1 <= high * step)
 
@@ -263,6 +266,9 @@ def chart(results, names):
         out.append(f'<text class="sub" x="{(x0 + x1) / 2:.1f}" y="{plot_bottom + 38}" text-anchor="middle">'
                    f'String length in bytes</text>')
 
+        out.append(f'<clipPath id="plot{index}"><rect x="{x0}" y="{plot_top - 10}" width="{plot_w}" '
+                   f'height="{plot_h + 10}"/></clipPath>')
+        out.append(f'<g clip-path="url(#plot{index})">')
         # aHash is drawn last, so it is on top.
         for name in sorted(members, key=lambda n: n.startswith("aHash")):
             color, dashed, _ = SERIES[name]
@@ -272,6 +278,7 @@ def chart(results, names):
                 out.append(f'<polyline class="halo" points="{points}"/>')
             out.append(f'<polyline class="line {color}{" hl" if highlight else ""}{" dash" if dashed else ""}" '
                        f'points="{points}"/>')
+        out.append("</g>")
         # Each line is named where it ends. Names which would overlap are moved apart, and tied to their line.
         ends = [y(speed(name, last)) for name in members]
         places = spread(ends, 13, plot_top + 4, plot_bottom - 2)
