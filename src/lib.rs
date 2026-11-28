@@ -95,7 +95,7 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 "##
 )]
 #![deny(clippy::correctness, clippy::complexity, clippy::perf)]
-#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal, unused_imports)]
+#![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(specialize, feature(min_specialization))]
 #![cfg_attr(
@@ -342,7 +342,7 @@ mod test {
 
     #[test]
     fn test_specialize_reference_hash() {
-        let hasher_build = RandomState::default();
+        let hasher_build = RandomState::<u64>::with_seeds(0, 0, 0, 0);
         let h1 = hasher_build.hash_one(1u64);
         let h2 = hasher_build.hash_one(&1u64);
         let h3 = hasher_build.hash_one(&&1u64);
@@ -357,8 +357,7 @@ mod test {
         assert_eq!(h1, h2);
         assert_eq!(h1, h3);
 
-        let hasher_build = RandomState::<u128>::default();
-        
+        let hasher_build = RandomState::<u128>::with_seeds(0, 0, 0, 0);
         let h1 = hasher_build.hash_one(1u128);
         let h2 = hasher_build.hash_one(&1u128);
         let h3 = hasher_build.hash_one(&&1u128);

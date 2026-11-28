@@ -166,16 +166,16 @@ fn hash<H: Hash, B: BuildHasher>(b: &H, build_hasher: &B) -> u64 {
 
 #[test]
 fn test_bucket_distribution() {
-    let build_hasher = RandomState::<String>::with_seed(1);
+    let build_hasher = RandomState::<String>::with_seeds(1, 2, 3, 4);
     test_hash_common_words(&build_hasher);
-    let build_hasher = RandomState::<i32>::with_seed(1);
+    let build_hasher = RandomState::<i32>::with_seeds(1, 2, 3, 4);
     let sequence: Vec<_> = (0..320000).collect();
     check_for_collisions(&build_hasher, &sequence, 32);
     let sequence: Vec<_> = (0..2560000).collect();
     check_for_collisions(&build_hasher, &sequence, 256);
     let sequence: Vec<_> = (0..320000).map(|i| i * 1024).collect();
     check_for_collisions(&build_hasher, &sequence, 32);
-    let build_hasher = RandomState::<i64>::with_seed(1);
+    let build_hasher = RandomState::<u64>::with_seeds(1, 2, 3, 4);
     let sequence: Vec<_> = (0..2560000_u64).map(|i| i * 1024).collect();
     check_for_collisions(&build_hasher, &sequence, 256);
 }
@@ -310,17 +310,17 @@ fn test_byte_dist() {
     assert!(highest < 3.9, "Highest = {}", highest);
 }
 
-fn ahash_vec(b: &Vec<String>) -> u64 {
+fn ahash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
-    let state = RandomState::<String>::with_seeds(0, 0, 0, 0);
     for item in b {
-        let value = state.hash_one(item);
-        total = total.wrapping_add(value);
+        let mut hasher = RandomState::<H>::with_seeds(12, 34, 56, 78).build_hasher();
+        item.hash(&mut hasher);
+        total = total.wrapping_add(hasher.finish());
     }
     total
 }
 
-fn fxhash_vec(b: &Vec<String>) -> u64 {
+fn fxhash_vec<H: Hash>(b: &Vec<H>) -> u64 {
     let mut total: u64 = 0;
     for item in b {
         let mut hasher = FxHasher::default();
