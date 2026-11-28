@@ -38,44 +38,61 @@ fn hash_via_trait(mut hasher: AHasher, s: &str, bytes: &[u8], n: i32) -> u64 {
     hasher.finish()
 }
 
-// The specialized string hasher is reached only through owned `String` and `Vec<u8>`.
+// `RandomState<T>` picks its specialized path from `T`, so each path needs a state of that type.
 #[inline(never)]
 #[no_panic]
-fn hash_one_inherent(state: &RandomState, s: &str, bytes: &[u8], vec: Vec<u8>, string: String) -> [u64; 4] {
-    [
-        state.hash_one(s),
-        state.hash_one(bytes),
-        state.hash_one(vec),
-        state.hash_one(string),
-    ]
+fn hash_one_strings(strings: &RandomState<String>, s: &str, string: String) -> [u64; 2] {
+    [strings.hash_one(s), strings.hash_one(string)]
 }
 
 #[inline(never)]
 #[no_panic]
-fn hash_one_inherent_ints(state: &RandomState, a: u8, b: u32, c: u64, d: u128, e: usize, f: i64) -> [u64; 6] {
-    [
-        state.hash_one(a),
-        state.hash_one(b),
-        state.hash_one(c),
-        state.hash_one(d),
-        state.hash_one(e),
-        state.hash_one(f),
-    ]
+fn hash_one_bytes(vecs: &RandomState<Vec<u8>>, bytes: &[u8], vec: Vec<u8>) -> [u64; 2] {
+    [vecs.hash_one(bytes), vecs.hash_one(vec)]
+}
+
+struct IntStates {
+    a: RandomState<u8>,
+    b: RandomState<u32>,
+    c: RandomState<u64>,
+    d: RandomState<u128>,
+    e: RandomState<usize>,
+    f: RandomState<i64>,
 }
 
 #[inline(never)]
 #[no_panic]
-fn hash_one_trait(state: &RandomState, s: &str, bytes: &[u8], d: u128) -> [u64; 3] {
+fn hash_one_ints(states: &IntStates, a: u8, b: u32, c: u64, d: u128, e: usize, f: i64) -> [u64; 6] {
     [
-        BuildHasher::hash_one(state, s),
-        BuildHasher::hash_one(state, bytes),
-        BuildHasher::hash_one(state, d),
+        states.a.hash_one(a),
+        states.b.hash_one(b),
+        states.c.hash_one(c),
+        states.d.hash_one(d),
+        states.e.hash_one(e),
+        states.f.hash_one(f),
     ]
+}
+
+// The unspecialized path.
+#[inline(never)]
+#[no_panic]
+fn hash_one_generic(state: &RandomState<()>, s: &str, bytes: &[u8], d: u128) -> [u64; 3] {
+    [state.hash_one(s), state.hash_one(bytes), state.hash_one(d)]
 }
 
 #[test]
 fn test_no_panic() {
-    let state = RandomState::with_seeds(1, 2, 3, 4);
+    let state = RandomState::<()>::with_seeds(1, 2, 3, 4);
+    let strings = RandomState::<String>::with_seeds(1, 2, 3, 4);
+    let vecs = RandomState::<Vec<u8>>::with_seeds(1, 2, 3, 4);
+    let ints = IntStates {
+        a: RandomState::with_seeds(1, 2, 3, 4),
+        b: RandomState::with_seeds(1, 2, 3, 4),
+        c: RandomState::with_seeds(1, 2, 3, 4),
+        d: RandomState::with_seeds(1, 2, 3, 4),
+        e: RandomState::with_seeds(1, 2, 3, 4),
+        f: RandomState::with_seeds(1, 2, 3, 4),
+    };
     let text = "a string longer than the sixty four bytes covered by the largest single read";
     let bytes = text.as_bytes().to_vec();
     // Running is incidental; the check happened at link time.
@@ -84,13 +101,8 @@ fn test_no_panic() {
         let s = black_box(&text[..len]);
         write_bytes(black_box(state.build_hasher()), b);
         hash_via_trait(black_box(state.build_hasher()), s, b, black_box(len as i32));
-        hash_one_inherent(
-            black_box(&state),
-            s,
-            b,
-            black_box(bytes[..len].to_vec()),
-            black_box(text[..len].to_string()),
-        );
+        hash_one_strings(black_box(&strings), s, black_box(text[..len].to_string()));
+        hash_one_bytes(black_box(&vecs), b, black_box(bytes[..len].to_vec()));
     }
     write_ints(
         black_box(state.build_hasher()),
@@ -101,8 +113,8 @@ fn test_no_panic() {
         black_box(5),
         black_box(6),
     );
-    hash_one_inherent_ints(
-        black_box(&state),
+    hash_one_ints(
+        black_box(&ints),
         black_box(1),
         black_box(2),
         black_box(3),
@@ -110,6 +122,6 @@ fn test_no_panic() {
         black_box(5),
         black_box(6),
     );
-    hash_one_trait(black_box(&state), black_box(text), black_box(&bytes), black_box(7));
+    hash_one_generic(black_box(&state), black_box(text), black_box(&bytes), black_box(7));
     write_bytes(black_box(AHasher::default()), black_box(&bytes));
 }

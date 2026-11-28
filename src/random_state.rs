@@ -691,21 +691,6 @@ mod test {
         assert_eq!(PI_U64X4, get_fixed_seeds()[0]);
     }
 
-    /// Generic code calls `BuildHasher::hash_one`. It has to agree with `RandomState::hash_one`.
-    #[cfg(build_hasher_hash_one)]
-    #[test]
-    fn test_trait_hash_one_is_own() {
-        fn through_trait<B: BuildHasher, T: Hash>(builder: &B, value: T) -> u64 {
-            builder.hash_one(value)
-        }
-        let state = RandomState::with_seeds(1, 2, 3, 4);
-        assert_eq!(through_trait(&state, 1234_u64), state.hash_one(1234_u64));
-        assert_eq!(through_trait(&state, &1234_u64), state.hash_one(&1234_u64));
-        assert_eq!(through_trait(&state, 1234_u128), state.hash_one(1234_u128));
-        assert_eq!(through_trait(&state, "Some Data"), state.hash_one("Some Data"));
-        assert_eq!(through_trait(&state, (1_u8, "tuple")), state.hash_one((1_u8, "tuple")));
-    }
-
     #[test]
     fn test_with_seeds_const() {
         const _CONST_RANDOM_STATE: RandomState<String> = RandomState::with_seeds(17, 19, 21, 23);

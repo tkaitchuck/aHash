@@ -239,7 +239,7 @@ fn test_lookup_by_borrowed_form() {
     macro_rules! check {
         ($borrowed:expr, $($key:ty),+) => {$(
             let key = <$key>::from($borrowed);
-            let build_hasher = RandomState::new();
+            let build_hasher = RandomState::<$key>::new();
             assert_eq!(
                 build_hasher.hash_one(&key),
                 build_hasher.hash_one($borrowed),

@@ -77,7 +77,7 @@ impl AHasher {
 
     #[inline]
     #[allow(dead_code)] // Is not called if non-fallback hash is used.
-    pub(crate) fn from_random_state(rand_state: &RandomState) -> AHasher {
+    pub(crate) fn from_random_state<T>(rand_state: &RandomState<T>) -> AHasher {
         let buffer = [rand_state.k0, rand_state.k1];
         let keys = [rand_state.k2, rand_state.k3];
         AHasher {
@@ -465,6 +465,7 @@ impl Hasher for AHasherStr {
 #[cfg(test)]
 mod tests {
     use crate::fallback_hash::*;
+    use crate::random_state::PI2;
 
     #[test]
     fn test_hash() {
@@ -495,7 +496,13 @@ mod tests {
             for hasher in [
                 AHasher::new_with_keys(key1, key2),
                 AHasher::test_with_keys(key1, key2),
-                AHasher::from_random_state(&RandomState { k0, k1, k2, k3 }),
+                // `with_seeds` xors in PI2, so undo it to get exactly these keys.
+                AHasher::from_random_state(&RandomState::<()>::with_seeds(
+                    k0 ^ PI2[0],
+                    k1 ^ PI2[1],
+                    k2 ^ PI2[2],
+                    k3 ^ PI2[3],
+                )),
             ] {
                 assert_eq!([1, 1], [hasher.increments[0] & 1, hasher.increments[1] & 1]);
             }

@@ -587,12 +587,7 @@ mod aes_tests {
         test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
-        #[cfg(specialize)]
-        {
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(0, 0)));
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
-        }
+        // Not `AHasherFixed`: it takes exactly one value, and a pair is two.
     }
 
     #[test]
