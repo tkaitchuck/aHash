@@ -17,9 +17,13 @@ use core::hash::Hasher;
 ///
 #[derive(Debug, Clone)]
 pub struct AHasher {
-    enc: u128,
+    /// A second copy of what `chain` last received, combined with `sum`.
+    echo: u128,
+    /// Collects what has passed through `echo`, so it never holds a value as supplied. Starts as the sum of the
+    /// keys: their xor would make `with_seeds(s, s, s, s)` independent of `s`.
     sum: u128,
-    key: u128,
+    /// Takes each value as it arrives.
+    chain: u128,
 }
 
 impl AHasher {
@@ -53,18 +57,18 @@ impl AHasher {
         let key1 = xor(key1, PI_U128X2[0]);
         let key2 = xor(key2, PI_U128X2[1]);
         Self {
-            enc: key1,
-            sum: key2,
-            key: xor(key1, key2),
+            echo: key1,
+            sum: add_by_64s(key1, key2),
+            chain: key2,
         }
     }
 
     #[cfg(test)]
     pub(crate) fn test_with_keys(key1: u128, key2: u128) -> Self {
         Self {
-            enc: key1,
-            sum: key2,
-            key: xor(key1, key2),
+            echo: key1,
+            sum: add_by_64s(key1, key2),
+            chain: key2,
         }
     }
 
@@ -73,39 +77,149 @@ impl AHasher {
         let key1 = [rand_state.k0, rand_state.k1].convert();
         let key2 = [rand_state.k2, rand_state.k3].convert();
         Self {
-            enc: key1,
-            sum: key2,
-            key: xor(key1, key2),
+            echo: key1,
+            sum: add_by_64s(key1, key2),
+            chain: key2,
         }
     }
 
+    /// Adds one value. Every state gets a round: the value goes into `chain`, the new `chain` into `echo`, the old
+    /// `echo` into `sum`. A difference in a value is then in two states, one of which the input cannot reach, so
+    /// the next value alone cannot cancel it.
     #[inline(always)]
     fn hash_in(&mut self, new_value: u128) {
-        self.enc = aesdec(self.enc, new_value);
-        self.sum = shuffle_and_add(self.sum, new_value);
+        let (echo, sum, chain) = (self.echo, self.sum, self.chain);
+        // The value is usually ready last, so the rounds do not wait for it.
+        self.chain = aesenc_late(chain, new_value);
+        self.echo = aesenc_late(sum, self.chain);
+        self.sum = aesenc(echo, sum);
     }
 
+    /// [Self::hash_in] for the first value of a `write`, with `sum_with_length` keying the round of the new `sum`.
+    #[inline(always)]
+    fn hash_in_first(&mut self, new_value: u128, sum_with_length: u128) {
+        let (echo, sum, chain) = (self.echo, self.sum, self.chain);
+        self.chain = aesenc_late(chain, new_value);
+        self.echo = aesenc_late(sum, self.chain);
+        self.sum = aesenc_late(echo, sum_with_length);
+    }
+
+    /// [Self::hash_in_first] followed by [Self::hash_in].
+    #[inline(always)]
+    fn hash_in_first_2(&mut self, v1: u128, v2: u128, sum_with_length: u128) {
+        let (echo, sum, chain) = (self.echo, self.sum, self.chain);
+        let chain1 = aesenc_late(chain, v1);
+        let echo1 = aesenc_late(sum, chain1);
+        let sum1 = aesenc_late(echo, sum_with_length);
+        self.chain = aesenc(chain1, v2);
+        self.echo = aesenc_late(sum1, self.chain);
+        self.sum = aesenc(echo1, sum1);
+    }
+
+    /// [Self::hash_in] twice, for values after the first of a `write`. Here the rounds wait on the state, not the
+    /// values, so the keys need not be applied late.
     #[inline(always)]
     fn hash_in_2(&mut self, v1: u128, v2: u128) {
-        self.enc = aesdec(self.enc, v1);
-        self.sum = shuffle_and_add(self.sum, v1);
-        self.enc = aesdec(self.enc, v2);
-        self.sum = shuffle_and_add(self.sum, v2);
+        let (echo, sum, chain) = (self.echo, self.sum, self.chain);
+        let chain1 = aesenc(chain, v1);
+        let echo1 = aesenc(sum, chain1);
+        let sum1 = aesenc(echo, sum);
+        self.chain = aesenc(chain1, v2);
+        self.echo = aesenc(sum1, self.chain);
+        self.sum = aesenc(echo1, sum1);
+    }
+
+    /// Adds more than 128 bytes.
+    ///
+    /// Eight lanes, held as four pairs. Each 32 bytes go into one pair, and the 32 starting one byte later into the
+    /// next, so every byte reaches two lanes at different positions and no part of the input can cancel the next.
+    /// (Inlined like the rest of `write`: a call would pass the state through memory.)
+    #[inline(always)]
+    fn hash_in_long(&mut self, data: &[u8], sum_with_length: u128) {
+        debug_assert!(data.len() > 128);
+        let (echo, sum, chain) = (self.echo, self.sum, self.chain);
+        // Each pair has its own secrets or operation, so no two lanes are related even on the same data.
+        // `first_pairs[1]` carries the length.
+        let first_pairs = [chain, aesenc_late(echo, sum_with_length)];
+        let last_pairs = [echo, sum];
+        // The last 128 bytes are read first, so the loop needs no special case for the end.
+        let tail = &data[data.len() - 128..];
+        let last = tail.read_last_u128x2();
+        // The second use of the last 32 bytes wraps around to the first byte, which would otherwise be used once.
+        let after_last = [
+            shift_in_byte(last[0], last[1]),
+            shift_in_byte(last[1], data.read_u128().0),
+        ];
+        let mut lanes: [[u128; 2]; 4] = [
+            aesenc_x2(first_pairs, tail.read_u128x2().0),
+            aesdec_x2(first_pairs, tail[1..].read_u128x2().0),
+            aesenc_x2(last_pairs, tail[33..].read_u128x2().0),
+            aesdec_x2(last_pairs, tail[65..].read_u128x2().0),
+        ];
+        lanes[1] = aesdec_x2(lanes[1], tail[32..].read_u128x2().0);
+        lanes[2] = aesdec_x2(lanes[2], tail[64..].read_u128x2().0);
+        lanes[3] = aesdec_x2(lanes[3], last);
+        lanes[0] = aesdec_x2(lanes[0], after_last);
+        // The rest, 128 bytes at a time. Each turn reads 129 bytes, always there while any are unread, so the last
+        // turn rereads part of the tail.
+        let mut data = data;
+        while data.len() > 128 {
+            hash_in_32_bytes(&mut lanes, 0, data);
+            hash_in_32_bytes(&mut lanes, 1, &data[32..]);
+            hash_in_32_bytes(&mut lanes, 2, &data[64..]);
+            hash_in_32_bytes(&mut lanes, 3, &data[96..]);
+            data = &data[128..];
+        }
+        // A lane's last input has had no round yet, so the last two pairs get one, then each lane is combined with one
+        // of the first two pairs, which never received the same bytes.
+        let zero = [0, 0];
+        let [t0, t1] = aesenc_x2(aesenc_x2(lanes[2], zero), lanes[0]);
+        let [t2, t3] = aesenc_x2(aesenc_x2(lanes[3], zero), lanes[1]);
+        // Four values become three, each keying the round of the one before, so no difference stays in one.
+        self.echo = aesenc(t1, t2);
+        self.sum = aesenc(t0, t1);
+        self.chain = aesenc(t2, t3);
+    }
+
+    /// For [AHasherFixed], which gets exactly one value: it goes into `sum`, which holds both keys, and its rounds
+    /// are in [Self::fixed_finish]. (Elsewhere values are added after a round, so a run of them costs one
+    /// operation each. With one value, the round can come after it, saving the rounds on the keys.)
+    #[inline(always)]
+    #[cfg(specialize)]
+    fn hash_in_fixed(&mut self, value: u128) {
+        self.sum = xor(self.sum, value);
     }
 
     #[inline]
     #[cfg(specialize)]
-    fn short_finish(&self) -> u64 {
-        let combined = aesdec(self.enc, self.sum);
-        let result: [u64; 2] = aesdec(combined, self.key).convert();
-        result[0] ^ result[1]
+    fn fixed_finish(&self) -> u64 {
+        // Both keys are in the first round's input, so each key bit gets as many rounds as the value.
+        let c = aesenc(self.sum, self.echo);
+        let a = aesenc(aesenc(c, self.chain), PI_U128X2[0]);
+        cfg_if::cfg_if! {
+            if #[cfg(any(
+                all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3"),
+                target_arch = "aarch64"
+            ))] {
+                // Two bytes from each column, so each 32 bits of output depend on all 16 S-boxes of the last round,
+                // which cannot be undone.
+                spread_low64(a)
+            } else {
+                // Without a byte shuffle, a second stack does the same, as in `finish`.
+                let b = aesdec(aesdec(c, PI_U128X2[0]), PI_U128X2[1]);
+                let result: [u64; 2] = add_by_64s(a, b).convert();
+                result[0]
+            }
+        }
     }
+}
 
-    #[inline]
-    fn final_mix(&self) -> u128 {
-        let combined = aesenc(self.sum, self.enc);
-        aesdec(aesdec(combined, self.key), combined)
-    }
+/// The first 32 bytes of `data` go into `lanes[pair]`, and the 32 bytes which start one byte later into the
+/// pair after it.
+#[inline(always)]
+fn hash_in_32_bytes(lanes: &mut [[u128; 2]; 4], pair: usize, data: &[u8]) {
+    lanes[pair] = aesdec_x2(lanes[pair], data.read_u128x2().0);
+    lanes[(pair + 1) % 4] = aesdec_x2(lanes[(pair + 1) % 4], data[1..].read_u128x2().0);
 }
 
 /// Provides [Hasher] methods to hash all of the primitive types.
@@ -153,61 +267,51 @@ impl Hasher for AHasher {
         self.write_u128(i as u128);
     }
 
-    #[inline]
+    // (Always inlined: a call would pass the state through memory, which costs more than the hashing.)
+    #[inline(always)]
     #[allow(clippy::collapsible_if)]
     fn write(&mut self, input: &[u8]) {
-        let mut data = input;
+        let data = input;
         let length = data.len();
-        add_in_length(&mut self.enc, length as u64);
+        // The length goes only into the key of the next `sum`, the state never holding a value as supplied. (A slice
+        // hashes as its length, then its contents, so elsewhere the length could cancel a copy of itself.) The product
+        // makes two lengths differ in all eight bytes, so cancelling takes eight S-boxes, and no two lengths collide.
+        let mut sum_with_length = self.sum;
+        add_in_length(&mut sum_with_length, (length as u64).wrapping_mul(MULTIPLE));
 
-        //A 'binary search' on sizes reduces the number of comparisons.
+        // A binary search on the length keeps the comparisons few.
         if data.len() <= 8 {
             let value = read_small(data);
-            self.hash_in(value.convert());
+            self.hash_in_first(value.convert(), sum_with_length);
         } else {
             if data.len() > 32 {
                 if data.len() > 64 {
-                    let tail = data.read_last_u128x4();
-                    let mut current: [u128; 4] = [self.key; 4];
-                    current[0] = aesenc(current[0], tail[0]);
-                    current[1] = aesdec(current[1], tail[1]);
-                    current[2] = aesenc(current[2], tail[2]);
-                    current[3] = aesdec(current[3], tail[3]);
-                    let mut sum: [u128; 2] = [self.key, !self.key];
-                    sum[0] = add_by_64s(sum[0].convert(), tail[0].convert()).convert();
-                    sum[1] = add_by_64s(sum[1].convert(), tail[1].convert()).convert();
-                    sum[0] = shuffle_and_add(sum[0], tail[2]);
-                    sum[1] = shuffle_and_add(sum[1], tail[3]);
-                    while data.len() > 64 {
-                        let (blocks, rest) = data.read_u128x4();
-                        current[0] = aesdec(current[0], blocks[0]);
-                        current[1] = aesdec(current[1], blocks[1]);
-                        current[2] = aesdec(current[2], blocks[2]);
-                        current[3] = aesdec(current[3], blocks[3]);
-                        sum[0] = shuffle_and_add(sum[0], blocks[0]);
-                        sum[1] = shuffle_and_add(sum[1], blocks[1]);
-                        sum[0] = shuffle_and_add(sum[0], blocks[2]);
-                        sum[1] = shuffle_and_add(sum[1], blocks[3]);
-                        data = rest;
+                    if data.len() > 128 {
+                        self.hash_in_long(data, sum_with_length);
+                    } else {
+                        //len 65-128
+                        let (head, _) = data.read_u128x4();
+                        let tail = data.read_last_u128x4();
+                        self.hash_in_first_2(head[0], head[1], sum_with_length);
+                        self.hash_in_2(head[2], head[3]);
+                        self.hash_in_2(tail[0], tail[1]);
+                        self.hash_in_2(tail[2], tail[3]);
                     }
-                    self.hash_in_2(current[0], current[1]);
-                    self.hash_in_2(current[2], current[3]);
-                    self.hash_in_2(sum[0], sum[1]);
                 } else {
                     //len 33-64
                     let (head, _) = data.read_u128x2();
                     let tail = data.read_last_u128x2();
-                    self.hash_in_2(head[0], head[1]);
+                    self.hash_in_first_2(head[0], head[1], sum_with_length);
                     self.hash_in_2(tail[0], tail[1]);
                 }
             } else {
                 if data.len() > 16 {
                     //len 17-32
-                    self.hash_in_2(data.read_u128().0, data.read_last_u128());
+                    self.hash_in_first_2(data.read_u128().0, data.read_last_u128(), sum_with_length);
                 } else {
                     //len 9-16
                     let value: [u64; 2] = [data.read_u64().0, data.read_last_u64()];
-                    self.hash_in(value.convert());
+                    self.hash_in_first(value.convert(), sum_with_length);
                 }
             }
         }
@@ -215,7 +319,16 @@ impl Hasher for AHasher {
 
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = self.final_mix().convert();
+        // Two stacks of three rounds from `chain`, so each 32 bits of output depend on eight last-round S-boxes.
+        // (With one, the output difference for a fixed input difference is measurably non-uniform.) One decrypts, so
+        // they share no S-box and differ as functions; otherwise `v ^ k` would collide with `v`. `sum`, with the
+        // length, enters after `a`'s first round; `echo`'s older content, `chain ^ echo`, after `b`'s, two rounds
+        // before the output (one round before, a difference there could cancel through only ten S-boxes).
+        let a = aesenc(self.chain, self.sum);
+        let b = aesdec(self.chain, PI_U128X2[0]);
+        let a = aesenc(aesenc(a, PI_U128X2[1]), 0);
+        let b = aesdec(aesdec(b, xor(self.chain, self.echo)), 0);
+        let result: [u64; 2] = add_by_64s(a, b).convert();
         result[0]
     }
 }
@@ -286,17 +399,17 @@ impl Hasher for AHasherU64 {
 #[cfg(specialize)]
 pub(crate) struct AHasherFixed(pub AHasher);
 
-/// A specialized hasher for fixed size primitives larger than 64 bits.
+/// A specialized hasher for primitives which are hashed as one value: `u128`, `i128`, `usize` and `isize`.
 #[cfg(specialize)]
 impl Hasher for AHasherFixed {
     #[inline]
     fn finish(&self) -> u64 {
-        self.0.short_finish()
+        self.0.fixed_finish()
     }
 
     #[inline]
-    fn write(&mut self, bytes: &[u8]) {
-        self.0.write(bytes)
+    fn write(&mut self, _bytes: &[u8]) {
+        unreachable!("Specialized hasher was called with a different type of object")
     }
 
     #[inline]
@@ -316,17 +429,17 @@ impl Hasher for AHasherFixed {
 
     #[inline]
     fn write_u64(&mut self, i: u64) {
-        self.0.write_u64(i);
+        self.0.hash_in_fixed(i as u128);
     }
 
     #[inline]
     fn write_u128(&mut self, i: u128) {
-        self.0.write_u128(i);
+        self.0.hash_in_fixed(i);
     }
 
     #[inline]
     fn write_usize(&mut self, i: usize) {
-        self.0.write_usize(i);
+        self.0.hash_in_fixed(i as u128);
     }
 }
 
@@ -339,22 +452,12 @@ pub(crate) struct AHasherStr(pub AHasher);
 impl Hasher for AHasherStr {
     #[inline]
     fn finish(&self) -> u64 {
-        let result: [u64; 2] = self.0.enc.convert();
-        result[0]
+        self.0.finish()
     }
 
     #[inline]
     fn write(&mut self, bytes: &[u8]) {
-        if bytes.len() > 8 {
-            self.0.write(bytes);
-            self.0.enc = self.0.final_mix();
-        } else {
-            add_in_length(&mut self.0.enc, bytes.len() as u64);
-
-            let value = read_small(bytes).convert();
-            self.0.sum = shuffle_and_add(self.0.sum, value);
-            self.0.enc = self.0.final_mix();
-        }
+        self.0.write(bytes)
     }
 
     #[inline]
@@ -417,21 +520,21 @@ mod tests {
     #[test]
     fn test_default() {
         let hasher_a = AHasher::default();
-        let a_enc: [u64; 2] = hasher_a.enc.convert();
+        let a_echo: [u64; 2] = hasher_a.echo.convert();
         let a_sum: [u64; 2] = hasher_a.sum.convert();
-        assert_ne!(0, a_enc[0]);
-        assert_ne!(0, a_enc[1]);
+        assert_ne!(0, a_echo[0]);
+        assert_ne!(0, a_echo[1]);
         assert_ne!(0, a_sum[0]);
         assert_ne!(0, a_sum[1]);
-        assert_ne!(a_enc[0], a_enc[1]);
+        assert_ne!(a_echo[0], a_echo[1]);
         assert_ne!(a_sum[0], a_sum[1]);
-        assert_ne!(a_enc[0], a_sum[0]);
-        assert_ne!(a_enc[1], a_sum[1]);
+        assert_ne!(a_echo[0], a_sum[0]);
+        assert_ne!(a_echo[1], a_sum[1]);
         let hasher_b = AHasher::default();
-        let b_enc: [u64; 2] = hasher_b.enc.convert();
+        let b_echo: [u64; 2] = hasher_b.echo.convert();
         let b_sum: [u64; 2] = hasher_b.sum.convert();
-        assert_eq!(a_enc[0], b_enc[0]);
-        assert_eq!(a_enc[1], b_enc[1]);
+        assert_eq!(a_echo[0], b_echo[0]);
+        assert_eq!(a_echo[1], b_echo[1]);
         assert_eq!(a_sum[0], b_sum[0]);
         assert_eq!(a_sum[1], b_sum[1]);
     }

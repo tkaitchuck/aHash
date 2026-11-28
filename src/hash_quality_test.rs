@@ -50,42 +50,46 @@ fn count_same_bytes_and_nibbles(a: u64, b: u64) -> (i32, i32) {
     (same_byte_count, same_nibble_count)
 }
 
-fn gen_combinations(options: &[u32; 11], depth: u32, so_far: Vec<u32>, combinations: &mut Vec<Vec<u32>>) {
+/// Calls `f` once with each sequence of 1 to `depth` values taken from `options`.
+fn for_each_combination(options: &[u32], depth: u32, so_far: &mut Vec<u32>, f: &mut impl FnMut(&[u32])) {
     if depth == 0 {
         return;
     }
-    for option in options {
-        let mut next = so_far.clone();
-        next.push(*option);
-        combinations.push(next.clone());
-        gen_combinations(options, depth - 1, next, combinations);
+    for &option in options {
+        so_far.push(option);
+        f(so_far);
+        for_each_combination(options, depth - 1, so_far, f);
+        so_far.pop();
     }
 }
 
 fn test_no_full_collisions<T: Hasher>(gen_hash: impl Fn() -> T) {
+    use zerocopy::IntoBytes;
     let options: [u32; 11] = [
         0x00000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0xF0000000, 1, 2, 4, 8, 15,
     ];
-    let mut combinations = Vec::new();
-    gen_combinations(&options, 7, Vec::new(), &mut combinations);
-    let mut map: HashMap<u64, Vec<u8>> = HashMap::new();
-    for combination in combinations {
-        use zerocopy::IntoBytes;
-        let array = combination.as_bytes().to_vec();
+    let hash_of = |combination: &[u32]| {
         let mut hasher = gen_hash();
-        hasher.write(&array);
-        let hash = hasher.finish();
-        if let Some(value) = map.get(&hash) {
-            assert_eq!(
-                value, &array,
-                "Found a collision between {:x?} and {:x?}. Hash: {:x?}",
-                value, &array, &hash
-            );
-        } else {
-            map.insert(hash, array);
-        }
+        hasher.write(combination.as_bytes());
+        hasher.finish()
+    };
+    // The inputs are all distinct, so any repeated hash is a collision. Only the hashes are kept: the inputs as
+    // well do not fit in a 32-bit address space.
+    let count = 21435887; //11^7 + 11^6 ...
+    let mut hashes = Vec::with_capacity(count);
+    for_each_combination(&options, 7, &mut Vec::new(), &mut |c| hashes.push(hash_of(c)));
+    assert_eq!(count, hashes.len());
+    hashes.sort_unstable();
+    if let Some(pair) = hashes.windows(2).find(|pair| pair[0] == pair[1]) {
+        let hash = pair[0];
+        let mut inputs = Vec::new();
+        for_each_combination(&options, 7, &mut Vec::new(), &mut |c| {
+            if hash_of(c) == hash {
+                inputs.push(c.to_vec());
+            }
+        });
+        panic!("Found a collision between {:x?}. Hash: {:x?}", inputs, hash);
     }
-    assert_eq!(21435887, map.len()); //11^7 + 11^6 ...
 }
 
 fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
@@ -97,12 +101,14 @@ fn test_keys_change_output<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
     "test".hash(&mut b);
     "test".hash(&mut c);
     "test".hash(&mut d);
-    assert_sufficiently_different(a.finish(), b.finish(), 1);
-    assert_sufficiently_different(a.finish(), c.finish(), 1);
-    assert_sufficiently_different(a.finish(), d.finish(), 1);
-    assert_sufficiently_different(b.finish(), c.finish(), 1);
-    assert_sufficiently_different(b.finish(), d.finish(), 1);
-    assert_sufficiently_different(c.finish(), d.finish(), 1);
+    // (With a tolerance of 1, six comparisons of unrelated values fail by chance about one time in eleven.
+    // `aes_hash_test::test_avalanche_of_keys` measures the same property over thousands of keys.)
+    assert_sufficiently_different(a.finish(), b.finish(), 2);
+    assert_sufficiently_different(a.finish(), c.finish(), 2);
+    assert_sufficiently_different(a.finish(), d.finish(), 2);
+    assert_sufficiently_different(b.finish(), c.finish(), 2);
+    assert_sufficiently_different(b.finish(), d.finish(), 2);
+    assert_sufficiently_different(c.finish(), d.finish(), 2);
 }
 
 fn test_input_affect_every_byte<T: Hasher>(constructor: impl Fn(u128, u128) -> T) {
@@ -261,6 +267,14 @@ fn test_single_bit_flip<T: Hasher>(hasher: impl Fn() -> T) {
     }
 }
 
+/// The most nibbles two of the hashes compared by `test_padding_doesnot_collide` may have in common.
+///
+/// Each call makes about 200,000 comparisons, and the chance of two random 64 bit values sharing 9 or more
+/// of their 16 nibbles is 1 in 9 million. So with a limit of 8 a perfect hash function fails about 2% of
+/// the time per call. (The test is deterministic, so this happens when the function changes.)
+/// 10 or more is 1 in 190 million.
+const MAX_SAME_NIBBLES: i32 = 9;
+
 fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
     for c in 0..128u8 {
         for string in ["", "\0", "\x01", "1234", "12345678", "1234567812345678"].iter() {
@@ -282,7 +296,7 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                     long.finish()
                 );
                 assert!(
-                    same_nibbles <= 8,
+                    same_nibbles <= MAX_SAME_NIBBLES,
                     "{} bytes of {} -> {:x} vs {:x}",
                     num,
                     c,
@@ -310,7 +324,7 @@ fn test_padding_doesnot_collide<T: Hasher>(hasher: impl Fn() -> T) {
                         long.finish()
                     );
                     assert!(
-                        same_nibbles <= 8,
+                        same_nibbles <= MAX_SAME_NIBBLES,
                         "string {:?} + {} bytes of {} -> {:x} vs {:x}",
                         string,
                         num,
@@ -367,10 +381,54 @@ fn test_sparse<T: Hasher>(hasher: impl Fn() -> T) {
     assert_eq!(0, hashes.len(), "Collision with: {:?}", hashes);
 }
 
+/// Counts the number of keys (out of `keys` pseudorandom ones) for which the two inputs have the same hash.
+/// They are hashed the way a slice is: The length followed by the data.
+fn count_collisions<T: Hasher>(constructor: impl Fn(u128, u128) -> T, a: &[u8], b: &[u8], keys: u64) -> u64 {
+    let mut state = 0x243f_6a88_85a3_08d3_u64;
+    let mut next = || {
+        // splitmix64
+        state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        let mut z = state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        z ^ (z >> 31)
+    };
+    let hash = |hasher: &mut T, data: &[u8]| {
+        hasher.write_usize(data.len());
+        hasher.write(data);
+        hasher.finish()
+    };
+    let mut collisions = 0;
+    for _ in 0..keys {
+        let key1 = (next() as u128) << 64 | next() as u128;
+        let key2 = (next() as u128) << 64 | next() as u128;
+        if hash(&mut constructor(key1, key2), a) == hash(&mut constructor(key1, key2), b) {
+            collisions += 1;
+        }
+    }
+    collisions
+}
+
 #[cfg(test)]
 mod fallback_tests {
     use crate::fallback_hash::*;
     use crate::hash_quality_test::*;
+
+    /// Issue #292: A block and its complement collided for one key in 2^26.
+    /// (This is too rare to be caught here. See the tests in `fallback_hash.rs` for the cause.)
+    #[test]
+    fn fallback_complement_does_not_collide() {
+        let block = hex::decode("0123456789abcdef0011223344556677").unwrap();
+        let masks: [&[u8]; 3] = [
+            &[0xff; 16],
+            &[0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0],
+            &[0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
+        ];
+        for mask in masks {
+            let changed: Vec<u8> = block.iter().zip(mask).map(|(a, b)| a ^ b).collect();
+            assert_eq!(0, count_collisions(AHasher::test_with_keys, &block, &changed, 1 << 20));
+        }
+    }
 
     #[test]
     fn fallback_single_bit_flip() {
@@ -420,7 +478,7 @@ mod fallback_tests {
     #[test]
     fn fallback_keys_affect_every_byte() {
         //For fallback second key is not used in every hash.
-        #[cfg(all(not(specialize), folded_multiply))]
+        #[cfg(not(specialize))]
         test_keys_affect_every_byte(0, |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte("", |a, b| AHasher::new_with_keys(a ^ b, a));
         test_keys_affect_every_byte((0, 0), |a, b| AHasher::new_with_keys(a ^ b, a));
@@ -468,10 +526,7 @@ mod fallback_tests {
 }
 
 ///Basic sanity tests of the cypto properties of aHash.
-#[cfg(any(
-    all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
-))]
+#[cfg(aes_hash)]
 #[cfg(test)]
 mod aes_tests {
     use crate::aes_hash::*;
@@ -532,12 +587,7 @@ mod aes_tests {
         test_no_pair_collisions(|| AHasher::test_with_keys(0, 0));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY, BAD_KEY));
         test_no_pair_collisions(|| AHasher::test_with_keys(BAD_KEY2, BAD_KEY2));
-        #[cfg(specialize)]
-        {
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(0, 0)));
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY, BAD_KEY)));
-            test_no_pair_collisions(|| AHasherFixed(AHasher::test_with_keys(BAD_KEY2, BAD_KEY2)));
-        }
+        // Not `AHasherFixed`: it takes exactly one value, and a pair is two.
     }
 
     #[test]

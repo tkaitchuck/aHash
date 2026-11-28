@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 490" width="880" height="490" role="img" aria-labelledby="title desc" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+<title id="title">Speed of hashing a string by its length, for each hasher</title>
+<desc id="desc">Two line charts of the throughput in gigabytes per second of hashing a string of 1 to 65535 bytes, with both axes on a log scale: One for the hashers which pass SMHasher3 and one for those which do not. The numbers are in the tables of compare/readme.md.</desc>
+<style>
+:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948;--c9:#898781;}
+@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#898781;--grid:#2c2c2a;--axis:#383835;--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#0ca30c;--c7:#9085e9;--c8:#e66767;--c9:#898781;}}
+.surface{fill:var(--surface)}.title{fill:var(--ink);font-size:15px;font-weight:600}.sub{fill:var(--ink2);font-size:12px}.name{fill:var(--ink2);font-size:11px}.name.hl{fill:var(--ink);font-weight:600}.panel{fill:var(--ink);font-size:12px;font-weight:600}.tick{fill:var(--muted);font-size:10px;font-variant-numeric:tabular-nums}.grid{stroke:var(--grid);stroke-width:1}.minor{opacity:.55}.axis{stroke:var(--axis);stroke-width:1}.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.line.hl{stroke-width:3}.line.dash{stroke-dasharray:5 4}.halo{fill:none;stroke:var(--surface);stroke-width:5;stroke-linejoin:round}.lead{fill:none;stroke-width:1;opacity:.7}.c1{stroke:var(--c1)}.c2{stroke:var(--c2)}.c3{stroke:var(--c3)}.c4{stroke:var(--c4)}.c5{stroke:var(--c5)}.c6{stroke:var(--c6)}.c7{stroke:var(--c7)}.c8{stroke:var(--c8)}.c9{stroke:var(--c9)}
+</style>
+<rect class="surface" width="880" height="490" rx="8"/>
+<text class="title" x="16" y="30">Speed of hashing a string, by its length</text>
+<text class="sub" x="16" y="52">Gigabytes hashed per second: Higher is better. Both axes are log scales, and are the same in both panels.</text>
+<text class="panel" x="16.0" y="90">Hashers which pass SMHasher3</text>
+<text class="tick" x="16.0" y="114">GB per second</text>
+<line class="grid minor" x1="56.0" x2="314.0" y1="432.0" y2="432.0"/>
+<text class="tick" x="50.0" y="435.5" text-anchor="end">0.5</text>
+<line class="grid" x1="56.0" x2="314.0" y1="397.3" y2="397.3"/>
+<text class="tick" x="50.0" y="400.8" text-anchor="end">1</text>
+<line class="grid minor" x1="56.0" x2="314.0" y1="362.6" y2="362.6"/>
+<line class="grid minor" x1="56.0" x2="314.0" y1="316.7" y2="316.7"/>
+<line class="grid" x1="56.0" x2="314.0" y1="282.0" y2="282.0"/>
+<text class="tick" x="50.0" y="285.5" text-anchor="end">10</text>
+<line class="grid minor" x1="56.0" x2="314.0" y1="247.3" y2="247.3"/>
+<line class="grid minor" x1="56.0" x2="314.0" y1="201.4" y2="201.4"/>
+<line class="grid" x1="56.0" x2="314.0" y1="166.7" y2="166.7"/>
+<text class="tick" x="50.0" y="170.2" text-anchor="end">100</text>
+<line class="grid minor" x1="56.0" x2="314.0" y1="132.0" y2="132.0"/>
+<text class="tick" x="50.0" y="135.5" text-anchor="end">200</text>
+<line class="axis" x1="56.0" x2="314.0" y1="432" y2="432"/>
+<line class="axis" x1="64.0" x2="64.0" y1="432" y2="436"/>
+<line class="axis" x1="88.0" x2="88.0" y1="432" y2="436"/>
+<text class="tick" x="88.0" y="448" text-anchor="middle">3</text>
+<line class="axis" x1="106.5" x2="106.5" y1="432" y2="436"/>
+<line class="axis" x1="123.1" x2="123.1" y1="432" y2="436"/>
+<text class="tick" x="123.1" y="448" text-anchor="middle">15</text>
+<line class="axis" x1="138.9" x2="138.9" y1="432" y2="436"/>
+<line class="axis" x1="154.4" x2="154.4" y1="432" y2="436"/>
+<text class="tick" x="154.4" y="448" text-anchor="middle">63</text>
+<line class="axis" x1="169.7" x2="169.7" y1="432" y2="436"/>
+<line class="axis" x1="184.9" x2="184.9" y1="432" y2="436"/>
+<text class="tick" x="184.9" y="448" text-anchor="middle">255</text>
+<line class="axis" x1="200.1" x2="200.1" y1="432" y2="436"/>
+<line class="axis" x1="215.2" x2="215.2" y1="432" y2="436"/>
+<text class="tick" x="215.2" y="448" text-anchor="middle">1023</text>
+<line class="axis" x1="230.4" x2="230.4" y1="432" y2="436"/>
+<line class="axis" x1="245.5" x2="245.5" y1="432" y2="436"/>
+<text class="tick" x="245.5" y="448" text-anchor="middle">4K</text>
+<line class="axis" x1="260.6" x2="260.6" y1="432" y2="436"/>
+<line class="axis" x1="275.7" x2="275.7" y1="432" y2="436"/>
+<text class="tick" x="275.7" y="448" text-anchor="middle">16K</text>
+<line class="axis" x1="290.9" x2="290.9" y1="432" y2="436"/>
+<line class="axis" x1="306.0" x2="306.0" y1="432" y2="436"/>
+<text class="tick" x="306.0" y="448" text-anchor="middle">64K</text>
+<text class="sub" x="185.0" y="470" text-anchor="middle">String length in bytes</text>
+<clipPath id="plot0"><rect x="56.0" y="122" width="258.0" height="310"/></clipPath>
+<g clip-path="url(#plot0)">
+<polyline class="line c3" points="64.0,393.3 88.0,337.7 106.5,288.1 123.1,243.8 138.9,249.7 154.4,227.1 169.7,210.6 184.9,207.7 200.1,202.8 215.2,199.8 230.4,194.6 245.5,192.9 260.6,191.4 275.7,191.3 290.9,190.6 306.0,191.1"/>
+<polyline class="line c4" points="64.0,405.8 88.0,350.8 106.5,299.5 123.1,258.8 138.9,248.3 154.4,248.5 169.7,226.2 184.9,215.2 200.1,225.5 215.2,221.8 230.4,229.7 245.5,232.5 260.6,234.1 275.7,235.2 290.9,235.5 306.0,235.7"/>
+<polyline class="line c5" points="64.0,488.5 88.0,438.8 106.5,402.9 123.1,369.8 138.9,344.5 154.4,326.8 169.7,312.6 184.9,303.9 200.1,299.5 215.2,296.7 230.4,296.0 245.5,295.0 260.6,294.5 275.7,294.4 290.9,294.5 306.0,294.6"/>
+<polyline class="line c5 dash" points="64.0,492.8 88.0,439.4 106.5,407.9 123.1,377.7 138.9,356.5 154.4,342.7 169.7,333.4 184.9,329.7 200.1,326.3 215.2,324.5 230.4,324.1 245.5,323.5 260.6,323.1 275.7,322.8 290.9,322.7 306.0,322.7"/>
+<polyline class="halo" points="64.0,397.5 88.0,342.9 106.5,300.4 123.1,258.8 138.9,235.3 154.4,222.8 169.7,216.5 184.9,186.4 200.1,175.6 215.2,167.3 230.4,168.2 245.5,173.2 260.6,175.6 275.7,176.5 290.9,177.0 306.0,177.3"/>
+<polyline class="line c1 hl" points="64.0,397.5 88.0,342.9 106.5,300.4 123.1,258.8 138.9,235.3 154.4,222.8 169.7,216.5 184.9,186.4 200.1,175.6 215.2,167.3 230.4,168.2 245.5,173.2 260.6,175.6 275.7,176.5 290.9,177.0 306.0,177.3"/>
+<polyline class="halo" points="64.0,406.6 88.0,351.7 106.5,309.1 123.1,267.7 138.9,260.9 154.4,244.5 169.7,229.8 184.9,222.1 200.1,217.2 215.2,214.9 230.4,212.6 245.5,211.9 260.6,212.5 275.7,211.8 290.9,211.4 306.0,211.3"/>
+<polyline class="line c2 hl" points="64.0,406.6 88.0,351.7 106.5,309.1 123.1,267.7 138.9,260.9 154.4,244.5 169.7,229.8 184.9,222.1 200.1,217.2 215.2,214.9 230.4,212.6 245.5,211.9 260.6,212.5 275.7,211.8 290.9,211.4 306.0,211.3"/>
+</g>
+<polyline class="lead c1" points="309.0,177.3 318.0,177.3 326.0,177.3 330.0,177.3"/>
+<text class="name hl" x="333.0" y="180.8">aHash (AES)</text>
+<polyline class="lead c2" points="309.0,211.3 318.0,211.3 326.0,211.3 330.0,211.3"/>
+<text class="name hl" x="333.0" y="214.8">aHash (fallback)</text>
+<polyline class="lead c3" points="309.0,191.1 318.0,191.1 326.0,191.1 330.0,191.1"/>
+<text class="name" x="333.0" y="194.6">foldhash (quality)</text>
+<polyline class="lead c4" points="309.0,235.7 318.0,235.7 326.0,235.7 330.0,235.7"/>
+<text class="name" x="333.0" y="239.2">rapidhash (quality)</text>
+<polyline class="lead c5" points="309.0,294.6 318.0,294.6 326.0,294.6 330.0,294.6"/>
+<text class="name" x="333.0" y="298.1">SipHash-1-3 (std)</text>
+<polyline class="lead c5" points="309.0,322.7 318.0,322.7 326.0,322.7 330.0,322.7"/>
+<text class="name" x="333.0" y="326.2">SipHash-2-4</text>
+<text class="panel" x="452.0" y="90">Hashers which do not pass SMHasher3</text>
+<text class="tick" x="452.0" y="114">GB per second</text>
+<line class="grid minor" x1="492.0" x2="750.0" y1="432.0" y2="432.0"/>
+<text class="tick" x="486.0" y="435.5" text-anchor="end">0.5</text>
+<line class="grid" x1="492.0" x2="750.0" y1="397.3" y2="397.3"/>
+<text class="tick" x="486.0" y="400.8" text-anchor="end">1</text>
+<line class="grid minor" x1="492.0" x2="750.0" y1="362.6" y2="362.6"/>
+<line class="grid minor" x1="492.0" x2="750.0" y1="316.7" y2="316.7"/>
+<line class="grid" x1="492.0" x2="750.0" y1="282.0" y2="282.0"/>
+<text class="tick" x="486.0" y="285.5" text-anchor="end">10</text>
+<line class="grid minor" x1="492.0" x2="750.0" y1="247.3" y2="247.3"/>
+<line class="grid minor" x1="492.0" x2="750.0" y1="201.4" y2="201.4"/>
+<line class="grid" x1="492.0" x2="750.0" y1="166.7" y2="166.7"/>
+<text class="tick" x="486.0" y="170.2" text-anchor="end">100</text>
+<line class="grid minor" x1="492.0" x2="750.0" y1="132.0" y2="132.0"/>
+<text class="tick" x="486.0" y="135.5" text-anchor="end">200</text>
+<line class="axis" x1="492.0" x2="750.0" y1="432" y2="432"/>
+<line class="axis" x1="500.0" x2="500.0" y1="432" y2="436"/>
+<line class="axis" x1="524.0" x2="524.0" y1="432" y2="436"/>
+<text class="tick" x="524.0" y="448" text-anchor="middle">3</text>
+<line class="axis" x1="542.5" x2="542.5" y1="432" y2="436"/>
+<line class="axis" x1="559.1" x2="559.1" y1="432" y2="436"/>
+<text class="tick" x="559.1" y="448" text-anchor="middle">15</text>
+<line class="axis" x1="574.9" x2="574.9" y1="432" y2="436"/>
+<line class="axis" x1="590.4" x2="590.4" y1="432" y2="436"/>
+<text class="tick" x="590.4" y="448" text-anchor="middle">63</text>
+<line class="axis" x1="605.7" x2="605.7" y1="432" y2="436"/>
+<line class="axis" x1="620.9" x2="620.9" y1="432" y2="436"/>
+<text class="tick" x="620.9" y="448" text-anchor="middle">255</text>
+<line class="axis" x1="636.1" x2="636.1" y1="432" y2="436"/>
+<line class="axis" x1="651.2" x2="651.2" y1="432" y2="436"/>
+<text class="tick" x="651.2" y="448" text-anchor="middle">1023</text>
+<line class="axis" x1="666.4" x2="666.4" y1="432" y2="436"/>
+<line class="axis" x1="681.5" x2="681.5" y1="432" y2="436"/>
+<text class="tick" x="681.5" y="448" text-anchor="middle">4K</text>
+<line class="axis" x1="696.6" x2="696.6" y1="432" y2="436"/>
+<line class="axis" x1="711.7" x2="711.7" y1="432" y2="436"/>
+<text class="tick" x="711.7" y="448" text-anchor="middle">16K</text>
+<line class="axis" x1="726.9" x2="726.9" y1="432" y2="436"/>
+<line class="axis" x1="742.0" x2="742.0" y1="432" y2="436"/>
+<text class="tick" x="742.0" y="448" text-anchor="middle">64K</text>
+<text class="sub" x="621.0" y="470" text-anchor="middle">String length in bytes</text>
+<clipPath id="plot1"><rect x="492.0" y="122" width="258.0" height="310"/></clipPath>
+<g clip-path="url(#plot1)">
+<polyline class="line c3" points="500.0,384.3 524.0,328.4 542.5,277.6 559.1,238.9 574.9,242.4 590.4,220.7 605.7,208.3 620.9,205.1 636.1,201.6 651.2,197.6 666.4,193.5 681.5,192.4 696.6,191.3 711.7,191.3 726.9,190.7 742.0,191.3"/>
+<polyline class="line c4" points="500.0,388.5 524.0,333.9 542.5,277.7 559.1,251.0 574.9,238.2 590.4,236.6 605.7,218.4 620.9,208.2 636.1,221.6 651.2,221.3 666.4,228.7 681.5,232.5 696.6,234.0 711.7,235.0 726.9,235.5 742.0,235.7"/>
+<polyline class="line c6" points="500.0,400.9 524.0,341.2 542.5,282.9 559.1,249.2 574.9,238.5 590.4,226.1 605.7,219.9 620.9,212.9 636.1,217.1 651.2,221.2 666.4,227.8 681.5,230.7 696.6,231.8 711.7,232.3 726.9,232.5 742.0,232.6"/>
+<polyline class="line c6 dash" points="500.0,392.8 524.0,360.8 542.5,326.5 559.1,304.2 574.9,281.5 590.4,268.6 605.7,262.3 620.9,267.6 636.1,278.2 651.2,286.2 666.4,289.7 681.5,291.4 696.6,292.2 711.7,292.6 726.9,292.7 742.0,292.8"/>
+<polyline class="line c7" points="500.0,373.7 524.0,348.6 542.5,336.6 559.1,335.3 574.9,346.7 590.4,358.9 605.7,372.7 620.9,379.7 636.1,383.2 651.2,384.5 666.4,385.3 681.5,385.8 696.6,385.6 711.7,385.6 726.9,385.7 742.0,385.8"/>
+<polyline class="line c8" points="500.0,500.1 524.0,464.6 542.5,422.0 559.1,383.0 574.9,350.8 590.4,315.6 605.7,284.0 620.9,272.1 636.1,252.9 651.2,225.9 666.4,208.5 681.5,196.7 696.6,189.9 711.7,186.4 726.9,184.0 742.0,183.0"/>
+<polyline class="line c9" points="500.0,527.9 524.0,472.0 542.5,429.4 559.1,383.3 574.9,349.7 590.4,316.9 605.7,286.9 620.9,274.2 636.1,269.6 651.2,274.2 666.4,276.4 681.5,277.4 696.6,278.1 711.7,278.0 726.9,278.1 742.0,278.2"/>
+<polyline class="halo" points="500.0,397.5 524.0,342.9 542.5,300.4 559.1,258.8 574.9,235.3 590.4,222.8 605.7,216.5 620.9,186.4 636.1,175.6 651.2,167.3 666.4,168.2 681.5,173.2 696.6,175.6 711.7,176.5 726.9,177.0 742.0,177.3"/>
+<polyline class="line c1 hl" points="500.0,397.5 524.0,342.9 542.5,300.4 559.1,258.8 574.9,235.3 590.4,222.8 605.7,216.5 620.9,186.4 636.1,175.6 651.2,167.3 666.4,168.2 681.5,173.2 696.6,175.6 711.7,176.5 726.9,177.0 742.0,177.3"/>
+</g>
+<polyline class="lead c1" points="745.0,177.3 754.0,177.3 762.0,170.8 766.0,170.8"/>
+<text class="name hl" x="769.0" y="174.3">aHash (AES)</text>
+<polyline class="lead c3" points="745.0,191.3 754.0,191.3 762.0,196.8 766.0,196.8"/>
+<text class="name" x="769.0" y="200.3">foldhash (fast)</text>
+<polyline class="lead c4" points="745.0,235.7 754.0,235.7 762.0,240.6 766.0,240.6"/>
+<text class="name" x="769.0" y="244.1">rapidhash (fast)</text>
+<polyline class="lead c6" points="745.0,232.6 754.0,232.6 762.0,227.6 766.0,227.6"/>
+<text class="name" x="769.0" y="231.1">rustc-hash</text>
+<polyline class="lead c6" points="745.0,292.8 754.0,292.8 762.0,292.8 766.0,292.8"/>
+<text class="name" x="769.0" y="296.3">fxhash (original)</text>
+<polyline class="lead c7" points="745.0,385.8 754.0,385.8 762.0,385.8 766.0,385.8"/>
+<text class="name" x="769.0" y="389.3">fnv</text>
+<polyline class="lead c8" points="745.0,183.0 754.0,183.0 762.0,183.8 766.0,183.8"/>
+<text class="name" x="769.0" y="187.3">xxh3</text>
+<polyline class="lead c9" points="745.0,278.2 754.0,278.2 762.0,278.2 766.0,278.2"/>
+<text class="name" x="769.0" y="281.7">seahash</text>
+</svg>

@@ -62,9 +62,28 @@ jobs:
           toolchain: 1.85.0
           targets: armv7-unknown-linux-gnueabihf
       - run: cargo +1.85.0 check --target armv7-unknown-linux-gnueabihf
+  nightly_arm_aes:
+    name: nightly-arm-aes
+    runs-on: ubuntu-latest
+    env:
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS: -C target-feature=+aes,+neon
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER: arm-linux-gnueabihf-gcc
+        CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUNNER: qemu-arm -cpu max -L /usr/arm-linux-gnueabihf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          targets: armv7-unknown-linux-gnueabihf, aarch64-unknown-linux-gnu
+      - name: Install cross compile tools
+        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+      # The feature must not break targets other than 32-bit ARM.
+      - run: cargo check --features nightly-arm-aes
+      - run: cargo check --features nightly-arm-aes --target aarch64-unknown-linux-gnu
+      - run: cargo test --features nightly-arm-aes --target armv7-unknown-linux-gnueabihf
   aarch64-apple-darwin:
     name: Aarch64 Apple Darwin
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -82,7 +101,7 @@ jobs:
       - run: cargo +1.85.0 check --target aarch64-apple-darwin
   aarch64-nightly:
     name: Aarch64 nightly
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       RUSTFLAGS: -C target-cpu=native
     steps:
@@ -102,7 +121,7 @@ jobs:
         run: cargo test --features serde
 #  aarch64-debug:
 #    name: Debug Apple
-#    runs-on: macos-14
+#    runs-on: macos-15
 #    steps:
 #      - uses: actions/checkout@v2
 #      - name: Setup upterm session
@@ -152,6 +171,34 @@ jobs:
       - run: cargo +1.85.0 check --target x86_64-unknown-linux-gnu
       - name: check constrandom
         run: cargo +1.85.0 check --no-default-features --features compile-time-rng --target x86_64-unknown-linux-gnu
+  riscv64gc-unknown-linux-gnu:
+    name: Linux RISC-V 64
+    runs-on: ubuntu-latest
+    env:
+        CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
+        CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_RUNNER: qemu-riscv64 -L /usr/riscv64-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: riscv64gc-unknown-linux-gnu
+      - name: Install cross compile tools
+        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
+      - run: cargo check --target riscv64gc-unknown-linux-gnu
+      - name: check folded_multiply is enabled
+        run: |
+          touch build.rs  # Force the build script to rerun so its output is printed.
+          cargo check -vv --target riscv64gc-unknown-linux-gnu 2>&1 | grep '^\[ahash [^]]*\] cargo:rustc-cfg=folded_multiply$'
+      - run: cargo test --target riscv64gc-unknown-linux-gnu
+      - name: test constrandom
+        run: cargo test --no-default-features --features compile-time-rng --target riscv64gc-unknown-linux-gnu
+      - name: Install 1.85.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          targets: riscv64gc-unknown-linux-gnu
+      - run: cargo +1.85.0 check --target riscv64gc-unknown-linux-gnu
   thumbv6m:
     name: thumbv6m
     runs-on: ubuntu-latest

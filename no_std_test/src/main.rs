@@ -2,7 +2,7 @@
 //! uses the hash value as the return value.
 #![no_main]
 #![no_std]
-#![feature(alloc_error_handler, core_intrinsics, lang_items)]
+#![feature(alloc_error_handler)]
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -25,13 +25,12 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
 
 #[alloc_error_handler]
 fn foo(_: core::alloc::Layout) -> ! {
-    core::intrinsics::abort();
+    loop {}
 }
 
 #[panic_handler]
-#[lang = "panic_impl"]
 fn rust_begin_panic(_: &core::panic::PanicInfo) -> ! {
-    core::intrinsics::abort();
+    loop {}
 }
 
 #[no_mangle]

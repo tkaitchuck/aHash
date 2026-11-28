@@ -98,6 +98,10 @@ Note the import of [HashMapExt]. This is needed for the constructor.
 #![allow(clippy::pedantic, clippy::cast_lossless, clippy::unreadable_literal, unused_imports)]
 #![cfg_attr(all(not(test), not(feature = "std")), no_std)]
 #![cfg_attr(specialize, feature(min_specialization))]
+#![cfg_attr(
+    all(feature = "nightly-arm-aes", target_arch = "arm", target_feature = "aes", not(miri)),
+    feature(stdarch_arm_neon_intrinsics)
+)]
 
 #[macro_use]
 mod convert;
@@ -105,10 +109,7 @@ mod convert;
 mod fallback_hash;
 
 cfg_if::cfg_if! {
-    if #[cfg(any(
-            all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)),
-            all(target_arch = "aarch64", target_feature = "aes", not(miri)),
-        ))] {
+    if #[cfg(aes_hash)] {
         mod aes_hash;
         pub use crate::aes_hash::AHasher;
     } else {
@@ -134,6 +135,8 @@ cfg_if::cfg_if! {
     }
 }
 
+#[cfg(test)]
+mod aes_hash_test;
 #[cfg(test)]
 mod hash_quality_test;
 

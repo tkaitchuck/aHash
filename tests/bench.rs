@@ -4,20 +4,9 @@ use fxhash::FxHasher;
 use rand::Rng;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
+use std::hint::black_box;
 
-// Needs to be in sync with `src/lib.rs`
-const AHASH_IMPL: &str = if cfg!(any(
-    all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "aes",
-        not(miri),
-    ),
-    all(target_arch = "aarch64", target_feature = "aes", not(miri)),
-)) {
-    "aeshash"
-} else {
-    "fallbackhash"
-};
+const AHASH_IMPL: &str = if cfg!(aes_hash) { "aeshash" } else { "fallbackhash" };
 
 fn ahash<H: Hash>(b: &H) -> u64 {
     let build_hasher = RandomState::<H>::with_seeds(0, 0, 0, 0);

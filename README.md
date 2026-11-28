@@ -1,23 +1,40 @@
 # aHash     ![Build Status](https://img.shields.io/github/actions/workflow/status/tkaitchuck/aHash/rust.yml?branch=master) ![Licence](https://img.shields.io/crates/l/ahash) ![Downloads](https://img.shields.io/crates/d/ahash) 
 
-AHash is the [fastest](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Speed), 
-[DOS resistant hash](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks) currently available in Rust.
-AHash is intended *exclusively* for use in in-memory hashmaps. 
+AHash is an ultra [fast](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#speed),
+[DOS resistant](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#dos-resistance) hash written in Rust. It is intended *exclusively* for use in in-memory hashmaps.
+For typical keys it computes a hash 5-10x faster than the default hasher in the standard library.
 
-AHash's output is of [high quality](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#Quality) but aHash is **not** a cryptographically secure hash.
+AHash's output is of [high quality](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md#quality) but aHash is **not** a cryptographically secure hash.
 
+**AHash's algorithm is not fixed.** How it computes the hash is dependent on the CPU it is running on, how the program
+was compiled, and the version of the software it is running. If a flaw or faster hashing technique is found newer
+versions of aHash will change the output hash value for a given input. Because the output is not the same on different 
+computers, in different versions of aHash, or in different builds of the same program, aHash should not be used to 
+persist hashs or in a situation where different hosts need to compute the same hash.
 ## Design
 
 Because AHash is a keyed hash, each map will produce completely different hashes, which cannot be predicted without knowing the keys.
-[This prevents DOS attacks where an attacker sends a large number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/wiki/How-aHash-is-resists-DOS-attacks)
+[This prevents DOS attacks where an attacker sends a large number of items whose hashes collide that get used as keys in a hashmap.](https://github.com/tkaitchuck/aHash/blob/master/FAQ.md#how-does-ahash-prevent-dos-attacks)
 
 This also avoids [accidentally quadratic behavior by reading from one map and writing to another.](https://accidentallyquadratic.tumblr.com/post/153545455987/rust-hash-iteration-reinsertion)
+
+AHash's primary algorithm uses the hardware AES instructions. It has a fallback (if the instruction is not available)
+which uses multiplication.
+
+AES is used if the target has it enabled, which most targets do not by default. (`aarch64-apple-darwin` is one which does.)
+To use it elsewhere, compile with `RUSTFLAGS="-C target-cpu=native"` or `-C target-feature=+aes`.
+AES is supported on x86, x86-64 and AArch64.
+
+Having AES makes strings much faster. For hashing integers there is no meaningful difference.
+
+The "`BuildHasher`" Which is held by the map holds onto 32 bytes of memory.
 
 ## Goals and Non-Goals
 
 AHash does *not* have a fixed standard for its output. This allows it to improve over time. For example,
 if any faster algorithm is found, aHash will be updated to incorporate the technique.
 Similarly, should any flaw in aHash's DOS resistance be found, aHash will be changed to correct the flaw.
+So it is important to use an up to date version.
 
 Because it does not have a fixed standard, different computers or computers on different versions of the code will observe different hash values.
 As such, aHash is not recommended for use other than in-memory maps. Specifically, aHash is not intended for network use or in applications which persist hashed values.
@@ -32,7 +49,7 @@ AHash is a drop in replacement for the default implementation of the `Hasher` tr
 as its hasher do the following:
 
 ```rust
-use ahash::{AHasher, RandomState};
+use ahash::RandomState;
 use std::collections::HashMap;
 
 let mut map: HashMap<i32, i32, RandomState> = HashMap::default();
@@ -47,36 +64,55 @@ let mut map: AHashMap<i32, i32> = AHashMap::new();
 map.insert(12, 34);
 map.insert(56, 78);
 ```
+There are also type aliases, for code which needs the map to be a `std::collections::HashMap`:
+```rust
+use ahash::{HashMap, HashMapExt};
+
+let mut map: HashMap<i32, i32> = HashMap::new();
+map.insert(12, 34);
+```
 
 ## Flags
 
 The aHash package has the following flags:
 * `std`: This enables features which require the standard library. (On by default) This includes providing the utility classes `AHashMap` and `AHashSet`.
-* `serde`: Enables `serde` support for the utility classes `AHashMap` and `AHashSet`.
+* `serde`: Enables `serde` support for `RandomState` and for the utility classes `AHashMap` and `AHashSet`.
 * `runtime-rng`: To obtain a seed for Hashers will obtain randomness from the operating system. (On by default)
 This is done using the [getrandom](https://github.com/rust-random/getrandom) crate.
 * `compile-time-rng`: For OS targets without access to a random number generator, `compile-time-rng` provides an alternative.
 If `getrandom` is unavailable and `compile-time-rng` is enabled, aHash will generate random numbers at compile time and embed them in the binary.
 This allows for DOS resistance even if there is no random number generator available at runtime (assuming the compiled binary is not public).
 This makes the binary non-deterministic. (If non-determinism is a problem see [constrandom's documentation](https://github.com/tkaitchuck/constrandom#deterministic-builds))
+* `no-rng`: Do not use any random number generator, at compile time or at runtime. Unless the application supplies seeds, the keys are then
+fixed constants combined with memory addresses, which is weak. This does nothing if `runtime-rng` or `compile-time-rng` is enabled.
+* `atomic-polyfill`: For targets which lack `core::sync::atomic::AtomicUsize`. This uses the `portable-atomic` crate in its place.
+* `nightly-arm-aes`: To use AES instructions on 32-bit ARM, which requires nightly. This is not needed on AArch64.
 
 If both `runtime-rng` and `compile-time-rng` are enabled the `runtime-rng` will take precedence and `compile-time-rng` will do nothing.
 If neither flag is set, seeds can be supplied by the application. [Multiple apis](https://docs.rs/ahash/latest/ahash/random_state/struct.RandomState.html)
 are available to do this.
 
+On a nightly compiler aHash also uses specialization, to hash integers faster. This needs no flag.
+
 ## Comparison with other hashers
 
-A full comparison with other hashing algorithms can be found [here](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md)
+A full comparison with other hashing algorithms can be found [here](https://github.com/tkaitchuck/aHash/blob/master/compare/readme.md).
 
-![Hasher performance](https://docs.google.com/spreadsheets/d/e/2PACX-1vSK7Li2nS-Bur9arAYF9IfT37MP-ohAe1v19lZu5fd9MajI1fSveLAQZyEie4Ea9k5-SWHTff7nL2DW/pubchart?oid=1323618938&format=image)
+![Speed of hashing a string by its length, for each hasher](compare/speed.svg)
 
-For a more representative performance comparison which includes the overhead of using a HashMap, see [HashBrown's benchmarks](https://github.com/rust-lang/hashbrown/blob/c0947914b98f93b9ae52011cb1212ff817772b7d/README.md#performance)
-as HashBrown once used aHash as its hasher by default.
+The time to compute one hash, in nanoseconds. (On an AMD Ryzen AI 9 465, compiled with `-C target-cpu=native`.)
+
+| Hasher | u64 | 15 byte string | 1023 byte string |
+|---|---:|---:|---:|
+| aHash (AES) | 0.51 | 0.94 | 10.4 |
+| aHash (fallback) | 0.51 | 1.13 | 26.8 |
+| SipHash-1-3 (the default of `std`) | 7.15 | 8.67 | 137 |
+
+A typical hashmap lookup takes about 1 ns on top of this, independent of the hashing algorithm.
 
 ## Hash quality
 
-AHash passes the full [SMHasher test suite](https://github.com/rurban/smhasher). 
-
+AHash passes every test of [SMHasher3](https://gitlab.com/fwojcik/smhasher3), both with AES and with the fallback.
 The code to reproduce the result, and the full output [are checked into the repo](https://github.com/tkaitchuck/aHash/tree/master/smhasher).
 
 ## Additional FAQ
@@ -98,11 +134,3 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
-
-
-
-
-
-
-
-

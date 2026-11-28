@@ -2,29 +2,74 @@ use crate::convert::*;
 #[allow(unused)]
 use zerocopy::transmute;
 
+// The vector paths below keep `u128`s in vector registers instead of a round trip through general ones. zerocopy
+// has no traits for 32-bit ARM's NEON types, so the ARM paths use `core::mem::transmute` (16 bytes either way, and
+// every bit pattern is valid).
+cfg_if::cfg_if! {
+    if #[cfg(target_arch = "x86")] {
+        #[allow(unused_imports)]
+        use core::arch::x86::*;
+    } else if #[cfg(target_arch = "x86_64")] {
+        #[allow(unused_imports)]
+        use core::arch::x86_64::*;
+    } else if #[cfg(target_arch = "aarch64")] {
+        #[allow(unused_imports)]
+        use core::arch::aarch64::*;
+    } else if #[cfg(all(target_arch = "arm", aes_hash))] {
+        use core::arch::arm::*;
+    }
+}
+
 ///This constant comes from Knuth's prng (Empirically it works better than those from splitmix32).
 pub(crate) const MULTIPLE: u64 = 6364136223846793005;
 
-/// This is a constant with a lot of special properties found by automated search.
-/// See the unit tests below. (Below are alternative values)
-#[allow(dead_code)]
-const SHUFFLE_MASK: u128 = 0x020a0700_0c01030e_050f0d08_06090b04_u128;
-//const SHUFFLE_MASK: u128 = 0x000d0702_0a040301_05080f0c_0e0b0609_u128;
-//const SHUFFLE_MASK: u128 = 0x040A0700_030E0106_0D050F08_020B0C09_u128;
-
+/// Xors together the two halves returned by [multiply_halves].
 #[inline(always)]
-#[cfg(folded_multiply)]
 pub(crate) const fn folded_multiply(s: u64, by: u64) -> u64 {
-    let result = (s as u128).wrapping_mul(by as u128);
-    ((result & 0xffff_ffff_ffff_ffff) as u64) ^ ((result >> 64) as u64)
+    let [low, high] = multiply_halves(s, by);
+    low ^ high
 }
 
+/// Returns the low and high halves of the 128 bit product.
+///
+/// Xoring the two halves of a product is not safe when both operands are derived from the input:
+/// The xor of the halves is unchanged by complementing both of them, and this is approximately what
+/// complementing an operand does to the product. (`!x` is `-x` modulo `2^64 - 1` and the high half of a
+/// product carries a weight of `2^64`, which is `1` modulo `2^64 - 1`.) So the complement of an input
+/// collided with the original for roughly one key in 2^26. Callers in that position should combine the
+/// halves in a way that is not symmetric. See `hash_in` in `fallback_hash.rs`.
+#[inline(always)]
+#[cfg(folded_multiply)]
+pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
+    let result = (s as u128).wrapping_mul(by as u128);
+    [(result & 0xffff_ffff_ffff_ffff) as u64, (result >> 64) as u64]
+}
+
+/// The same product from four multiplies of 32 bits by 32, for targets where a 128 bit product is a call into
+/// a library.
 #[inline(always)]
 #[cfg(not(folded_multiply))]
-pub(crate) const fn folded_multiply(s: u64, by: u64) -> u64 {
-    let b1 = s.wrapping_mul(by.swap_bytes());
-    let b2 = s.swap_bytes().wrapping_mul(!by);
-    b1 ^ b2.swap_bytes()
+pub(crate) const fn multiply_halves(s: u64, by: u64) -> [u64; 2] {
+    multiply_halves_by_32s(s, by)
+}
+
+/// Returns the same halves as a 128 bit product, from four multiplies of 32 bits by 32.
+/// (It is built on every target so that it can be tested on every target.)
+#[inline(always)]
+#[cfg_attr(folded_multiply, allow(dead_code))]
+pub(crate) const fn multiply_halves_by_32s(s: u64, by: u64) -> [u64; 2] {
+    const LOW: u64 = 0xffff_ffff;
+    let low_low = (s & LOW) * (by & LOW);
+    let low_high = (s & LOW) * (by >> 32);
+    let high_low = (s >> 32) * (by & LOW);
+    let high_high = (s >> 32) * (by >> 32);
+    // (Neither sum can overflow: The square of `2^32 - 1` leaves room for twice `2^32 - 1`.)
+    let middle = low_high + (low_low >> 32);
+    let middle_low = high_low + (middle & LOW);
+    [
+        (middle_low << 32) | (low_low & LOW),
+        high_high + (middle >> 32) + (middle_low >> 32),
+    ]
 }
 
 /// Given a small (less than 8 byte slice) returns the same data stored in two u32s.
@@ -49,140 +94,191 @@ pub(crate) fn read_small(data: &[u8]) -> [u64; 2] {
     }
 }
 
+/// One AES encryption round of `value` (SubBytes, ShiftRows, MixColumns), then xor with `xor`.
+#[cfg(aes_hash)]
+#[allow(unused)]
 #[inline(always)]
-pub(crate) fn shuffle(a: u128) -> u128 {
+pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
     cfg_if::cfg_if! {
-        if #[cfg(all(target_feature = "ssse3", not(miri)))] {
-            #[cfg(target_arch = "x86")]
-            use core::arch::x86::*;
-            #[cfg(target_arch = "x86_64")]
-            use core::arch::x86_64::*;
-            unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(SHUFFLE_MASK))) }
-        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
-            use core::arch::aarch64::vqtbl1q_s8;
-            unsafe { transmute!(vqtbl1q_s8(transmute!(a), transmute!(SHUFFLE_MASK))) }
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe { transmute!(_mm_aesenc_si128(transmute!(value), transmute!(xor))) }
         } else {
-            a.swap_bytes()
-        }
-    }
-}
-
-#[allow(unused)] //not used by fallback
-#[inline(always)]
-pub(crate) fn add_and_shuffle(a: u128, b: u128) -> u128 {
-    let sum = add_by_64s(a.convert(), b.convert());
-    shuffle(sum.convert())
-}
-
-#[allow(unused)] //not used by fallback
-#[inline(always)]
-pub(crate) fn shuffle_and_add(base: u128, to_add: u128) -> u128 {
-    let shuffled: [u64; 2] = shuffle(base).convert();
-    add_by_64s(shuffled, to_add.convert()).convert()
-}
-
-#[inline(always)]
-pub(crate) fn add_by_64s(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
-    cfg_if::cfg_if! {
-        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
             unsafe {
-                #[cfg(target_arch = "x86")]
-                use core::arch::x86::*;
-                #[cfg(target_arch = "x86_64")]
-                use core::arch::x86_64::*;
-                transmute!(_mm_add_epi64(transmute!(a), transmute!(b)))
+                let round = vaesmcq_u8(vaeseq_u8(core::mem::transmute(value), core::mem::transmute(0_u128)));
+                core::mem::transmute(veorq_u8(round, core::mem::transmute(xor)))
             }
-        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
-            use core::arch::aarch64::vaddq_u64;
-            unsafe { transmute!(vaddq_u64(transmute!(a), transmute!(b))) }
-        } else {
-            [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])]
         }
     }
 }
 
+/// Returns the same as [aesenc], but `xor` is applied after the round, so the round can start before it is known.
+#[cfg(aes_hash)]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn aesenc_late(value: u128, xor: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe {
+                let round = _mm_aesenc_si128(transmute!(value), _mm_setzero_si128());
+                transmute!(_mm_xor_si128(round, transmute!(xor)))
+            }
+        } else {
+            // (ARM's [aesenc] already applies `xor` after the round.)
+            aesenc(value, xor)
+        }
+    }
+}
+
+/// One AES decryption round of `value` (InvShiftRows, InvSubBytes, InvMixColumns), then xor with `xor`.
+#[cfg(aes_hash)]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {
+            unsafe { transmute!(_mm_aesdec_si128(transmute!(value), transmute!(xor))) }
+        } else {
+            unsafe {
+                let round = vaesimcq_u8(vaesdq_u8(core::mem::transmute(value), core::mem::transmute(0_u128)));
+                core::mem::transmute(veorq_u8(round, core::mem::transmute(xor)))
+            }
+        }
+    }
+}
+
+/// Returns `a ^ b`, computed in a vector register where there is one.
+#[allow(unused)]
 #[inline(always)]
 pub(crate) fn xor(a: u128, b: u128) -> u128 {
     cfg_if::cfg_if! {
         if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
-            unsafe {
-                #[cfg(target_arch = "x86")]
-                use core::arch::x86::*;
-                #[cfg(target_arch = "x86_64")]
-                use core::arch::x86_64::*;
-                transmute!(_mm_xor_si128(transmute!(a), transmute!(b)))
-            }
+            unsafe { transmute!(_mm_xor_si128(transmute!(a), transmute!(b))) }
+        } else if #[cfg(any(all(target_arch = "aarch64", target_feature = "neon", not(miri)), all(target_arch = "arm", aes_hash)))] {
+            unsafe { core::mem::transmute(veorq_u8(core::mem::transmute(a), core::mem::transmute(b))) }
         } else {
             a ^ b
         }
     }
 }
 
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesenc_si128(value, transmute!(xor)))
+cfg_if::cfg_if! {
+    if #[cfg(vaes)] {
+        /// Returns `[aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]`.
+        #[allow(unused)]
+        #[inline(always)]
+        pub(crate) fn aesenc_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
+            unsafe { transmute!(_mm256_aesenc_epi128(transmute!(value), transmute!(xor))) }
+        }
+
+        /// Returns `[aesdec(value[0], xor[0]), aesdec(value[1], xor[1])]`.
+        #[allow(unused)]
+        #[inline(always)]
+        pub(crate) fn aesdec_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
+            unsafe { transmute!(_mm256_aesdec_epi128(transmute!(value), transmute!(xor))) }
+        }
+    } else if #[cfg(aes_hash)] {
+        /// Returns `[aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]`.
+        #[allow(unused)]
+        #[inline(always)]
+        pub(crate) fn aesenc_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
+            [aesenc(value[0], xor[0]), aesenc(value[1], xor[1])]
+        }
+
+        /// Returns `[aesdec(value[0], xor[0]), aesdec(value[1], xor[1])]`.
+        #[allow(unused)]
+        #[inline(always)]
+        pub(crate) fn aesdec_x2(value: [u128; 2], xor: [u128; 2]) -> [u128; 2] {
+            [aesdec(value[0], xor[0]), aesdec(value[1], xor[1])]
+        }
     }
 }
 
-#[cfg(all(target_arch = "aarch64", target_feature = "aes", not(miri)))]
+/// Returns the last 15 bytes of `value` followed by the first byte of `next`.
 #[allow(unused)]
 #[inline(always)]
-pub(crate) fn aesenc(value: u128, xor: u128) -> u128 {
-    use core::arch::aarch64::*;
-    unsafe { transmute!(vaesmcq_u8(vaeseq_u8(transmute!(value), transmute!(xor)))) }
-}
-
-#[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "aes", not(miri)))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
-    #[cfg(target_arch = "x86")]
-    use core::arch::x86::*;
-    #[cfg(target_arch = "x86_64")]
-    use core::arch::x86_64::*;
-    unsafe {
-        let value = transmute!(value);
-        transmute!(_mm_aesdec_si128(value, transmute!(xor)))
+pub(crate) fn shift_in_byte(value: u128, next: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe {
+                transmute!(_mm_or_si128(
+                    _mm_srli_si128(transmute!(value), 1),
+                    _mm_slli_si128(transmute!(next), 15)
+                ))
+            }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { transmute!(vextq_u8(transmute!(value), transmute!(next), 1)) }
+        } else {
+            let (value, next): ([u8; 16], [u8; 16]) = (value.convert(), next.convert());
+            let mut bytes = [0_u8; 16];
+            bytes[..15].copy_from_slice(&value[1..]);
+            bytes[15] = next[0];
+            bytes.convert()
+        }
     }
 }
 
-#[cfg(all(target_arch = "aarch64", target_feature = "aes", not(miri)))]
-#[allow(unused)]
-#[inline(always)]
-pub(crate) fn aesdec(value: u128, xor: u128) -> u128 {
-    use core::arch::aarch64::*;
-    unsafe { transmute!(vaesimcq_u8(vaesdq_u8(transmute!(value), transmute!(xor)))) }
-}
-
+/// Adds `len` to the first 64 bits of `enc`, wrapping. The other 64 bits are left as they are.
 #[allow(unused)]
 #[inline(always)]
 pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
-    #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))]
-    {
-        #[cfg(target_arch = "x86_64")]
-        use core::arch::x86_64::*;
-
-        unsafe {
-            let enc = enc as *mut u128;
-            let len = _mm_cvtsi64_si128(len as i64);
-            let data = _mm_loadu_si128(enc.cast());
-            let sum = _mm_add_epi64(data, len);
-            _mm_storeu_si128(enc.cast(), sum);
+    cfg_if::cfg_if! {
+        if #[cfg(all(target_arch = "x86_64", target_feature = "sse2", not(miri)))] {
+            unsafe {
+                let enc = enc as *mut u128;
+                let sum = _mm_add_epi64(_mm_loadu_si128(enc.cast()), _mm_cvtsi64_si128(len as i64));
+                _mm_storeu_si128(enc.cast(), sum);
+            }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { *enc = transmute!(vaddq_u64(transmute!(*enc), transmute!([len, 0_u64]))) }
+        } else {
+            let mut t: [u64; 2] = enc.convert();
+            t[0] = t[0].wrapping_add(len);
+            *enc = t.convert();
         }
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2", not(miri))))]
-    {
-        let mut t: [u64; 2] = enc.convert();
-        t[0] = t[0].wrapping_add(len);
-        *enc = t.convert();
+}
+
+/// Returns bytes 0, 4, 8, 12, 1, 5, 9 and 13 of `x`, in that order. Only where there is a byte shuffle.
+#[cfg(all(
+    aes_hash,
+    any(
+        all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "ssse3"),
+        target_arch = "aarch64"
+    )
+))]
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn spread_low64(x: u128) -> u64 {
+    cfg_if::cfg_if! {
+        if #[cfg(target_arch = "aarch64")] {
+            unsafe {
+                let order = vld1q_u8([0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15].as_ptr());
+                vgetq_lane_u64(vreinterpretq_u64_u8(vqtbl1q_u8(transmute!(x), order)), 0)
+            }
+        } else {
+            unsafe {
+                let order = _mm_set_epi8(15, 11, 7, 3, 14, 10, 6, 2, 13, 9, 5, 1, 12, 8, 4, 0);
+                let spread: [u64; 2] = transmute!(_mm_shuffle_epi8(transmute!(x), order));
+                spread[0]
+            }
+        }
+    }
+}
+
+/// Adds each 64 bit half of `a` to the same half of `b`, wrapping.
+#[allow(unused)]
+#[inline(always)]
+pub(crate) fn add_by_64s(a: u128, b: u128) -> u128 {
+    cfg_if::cfg_if! {
+        if #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"), target_feature = "sse2", not(miri)))] {
+            unsafe { transmute!(_mm_add_epi64(transmute!(a), transmute!(b))) }
+        } else if #[cfg(all(target_arch = "aarch64", target_feature = "neon", not(miri)))] {
+            unsafe { transmute!(vaddq_u64(transmute!(a), transmute!(b))) }
+        } else {
+            let a: [u64; 2] = a.convert();
+            let b: [u64; 2] = b.convert();
+            [a[0].wrapping_add(b[0]), a[1].wrapping_add(b[1])].convert()
+        }
     }
 }
 
@@ -190,181 +286,36 @@ pub(crate) fn add_in_length(enc: &mut u128, len: u64) {
 mod test {
     use super::*;
 
-    // This is code to search for the shuffle constant
-    //
-    //thread_local! { static MASK: Cell<u128> = Cell::new(0); }
-    //
-    // fn shuffle(a: u128) -> u128 {
-    //     use std::intrinsics::transmute;
-    //     #[cfg(target_arch = "x86")]
-    //     use core::arch::x86::*;
-    //     #[cfg(target_arch = "x86_64")]
-    //     use core::arch::x86_64::*;
-    //     MASK.with(|mask| {
-    //         unsafe { transmute!(_mm_shuffle_epi8(transmute!(a), transmute!(mask.get()))) }
-    //     })
-    // }
-    //
-    // #[test]
-    // fn find_shuffle() {
-    //     use rand::prelude::*;
-    //     use SliceRandom;
-    //     use std::panic;
-    //     use std::io::Write;
-    //
-    //     let mut value: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ,13, 14, 15];
-    //     let mut rand = thread_rng();
-    //     let mut successful_list = HashMap::new();
-    //     for _attempt in 0..10000000 {
-    //         rand.shuffle(&mut value);
-    //         let test_val = value.convert();
-    //         MASK.with(|mask| {
-    //             mask.set(test_val);
-    //         });
-    //         if let Ok(successful) = panic::catch_unwind(|| {
-    //             test_shuffle_does_not_collide_with_aes();
-    //             test_shuffle_moves_high_bits();
-    //             test_shuffle_moves_every_value();
-    //             //test_shuffle_does_not_loop();
-    //             value
-    //         }) {
-    //             let successful: u128 = successful.convert();
-    //             successful_list.insert(successful, iters_before_loop());
-    //         }
-    //     }
-    //     let write_file = File::create("/tmp/output").unwrap();
-    //     let mut writer = BufWriter::new(&write_file);
-    //
-    //     for success in successful_list {
-    //         writeln!(writer, "Found successful: {:x?} - {:?}", success.0, success.1);
-    //     }
-    // }
-    //
-    // fn iters_before_loop() -> u32 {
-    //     let numbered = 0x00112233_44556677_8899AABB_CCDDEEFF;
-    //     let mut shuffled = shuffle(numbered);
-    //     let mut count = 0;
-    //     loop {
-    //         // println!("{:>16x}", shuffled);
-    //         if numbered == shuffled {
-    //             break;
-    //         }
-    //         count += 1;
-    //         shuffled = shuffle(shuffled);
-    //     }
-    //     count
-    // }
-
-    #[cfg(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "ssse3",
-        target_feature = "aes",
-        not(miri)
-    ))]
+    #[cfg(aes_hash)]
     #[test]
-    fn test_shuffle_does_not_collide_with_aes() {
-        let mut value: [u8; 16] = [0; 16];
-        let zero_mask_enc = aesenc(0, 0);
-        let zero_mask_dec = aesdec(0, 0);
-        for index in 0..16 {
-            value[index] = 1;
-            let excluded_positions_enc: [u8; 16] = aesenc(value.convert(), zero_mask_enc).convert();
-            let excluded_positions_dec: [u8; 16] = aesdec(value.convert(), zero_mask_dec).convert();
-            let actual_location: [u8; 16] = shuffle(value.convert()).convert();
-            for pos in 0..16 {
-                if actual_location[pos] != 0 {
-                    assert_eq!(
-                        0, excluded_positions_enc[pos],
-                        "Forward Overlap between {:?} and {:?} at {}",
-                        excluded_positions_enc, actual_location, index
-                    );
-                    assert_eq!(
-                        0, excluded_positions_dec[pos],
-                        "Reverse Overlap between {:?} and {:?} at {}",
-                        excluded_positions_dec, actual_location, index
-                    );
-                }
-            }
-            value[index] = 0;
+    fn test_aes_variants_agree() {
+        let mut x = 1_u128;
+        let mut next = || {
+            x = x.wrapping_mul(0x2360_ed05_1fc6_5da4_4385_df64_9fcc_f645) + 1;
+            x ^ (x >> 64)
+        };
+        for _ in 0..1000 {
+            let (value, xor) = ([next(), next()], [next(), next()]);
+            assert_eq!(aesenc(value[0], xor[0]), aesenc_late(value[0], xor[0]));
+            assert_eq!(
+                [aesenc(value[0], xor[0]), aesenc(value[1], xor[1])],
+                aesenc_x2(value, xor)
+            );
+            assert_eq!(
+                [aesdec(value[0], xor[0]), aesdec(value[1], xor[1])],
+                aesdec_x2(value, xor)
+            );
         }
     }
 
     #[test]
-    fn test_shuffle_contains_each_value() {
-        let value: [u8; 16] = 0x00010203_04050607_08090A0B_0C0D0E0F_u128.convert();
-        let shuffled: [u8; 16] = shuffle(value.convert()).convert();
-        for index in 0..16_u8 {
-            assert!(shuffled.contains(&index), "Value is missing {}", index);
-        }
-    }
-
-    #[test]
-    fn test_shuffle_moves_every_value() {
-        let mut value: [u8; 16] = [0; 16];
-        for index in 0..16 {
-            value[index] = 1;
-            let shuffled: [u8; 16] = shuffle(value.convert()).convert();
-            assert_eq!(0, shuffled[index], "Value is not moved {}", index);
-            value[index] = 0;
-        }
-    }
-
-    #[test]
-    fn test_shuffle_moves_high_bits() {
-        assert!(
-            shuffle(1) > (1_u128 << 80),
-            "Low bits must be moved to other half {:?} -> {:?}",
-            0,
-            shuffle(1)
+    fn test_shift_in_byte() {
+        let value = u128::from_ne_bytes([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+        let next = u128::from_ne_bytes([16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]);
+        assert_eq!(
+            shift_in_byte(value, next).to_ne_bytes(),
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
         );
-
-        assert!(
-            shuffle(1_u128 << 58) >= (1_u128 << 64),
-            "High bits must be moved to other half {:?} -> {:?}",
-            7,
-            shuffle(1_u128 << 58)
-        );
-        assert!(
-            shuffle(1_u128 << 58) < (1_u128 << 112),
-            "High bits must not remain high {:?} -> {:?}",
-            7,
-            shuffle(1_u128 << 58)
-        );
-        assert!(
-            shuffle(1_u128 << 64) < (1_u128 << 64),
-            "Low bits must be moved to other half {:?} -> {:?}",
-            8,
-            shuffle(1_u128 << 64)
-        );
-        assert!(
-            shuffle(1_u128 << 64) >= (1_u128 << 16),
-            "Low bits must not remain low {:?} -> {:?}",
-            8,
-            shuffle(1_u128 << 64)
-        );
-
-        assert!(
-            shuffle(1_u128 << 120) < (1_u128 << 50),
-            "High bits must be moved to low half {:?} -> {:?}",
-            15,
-            shuffle(1_u128 << 120)
-        );
-    }
-
-    #[cfg(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "ssse3",
-        not(miri)
-    ))]
-    #[test]
-    fn test_shuffle_does_not_loop() {
-        let numbered = 0x00112233_44556677_8899AABB_CCDDEEFF;
-        let mut shuffled = shuffle(numbered);
-        for count in 0..100 {
-            // println!("{:>16x}", shuffled);
-            assert_ne!(numbered, shuffled, "Equal after {} vs {:x}", count, shuffled);
-            shuffled = shuffle(shuffled);
-        }
     }
 
     #[test]
